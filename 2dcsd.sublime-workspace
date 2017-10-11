@@ -1,0 +1,423 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"al",
+				"alpha"
+			],
+			[
+				"Imax",
+				"Imaxg"
+			],
+			[
+				"pNa",
+				"pNaLeak"
+			],
+			[
+				"PET",
+				"PETSC_COMM_WORLD"
+			],
+			[
+				"Ch",
+				"CHKERRQ"
+			],
+			[
+				"PETSC",
+				"PETSC_TRUE"
+			],
+			[
+				"b",
+				"b"
+			],
+			[
+				"KSPS",
+				"KSPSetType"
+			],
+			[
+				"num",
+				"num_solvs"
+			],
+			[
+				"Petsc_",
+				"PETSC_TRUE"
+			],
+			[
+				"Matr",
+				"Read_Matrix"
+			],
+			[
+				"Petsc",
+				"PetscScalar"
+			],
+			[
+				"N",
+				"Nv"
+			],
+			[
+				"CHE",
+				"CHKERRQ"
+			],
+			[
+				"j",
+				"j"
+			],
+			[
+				"Ass",
+				"Assemble_Index"
+			],
+			[
+				"PETSc",
+				"PETSC_DIR"
+			],
+			[
+				"pr",
+				"protein"
+			],
+			[
+				"Function",
+				"FunctionSpace"
+			],
+			[
+				"uh",
+				"uhold"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "makefile",
+			"settings":
+			{
+				"buffer_size": 836,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "constants.h",
+			"settings":
+			{
+				"buffer_size": 6542,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "functions.h",
+			"settings":
+			{
+				"buffer_size": 108,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "csd_main.c",
+			"settings":
+			{
+				"buffer_size": 3862,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "initialize.c",
+			"settings":
+			{
+				"buffer_size": 9384,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/Users/Austin/Documents/C_Progs/Tests/test_mat.c",
+		"/Users/Austin/Documents/C_Progs/2d_CSD/makefile",
+		"/Users/Austin/Documents/C_Progs/Tests/makefile",
+		"/Users/Austin/Documents/C_Progs/Tests/read_matrix.c",
+		"/Users/Austin/Documents/C_Progs/Tests/test_mat.txt",
+		"/Users/Austin/Documents/C_Progs/Tests/crash_test.c",
+		"/Users/Austin/Documents/C_Progs/Tests/petsc_spy.c",
+		"/Users/Austin/Documents/C_Progs/petsc-3.7.7/src/ksp/ksp/examples/tutorials/ex50.c",
+		"/Users/Austin/Documents/C_Progs/petsc-3.7.7/src/ksp/ksp/examples/tutorials/makefile",
+		"/Users/Austin/Documents/C_Progs/petsc-3.7.7/src/ksp/ksp/examples/tutorials/ex50.c.html",
+		"/Users/Austin/Documents/Minnesota/Mori_work/Notes/FHN_timestep/FHN_ex.bib",
+		"/Users/Austin/Downloads/0001870878900750.bib",
+		"/Users/Austin/Documents/Julia_work/2d_modules/output.svg",
+		"/Users/Austin/Dropbox/GripsMedLab16/Results/Gen_ColData/ColNumGen.py",
+		"/Users/Austin/Dropbox/GripsMedLab16/Datasets/Gene_ProteinTable/genes_to_ids.py",
+		"/Users/Austin/Dropbox/GripsMedLab16/Datasets/Gene_ProteinTable/gid_to_pid.py",
+		"/Users/Austin/Dropbox/GripsMedLab16/Datasets/Gene_ProteinTable/build_network.py",
+		"/Users/Austin/Dropbox/GripsMedLab16/Datasets/Gene_ProteinTable/G_to_P.py",
+		"/Users/Austin/Dropbox/GripsMedLab16/Software/Gen_el_net/Gen_el_rna.R",
+		"/Users/Austin/Documents/R/B.csv",
+		"/Users/Austin/Documents/Minnesota/Spring/numerical/hw8/annul.py",
+		"/Users/Austin/Documents/Minnesota/Spring/numerical/h_dog.py"
+	],
+	"find":
+	{
+		"height": 35.0
+	},
+	"find_in_files":
+	{
+		"height": 93.0,
+		"where_history":
+		[
+			""
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"const",
+			"#",
+			"ksp",
+			"MatView",
+			"unused"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"static const",
+			"//",
+			"",
+			"//"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 3,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "makefile",
+					"settings":
+					{
+						"buffer_size": 836,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								614,
+								599
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Makefile/Makefile.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "constants.h",
+					"settings":
+					{
+						"buffer_size": 6542,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								6276,
+								6276
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 1705.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "functions.h",
+					"settings":
+					{
+						"buffer_size": 108,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								94,
+								94
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "csd_main.c",
+					"settings":
+					{
+						"buffer_size": 3862,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								441,
+								441
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 40.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "initialize.c",
+					"settings":
+					{
+						"buffer_size": 9384,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								9384,
+								9384
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 2395.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 0.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 100.0
+	},
+	"replace":
+	{
+		"height": 64.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+			[
+				"",
+				"/Users/Austin/Documents/Minnesota/Spring/numerical/sing_pert_shish.py"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 150.0,
+	"status_bar_visible": true
+}
