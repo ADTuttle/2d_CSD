@@ -17,10 +17,12 @@ csd:
 	gcc -O3 -o csd_main.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/csd_main.c
 	gcc -O3 -o initialize.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/initialize.c
 	gcc -O3 -o ion_channel.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/ion_channel.c
+	gcc -O3 -o array_function.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/array_functions.c
 
-	gcc -O3 $(LFlags)   -o csd initialize.o csd_main.o ion_channel.o $(Linker) -lpetsc -lf2clapack -lf2cblas -lX11 -ldl 
 
-	rm csd_main.o initialize.o ion_channel.o
+	gcc -O3 $(LFlags)   -o csd initialize.o csd_main.o ion_channel.o array_function.o $(Linker) -lpetsc -lf2clapack -lf2cblas -lX11 -ldl 
+
+	rm csd_main.o initialize.o ion_channel.o array_function.o
 
 ex1: ex1.o  chkopts
 	-${CLINKER} -o ex1 ex1.o  ${PETSC_KSP_LIB}

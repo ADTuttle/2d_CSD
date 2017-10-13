@@ -8,6 +8,7 @@ static const int use_direct_solve = 0; //if true, will use gmres instead of dire
 static const int details = 1; //if true, will show how many iterations were necessary for each newton solve, and the residual
 static const int krecordfreq = 10; //determines how many time steps to run before recording the state variables
 static const int two_points_exct = 0;   //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
+static const int savefreq = 500;
 
 //basic ion static constants
 static const   int Ni = 3;            //number of ion species (Na, K, Cl)
@@ -27,18 +28,20 @@ static const  int  Nc = 3;            //number of compartments
 // static const  int  Nx = 50;
 // static const  int  Ny = 50;
 static const int   Nx = 5;
-static const  int  Ny = 5;
-static const  double  dx = 0.01;        //grid size in x direction (in cm)
+static const int  Ny = 5;
+static const double  dx = 0.01;        //grid size in x direction (in cm)
 static const double   dy = 0.01;        //grid size in y direction (in cm)
-static const  double  Lx = Nx*dx;          //width of domain in cm (x)
-static const  double  Ly = Ny*dy;         //length of domain in cm (y)
-static const  int  Nt = (int)Time/dt;     //total number of time steps
+static const double  Lx = Nx*dx;          //width of domain in cm (x)
+static const double  Ly = Ny*dy;         //length of domain in cm (y)
+static const int  Nt = (int)Time/dt;     //total number of time steps
 
 //Newton solve parameters
-static const  int  Nv = (Ni+2)*Nc-1;  //number of variables to be solved for at each grid point
-static const  int  NA = Nx*Ny*Nv;     //total number of unknowns
-static const  int  itermax = 10;      //maximum Newton iterations allowed
-static const  double  reltol = 1e-11;    //relative tolerance
+static const int  Nv = (Ni+2)*Nc-1;  //number of variables to be solved for at each grid point
+static const int  NA = Nx*Ny*Nv;     //total number of unknowns
+static const int Nz = Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny);
+
+static const int  itermax = 10;      //maximum Newton iterations allowed
+static const double  reltol = 1e-11;    //relative tolerance
 
 
 //physical static constants
@@ -81,7 +84,7 @@ static const double sa = 1.586e-5;           //membrane area in cm^2
 static const double voli = 2.16e-9;          //intracellular volume in cm^3
 static const double vole = 0.15*voli;        //extracellular volume
 static const double ell = (voli+vole)/sa;    //average membrane separation in cm
-static const double cm = cmt*RTFC/FC/ell;     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
+static const double cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
@@ -146,6 +149,19 @@ struct GateType{
 	double hKA[Nx*Ny];
 	double gKA[Nx*Ny];
 };
+struct GatePoint{
+	double mNaT;
+	double hNaT;
+	double gNaT;
+	double mNaP;
+	double hNaP;
+	double gNaP;
+	double mKDR;
+	double gKDR;
+	double mKA;
+	double hKA;
+	double gKA;
+};
 
 struct ExctType{
 	double pNa[Nx*Ny];
@@ -153,6 +169,20 @@ struct ExctType{
 	double pCl[Nx*Ny];
 };
 
+struct ConstVars{
+	double pNaKCl;
+	double Imax;
+	double pNaLeak;
+	double Imaxg;
+	double pNaLeakg;
+	double ao[Nc];
+	double zo[Nc];
+	double kappa;
+	double zeta1[Nc-1];
+	int S; //boolean
+	double zetaalpha[Nc-1];
+};
+/*
 struct ConstVars{
 	double pNaKCl;
 	double Imax[Nx*Ny];
@@ -166,6 +196,7 @@ struct ConstVars{
 	int S; //boolean
 	double zetaalpha[Nx*Ny];
 };
+*/
 
 
 

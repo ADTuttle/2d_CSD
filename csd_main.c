@@ -15,35 +15,35 @@ int main(int argc, char **argv)
     //Initialize
     init(state_vars);
 
-    printf("%f,%f,%f\n",state_vars->c[0],state_vars->phi[10],state_vars->alpha[25]);
+    printf("Init Value: c: %f,ph: %f,al: %f\n",state_vars->c[0],state_vars->phi[10],state_vars->alpha[25]);
 
     //Create the constant ion channel vars
     struct ConstVars *con_vars;
     con_vars=(struct ConstVars*)malloc(sizeof(struct ConstVars));
-    
+
+    //Create the gating variables
+    struct GateType *gate_vars;
+    gate_vars = (struct GateType*) malloc(sizeof(struct GateType));
     //Set the constant variables
-    set_params(state_vars,con_vars);
+    set_params(state_vars,con_vars,gate_vars);
 
+    printf("Initialization Routine\n");
+    PetscInt *row = malloc(Nz*sizeof(PetscInt));
+  	PetscInt *col = malloc(Nz*sizeof(PetscInt));
+  	PetscScalar *vals =malloc(Nz*sizeof(PetscScalar));
+	
+	Assemble_Index(row,col);
 
+	//Run Initialization routine to get to steady state
+	initialize_data(state_vars,gate_vars,con_vars);
 
-
-
+    //Free memory
+    free(state_vars);free(con_vars);free(gate_vars);
+    free(row);free(col);free(vals);
     return 0;
 }
 
 /*
-state_vars = SimState(c0, phi0, alpha0)
-(state_vars,con_vars) = set_params(state_vars)
-krecord = false #true/false which determines whether or not to record values at any given time step
-savefreq = 500
-println("Initialization Routine")
-global sIndex=sparseindex_1()
-bIndex_x=bandindex_x()
-bIndex_y=bandindex_y()
-permute_x_to_y(Nx,Ny,Nv) #generate permutation matrix in Iterative_solver
-F=numerical.F_1
-J=numerical.J_1
-initialdata = initdata
 state_vars, gvars, stoptest = initialdata(state_vars, F, J)
 gexct = exct(0)
 numrecords = convert(Int64,floor(Nt/krecordfreq) + 1) #number of times to record values

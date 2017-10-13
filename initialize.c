@@ -1,21 +1,30 @@
 #include "constants.h"
 #include "functions.h"
 
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 
-int c_index(x,y,comp,ion)
+int c_index(int x,int y,int comp,int ion)
 {
 	return Nc*Ni* (Nx * y + x) + comp*Ni+ion; 
 }
-int phi_index(x,y,comp)
+int phi_index(int x,int y,int comp)
 {
 	return Nc* (Nx * y + x) + comp; 
 }
-int al_index(x,y,comp)
+int al_index(int x,int y,int comp)
 {
 	return (Nc-1)* (Nx * y + x) + comp; 
+}
+int xy_index(int x,int y)
+{
+	return Nx*y+x;
+}
+int Ind_1(int x,int y,int ion,int comp)
+{
+  return Nv*(Nx*y+x)+ion*Nc+comp;
 }
 
 
@@ -47,7 +56,7 @@ void init(struct SimState *state_vars)
 	}
 }
 
-void set_params(struct SimState* state_vars,struct ConstVars* con_vars)
+void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct GateType* gate_vars)
 {
 	//Everything that follows will asume spatially uniform
 	//At rest state
@@ -87,198 +96,712 @@ void set_params(struct SimState* state_vars,struct ConstVars* con_vars)
     flux = (struct FluxPoint*)malloc(sizeof(struct FluxPoint));
 
     //compute cotransporter permeability so that glial Cl is at rest
-    mclin(flux,pClLeakg,-1,c[c_index(0,0,1,2)],c[c_index(0,0,2,2)],vmg,c_index(0,0,1,2));
+    mclin(flux,c_index(0,0,1,2),pClLeakg,-1,c[c_index(0,0,1,2)],c[c_index(0,0,2,2)],vmg,0);
     con_vars->pNaKCl = -flux->mflux[c_index(0,0,1,2)]/2/log(c[c_index(0,0,1,0)]*c[c_index(0,0,2,2)]*c[c_index(0,0,1,2)]*c[c_index(0,0,1,2)]/(c[c_index(0,0,2,0)]*c[c_index(0,0,2,1)]*c[c_index(0,0,2,2)]*c[c_index(0,0,2,2)]));
+    double NaKCl = -flux->mflux[c_index(0,0,1,2)]/2;
+
+    //compute gating variables
+    gatevars_update(gate_vars,state_vars,1);
+
+    //compute K channel currents (neuron)
+    double pKGHK = pKDR*gate_vars->gKDR[0]+pKA*gate_vars->gKA[0];
+    //Initialize the KGHK flux
+    mcGoldman(flux,c_index(0,0,0,1),pKGHK,1,c[c_index(0,0,0,1)],c[c_index(0,0,Nc-1,1)],vm,0);
+    //Add the KLeak flux to it
+    mclin(flux,c_index(0,0,0,1),pKLeak,1,c[c_index(0,0,0,1)],c[c_index(0,0,Nc-1,1)],vm,1);
+
+    //compute neuronal ATPase value
+    con_vars->Imax = flux->mflux[c_index(0,0,0,1)]*(pow(1+mK/c[c_index(0,0,Nc-1,1)],2)*pow(1+mNa/c[c_index(0,0,0,0)],3))/2;
 
 
+    //compute neuronal sodium currents and leak permeability value
+    double pNaGHK = pNaT*gate_vars->gNaT[0]+pNaP*gate_vars->gNaP[0];
+    mcGoldman(flux,c_index(0,0,0,0),pNaGHK,1,c[c_index(0,0,0,0)],c[c_index(0,0,Nc-1,0)],vm,0);
+    double Ipump = npump*con_vars->Imax/(pow((1+mK/c[c_index(0,0,Nc-1,1)]),2)*pow((1+mNa/c[c_index(0,0,0,0)]),3));
+    con_vars->pNaLeak = (-flux->mflux[c_index(0,0,0,0)]-3*Ipump)/(log(c[c_index(0,0,0,0)]/c[c_index(0,0,Nc-1,0)])+vm);
+
+    //compute K channel currents (glial)
+    double pKLinG = pKIR*inwardrect(c[c_index(0,0,1,1)],c[c_index(0,0,Nc-1,1)],vmg)*pKLeakadjust;
+    mclin(flux,c_index(0,0,1,1),pKLinG,1,c[c_index(0,0,1,1)],c[c_index(0,0,Nc-1,1)],vmg,0);
+    flux->mflux[c_index(0,0,1,1)] += NaKCl;
+
+    //compute glial ATPase value
+    con_vars->Imaxg = flux->mflux[c_index(0,0,1,1)]*pow((1+mK/c[c_index(0,0,Nc-1,1)]),2)*pow((1+mNa/c[c_index(0,0,1,0)]),3)/2;
+
+    //compute glial sodium current and leak permeability value
+    double Ipumpg = glpump*con_vars->Imaxg/(pow((1+mK/c[c_index(0,0,Nc-1,1)]),2)*pow((1+mNa/c[c_index(0,0,1,0)]),3));
+    con_vars->pNaLeakg = (-NaKCl-3*Ipumpg)/(log(c[c_index(0,0,1,0)]/c[c_index(0,0,Nc-1,0)])+vmg);
+
+    //Compute resting organic anion amounts and average valences
+    //set extracellular organic anion amounts and valence to ensure electroneutrality
+    con_vars->ao[Nc-1] = 5e-4;
+    double cmphi[Nc];
+    double osmotic;
+    for(int k=0;k<Nc-1;k++)
+    {
+      cmphi[k] = cm[k]*(phi[k]-phi[Nc-1]);
+      cmphi[Nc-1] += cmphi[k];
+      //set intracellular organic anion amounts to ensure osmotic pressure balance
+      osmotic=0;
+      for(int ion=0;ion<Ni;ion++)
+      {
+      	osmotic += c[c_index(0,0,Nc-1,ion)]-c[c_index(0,0,k,ion)];
+      }
+      con_vars->ao[k] = alpha[k]*(con_vars->ao[Nc-1]/alpha[Nc-1]+osmotic);
+      //set average valence to ensure electroneutrality
+      con_vars->zo[k] = (-cz(c,z,0,0,k)*alpha[k]+cmphi[k])/con_vars->ao[k];
+    }
+    con_vars->zo[Nc-1] = (-cz(c,z,0,0,Nc-1)*alpha[Nc-1]-cmphi[Nc-1])/con_vars->ao[Nc-1];
+    //Copy the point data to vectors.
+    //Only needed for uniform data
+    for(int x=0;x<Nx;x++)
+    {
+    	for(int y=0;y<Ny;y++)
+    	{
+    		//Gating variables (already set in gatevars_update)
+    		//We changed c_index(0,0,0/1,2), neuronal/glial Cl.
+    		state_vars->c[c_index(x,y,0,2)] = c[c_index(0,0,0,2)];
+    		state_vars->c[c_index(x,y,1,2)] = c[c_index(0,0,1,2)];
+    	}
+    }
+
+    //Set kappa to 0 for no flow
+    con_vars->kappa = 0;
+
+ 	//parameters for osmotic water flow
+  	
+	 double zetaadjust = 1; //modify glial permeability  
+  	for(int comp=0;comp<Nc-1;comp++)
+  	{
+  		//based on B.E. Shapiro dissertation (2000) 
+  		con_vars->zeta1[comp] = 5.4e-5;  //hydraulic permeability in cm/sec/(mmol/cm^3)
+	  	con_vars->zeta1[comp] /= ell;  //conversion to 1/sec/(mmol/cm^3)
+	    //based on Strieter, Stephenson, Palmer,
+	  	//Weinstein, Journal or General Physiology, 1990.
+	  	//zeta=7e-8%6e-10%hydraulic permeability in cm/sec/mmHg
+	  	//zeta=zeta*7.501e-6%conversion to cm/sec/mPa
+	  	//zeta=zeta*R*T%conversion to cm/sec/(mmol/cm^3)
+	  	//zeta=zeta/ell%conversion to 1/sec/(mmol/cm^3)
+	  	if(comp==1)
+	  	{          //parameter for varying glial hydraulic permeability
+	  		con_vars->zeta1[comp] *= zetaadjust; //adjust glial hydraulic permeability
+	  	}
+	  	con_vars->zetaalpha[comp] = 0;  //stiffness constant or 1/stiffness constant
+  	}
+
+    con_vars->S = 1;  //Indicates whether zetaalpha is the stiffness (true) or 1/stiffness (false)
+
+
+
+    free(flux);
     return;
 }
-/*
-function set_params(state_vars)
-  #Set remaining membrane parameters either arbitrarily or so that the system is at rest - need to turn this into a
-  #function producing global constants and make sure it is called first in main routine
-  if rest_state
-    #if spatially uniform, reduce to one spatial point for computational simplicity
-    if spatially_uniform
-      phi = state_vars.phi[1,1,:]
-      c = state_vars.c[1,1,:,:]
-      alpha = state_vars.alpha[1,1,:]
-      fluxdata = zeros(1,1,Ni,Nc-1,4)
-    else
-      phi = copy(state_vars.phi)
-      c = copy(state_vars.c)
-      alpha = copy(state_vars.alpha)
-      fluxdata = zeros(Nx,Ny,Ni,Nc-1,4)
-    end
-    vm = phi[:,:,1]-phi[:,:,Nc] #neuronal membrane potential
-    vmg = phi[:,:,2]-phi[:,:,Nc] #glial membrane potential
+void Assemble_Index(PetscInt *row,PetscInt *col)
+{
+  int ind=0;
+  for (int x=0;x<Nx-1;x++)
+  {
+    // Not include the bottom most row
+    for(int y=0;y<Ny-1;y++)
+    {
+      //ionic concentration equations
+      for (int ion = 0 ; ion<Ni; ion++)
+      {
+        for (int k = 0; k<Nc;k++)
+        {
+        // Left and right terms
+          // Right c with left c
+          row[ind] = Ind_1(x+1,y,ion,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+          //left c with right c
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x+1,y,ion,k);
+          ind++;
+          //Right c with left phi
+          row[ind] = Ind_1(x+1,y,ion,k);
+          col[ind] = Ind_1(x,y,Ni,k);
+          ind++;
+          //Left c with right phi
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x+1,y,Ni,k);
+          ind++;
+        //Upper and Lower terms
+          // Upper c with lower c
+          row[ind] = Ind_1(x,y+1,ion,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+          //Upper c with lower c
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y+1,ion,k);
+          ind++;
+          //Upper c with lower phi
+          row[ind] = Ind_1(x,y+1,ion,k);
+          col[ind] = Ind_1(x,y,Ni,k);
+          ind++;
+          //Upper c with lower phi
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y+1,Ni,k);
+          ind++;
+        }
+        for (int k = 0; k<Nc-1;k++)
+        {
+        // Different Compartment Terms
+          // C Extracellular with C Inside
+          row[ind] = Ind_1(x,y,ion,Nc-1);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+          // C Intra with C Extra
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,ion,Nc-1);
+          ind++;
+          // C Extracellular with Phi Inside
+          row[ind] = Ind_1(x,y,ion,Nc-1);
+          col[ind] = Ind_1(x,y,Ni,k);
+          ind++;
+          // C Intra with Phi Extra
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,Ni,Nc-1);
+          ind++;
+        //Volume terms
+          //C extra with intra alpha
+          row[ind] = Ind_1(x,y,ion,Nc-1);
+          col[ind] = Ind_1(x,y,Ni+1,k);
+          ind++;
+          //C intra with intra alpha
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,Ni+1,k);
+          ind++;
+        }
+        for (int k=0; k<Nc; k++)
+        {
+        //Same Compartment Terms
+          // c with c
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+          // c with phi
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,Ni,k);
+          ind++;
+        }
+      }
+    //Charge-Capacitance Relation
+      //Phi with C entries
+      for (int k= 0; k<Nc; k++)
+      {
+        for (int ion=0; ion<Ni; ion++)
+        {
+          row[ind] = Ind_1(x,y,Ni,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+        }
+      }
+      // Extra phi with extra phi
+      row[ind] = Ind_1(x,y,Ni,Nc-1);
+      col[ind] = Ind_1(x,y,Ni,Nc-1);
+      ind++;
+      for (int k=0; k<Nc-1; k++)
+      {
+        //Extra phi with intra phi
+        row[ind] = Ind_1(x,y,Ni,Nc-1);
+        col[ind] = Ind_1(x,y,Ni,k);
+        ind++;
+        // Intra phi with Extraphi
+        row[ind] = Ind_1(x,y,Ni,k);
+        col[ind] = Ind_1(x,y,Ni,Nc-1);
+        ind++;
+        //Intra phi with Intra phi
+        row[ind] = Ind_1(x,y,Ni,k);
+        col[ind] = Ind_1(x,y,Ni,k);
+        ind++;
+        //Extra phi with intra-Volume
+        row[ind] = Ind_1(x,y,Ni,Nc-1);
+        col[ind] = Ind_1(x,y,Ni+1,k);
+        ind++;
+        //Intra phi with Intra Vol
+        row[ind] = Ind_1(x,y,Ni,k);
+        col[ind] = Ind_1(x,y,Ni+1,k);
+        ind++;
+      }
+    //Volume entires
+      for (int k=0; k <Nc-1; k++)
+      {
+        //Volume to Volume
+        row[ind] = Ind_1(x,y,Ni+1,k);
+        col[ind] = Ind_1(x,y,Ni+1,k);
+        ind++;
+        //Off diagonal (from aNc=1-sum(ak))
+        for (int l=0; l<k; l++)
+        {
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,Ni+1,l);
+          ind++; 
+        }
+        for (int l=k+1; l<Nc-1; l++)
+        {
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,Ni+1,l);
+          ind++; 
+        }
+        for (int ion=0; ion<Ni; ion++)
+        {
+          //Volume to extra c
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,ion,Nc-1);
+          ind++;
+          //Volume to intra c
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+        }
+      }
+    }
+  }
+  
+  //Top Boundary inclusion
+  int y=Ny-1;
+  for (int x=0;x<Nx-1;x++)
+  {
+     //ionic concentration equations
+      for (int ion = 0 ; ion<Ni; ion++)
+      {
+        for (int k = 0; k<Nc;k++)
+        {
+        // Left and right terms
+          // Right c with left c
+          row[ind] = Ind_1(x+1,y,ion,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+          //left c with right c
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x+1,y,ion,k);
+          ind++;
+          //Right c with left phi
+          row[ind] = Ind_1(x+1,y,ion,k);
+          col[ind] = Ind_1(x,y,Ni,k);
+          ind++;
+          //Left c with right phi
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x+1,y,Ni,k);
+          ind++;
+        }
+        for (int k = 0; k<Nc-1;k++)
+        {
+        // Different Compartment Terms
+          // C Extracellular with C Inside
+          row[ind] = Ind_1(x,y,ion,Nc-1);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+          // C Intra with C Extra
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,ion,Nc-1);
+          ind++;
+          // C Extracellular with Phi Inside
+          row[ind] = Ind_1(x,y,ion,Nc-1);
+          col[ind] = Ind_1(x,y,Ni,k);
+          ind++;
+          // C Intra with Phi Extra
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,Ni,Nc-1);
+          ind++;
+        //Volume terms
+          //C extra with intra alpha
+          row[ind] = Ind_1(x,y,ion,Nc-1);
+          col[ind] = Ind_1(x,y,Ni+1,k);
+          ind++;
+          //C intra with intra alpha
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,Ni+1,k);
+          ind++;
+        }
+        for (int k=0; k<Nc; k++)
+        {
+        //Same Compartment Terms
+          // c with c
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+          // c with phi
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,Ni,k);
+          ind++;
+        }
+      }
+    //Charge-Capacitance Relation
+      //Phi with C entries
+      for (int k= 0; k<Nc; k++)
+      {
+        for (int ion=0; ion<Ni; ion++)
+        {
+          row[ind] = Ind_1(x,y,Ni,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+        }
+      }
+      // Extra phi with extra phi
+      row[ind] = Ind_1(x,y,Ni,Nc-1);
+      col[ind] = Ind_1(x,y,Ni,Nc-1);
+      ind++;
+      for (int k=0; k<Nc-1; k++)
+      {
+        //Extra phi with intra phi
+        row[ind] = Ind_1(x,y,Ni,Nc-1);
+        col[ind] = Ind_1(x,y,Ni,k);
+        ind++;
+        // Intra phi with Extraphi
+        row[ind] = Ind_1(x,y,Ni,k);
+        col[ind] = Ind_1(x,y,Ni,Nc-1);
+        ind++;
+        //Intra phi with Intra phi
+        row[ind] = Ind_1(x,y,Ni,k);
+        col[ind] = Ind_1(x,y,Ni,k);
+        ind++;
+        //Extra phi with intra-Volume
+        row[ind] = Ind_1(x,y,Ni,Nc-1);
+        col[ind] = Ind_1(x,y,Ni+1,k);
+        ind++;
+        //Intra phi with Intra Vol
+        row[ind] = Ind_1(x,y,Ni,k);
+        col[ind] = Ind_1(x,y,Ni+1,k);
+        ind++;
+      }
+    //Volume entires
+      for (int k=0; k <Nc-1; k++)
+      {
+        //Volume to Volume
+        row[ind] = Ind_1(x,y,Ni+1,k);
+        col[ind] = Ind_1(x,y,Ni+1,k);
+        ind++;
+        //Off diagonal (from aNc=1-sum(ak))
+        for (int l=0; l<k; l++)
+        {
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,Ni+1,l);
+          ind++; 
+        }
+        for (int l=k+1; l<Nc-1; l++)
+        {
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,Ni+1,l);
+          ind++; 
+        }
+        for (int ion=0; ion<Ni; ion++)
+        {
+          //Volume to extra c
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,ion,Nc-1);
+          ind++;
+          //Volume to intra c
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+        }
+      }  
+  }
 
-    #compute neuronal Cl concentration (since neuron has only leak conductance, must be at reversal potential for Cl)
-    c[:,:,3,1] = c[:,:,3,3].*exp.(vm)
-    #set glial Cl concentration equal to neuronal Cl concentration
-    c[:,:,3,2] = c[:,:,3,1]
+  //Including the right column of x's
+  int x=Nx-1;
+  for (int y=0;y<Ny-1;y++)
+  {
+     //ionic concentration equations
+      for (int ion = 0 ; ion<Ni; ion++)
+      {
+        for (int k = 0; k<Nc;k++)
+        {
+        //Upper and Lower terms
+          // Upper c with lower c
+          row[ind] = Ind_1(x,y+1,ion,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+          //Upper c with lower c
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y+1,ion,k);
+          ind++;
+          //Upper c with lower phi
+          row[ind] = Ind_1(x,y+1,ion,k);
+          col[ind] = Ind_1(x,y,Ni,k);
+          ind++;
+          //Upper c with lower phi
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y+1,Ni,k);
+          ind++;
+        }
+        for (int k = 0; k<Nc-1;k++)
+        {
+        // Different Compartment Terms
+          // C Extracellular with C Inside
+          row[ind] = Ind_1(x,y,ion,Nc-1);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+          // C Intra with C Extra
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,ion,Nc-1);
+          ind++;
+          // C Extracellular with Phi Inside
+          row[ind] = Ind_1(x,y,ion,Nc-1);
+          col[ind] = Ind_1(x,y,Ni,k);
+          ind++;
+          // C Intra with Phi Extra
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,Ni,Nc-1);
+          ind++;
+        //Volume terms
+          //C extra with intra alpha
+          row[ind] = Ind_1(x,y,ion,Nc-1);
+          col[ind] = Ind_1(x,y,Ni+1,k);
+          ind++;
+          //C intra with intra alpha
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,Ni+1,k);
+          ind++;
+        }
+        for (int k=0; k<Nc; k++)
+        {
+        //Same Compartment Terms
+          // c with c
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+          // c with phi
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,Ni,k);
+          ind++;
+        }
+      }
+    //Charge-Capacitance Relation
+      //Phi with C entries
+      for (int k= 0; k<Nc; k++)
+      {
+        for (int ion=0; ion<Ni; ion++)
+        {
+          row[ind] = Ind_1(x,y,Ni,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+        }
+      }
+      // Extra phi with extra phi
+      row[ind] = Ind_1(x,y,Ni,Nc-1);
+      col[ind] = Ind_1(x,y,Ni,Nc-1);
+      ind++;
+      for (int k=0; k<Nc-1; k++)
+      {
+        //Extra phi with intra phi
+        row[ind] = Ind_1(x,y,Ni,Nc-1);
+        col[ind] = Ind_1(x,y,Ni,k);
+        ind++;
+        // Intra phi with Extraphi
+        row[ind] = Ind_1(x,y,Ni,k);
+        col[ind] = Ind_1(x,y,Ni,Nc-1);
+        ind++;
+        //Intra phi with Intra phi
+        row[ind] = Ind_1(x,y,Ni,k);
+        col[ind] = Ind_1(x,y,Ni,k);
+        ind++;
+        //Extra phi with intra-Volume
+        row[ind] = Ind_1(x,y,Ni,Nc-1);
+        col[ind] = Ind_1(x,y,Ni+1,k);
+        ind++;
+        //Intra phi with Intra Vol
+        row[ind] = Ind_1(x,y,Ni,k);
+        col[ind] = Ind_1(x,y,Ni+1,k);
+        ind++;
+      }
+    //Volume entires
+      for (int k=0; k <Nc-1; k++)
+      {
+        //Volume to Volume
+        row[ind] = Ind_1(x,y,Ni+1,k);
+        col[ind] = Ind_1(x,y,Ni+1,k);
+        ind++;
+        //Off diagonal (from aNc=1-sum(ak))
+        for (int l=0; l<k; l++)
+        {
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,Ni+1,l);
+          ind++; 
+        }
+        for (int l=k+1; l<Nc-1; l++)
+        {
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,Ni+1,l);
+          ind++; 
+        }
+        for (int ion=0; ion<Ni; ion++)
+        {
+          //Volume to extra c
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,ion,Nc-1);
+          ind++;
+          //Volume to intra c
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+        }
+      }
+  }
+  
+    // Top right corner
+     x = Nx-1;
+     y = Ny-1;
+   //ionic concentration equations
+      for (int ion = 0 ; ion<Ni; ion++)
+      {
+        for (int k = 0; k<Nc-1;k++)
+        {
+        // Different Compartment Terms
+          // C Extracellular with C Inside
+          row[ind] = Ind_1(x,y,ion,Nc-1);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+          // C Intra with C Extra
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,ion,Nc-1);
+          ind++;
+          // C Extracellular with Phi Inside
+          row[ind] = Ind_1(x,y,ion,Nc-1);
+          col[ind] = Ind_1(x,y,Ni,k);
+          ind++;
+          // C Intra with Phi Extra
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,Ni,Nc-1);
+          ind++;
+        //Volume terms
+          //C extra with intra alpha
+          row[ind] = Ind_1(x,y,ion,Nc-1);
+          col[ind] = Ind_1(x,y,Ni+1,k);
+          ind++;
+          //C intra with intra alpha
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,Ni+1,k);
+          ind++;
+        }
+        for (int k=0; k<Nc; k++)
+        {
+        //Same Compartment Terms
+          // c with c
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+          // c with phi
+          row[ind] = Ind_1(x,y,ion,k);
+          col[ind] = Ind_1(x,y,Ni,k);
+          ind++;
+        }
+      }
+    //Charge-Capacitance Relation
+      //Phi with C entries
+      for (int k= 0; k<Nc; k++)
+      {
+        for (int ion=0; ion<Ni; ion++)
+        {
+          row[ind] = Ind_1(x,y,Ni,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+        }
+      }
+      // Extra phi with extra phi
+      row[ind] = Ind_1(x,y,Ni,Nc-1);
+      col[ind] = Ind_1(x,y,Ni,Nc-1);
+      ind++;
+      for (int k=0; k<Nc-1; k++)
+      {
+        //Extra phi with intra phi
+        row[ind] = Ind_1(x,y,Ni,Nc-1);
+        col[ind] = Ind_1(x,y,Ni,k);
+        ind++;
+        // Intra phi with Extraphi
+        row[ind] = Ind_1(x,y,Ni,k);
+        col[ind] = Ind_1(x,y,Ni,Nc-1);
+        ind++;
+        //Intra phi with Intra phi
+        row[ind] = Ind_1(x,y,Ni,k);
+        col[ind] = Ind_1(x,y,Ni,k);
+        ind++;
+        //Extra phi with intra-Volume
+        row[ind] = Ind_1(x,y,Ni,Nc-1);
+        col[ind] = Ind_1(x,y,Ni+1,k);
+        ind++;
+        //Intra phi with Intra Vol
+        row[ind] = Ind_1(x,y,Ni,k);
+        col[ind] = Ind_1(x,y,Ni+1,k);
+        ind++;
+      }
+    //Volume entires
+      for (int k=0; k <Nc-1; k++)
+      {
+        //Volume to Volume
+        row[ind] = Ind_1(x,y,Ni+1,k);
+        col[ind] = Ind_1(x,y,Ni+1,k);
+        ind++;
+        //Off diagonal (from aNc=1-sum(ak))
+        for (int l=0; l<k; l++)
+        {
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,Ni+1,l);
+          ind++; 
+        }
+        for (int l=k+1; l<Nc-1; l++)
+        {
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,Ni+1,l);
+          ind++; 
+        }
+        for (int ion=0; ion<Ni; ion++)
+        {
+          //Volume to extra c
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,ion,Nc-1);
+          ind++;
+          //Volume to intra c
+          row[ind] = Ind_1(x,y,Ni+1,k);
+          col[ind] = Ind_1(x,y,ion,k);
+          ind++;
+        }
+      }
+ // for(int i=0;i<ind;i++)
+ //  {
+ //    printf("(%d,%d)\n",row[i],col[i]);
+ //  }
+  printf("Index check: Nz is %d, final ind: %d\n",Nz,ind);
+ //  printf("Nv:%d, NA:%d\n",Nv,NA);
+  return;
+}
 
-    #compute cotransporter permeability so that glial Cl is at rest
-    fluxdata[:,:,3,2,:] = mclin(pClLeakg,-1,c[:,:,3,2],c[:,:,3,3],vmg)
-    global const pNaKCl = -fluxdata[:,:,3,2,1]/2./log.(c[:,:,1,2].*c[:,:,2,2].*c[:,:,3,2].^2./(c[:,:,1,3].*c[:,:,2,3].*c[:,:,3,3].^2))
-    NaKCl = pNaKCl.*log.(c[:,:,1,2].*c[:,:,2,2].*c[:,:,3,2].^2./(c[:,:,1,3].*c[:,:,2,3].*c[:,:,3,3].^2))
+void initialize_data(struct SimState *state_vars,struct GateType* gate_vars,struct ConstVars* con_vars)
+{
+	double reltol = 1e-11;
+	double tol = reltol*array_max(state_vars->c,(size_t)Nx*Ny*Nc*Ni);
+  	double rsd = 1.0;
+  	double *cp;
+  	cp = (double *)malloc(sizeof(double)*Nx*Ny*Ni*Nc);
+  	memcpy(cp,state_vars->c,sizeof(double)*Nx*Ny*Ni*Nc);
+  	/*
+  	gexct = exct(texct+1)
+  	int k = 0
+  	double dt_temp = 0.1
+  	while(rsd>tol && dt_temp*k<10)
+  	{
+    	cp = copy(state_vars.c)
+    	state_vars = numerical.newton_solve(F, J, state_vars, dt_temp, gvars, gexct,con_vars,sIndex)
+    	gvars = gatevars(gvars,state_vars,false)
+    	rsd = array_diff_max(state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/dt_temp
+    	k += 1
+	}
+  	*/
+  	free(cp);
+	if(rsd>1e-7)
+  	{
+    	fprintf(stderr, "Did not converge! Aborting...\n");
+    	exit(EXIT_FAILURE); /* indicate failure.*/
+	}	
+  	else
+  	{
+    	return;
+	}
+	
 
-    #compute gating variables
-    s = gatevars([],state_vars,true)
-    #compute K channel currents (neuron)
-    if spatially_uniform
-      pKGHK = pKDR*s.gKDR[1,1]+pKA*s.gKA[1,1]
-    else
-      pKGHK = pKDR*s.gKDR+pKA*s.gKA
-    end
-    pKLin = pKLeak
-    fluxdata[:,:,2,1,:] = mcGoldman(pKGHK,1,c[:,:,2,1],c[:,:,2,Nc],vm)+mclin(pKLin,1,c[:,:,2,1],c[:,:,2,Nc],vm)
-
-    #compute neuronal ATPase value
-    global const Imax = fluxdata[:,:,2,1,1].*((1+mK./c[:,:,2,Nc]).^2).*((1+mNa./c[:,:,1,1]).^3)./2
-
-    #compute neuronal sodium currents and leak permeability value
-    if spatially_uniform
-      pNaGHK = pNaT*s.gNaT[1,1]+pNaP*s.gNaP[1,1]
-    else
-      pNaGHK = pNaT*s.gNaT+pNaP*s.gNaP
-    end
-    fluxdata[:,:,1,1,:] = mcGoldman(pNaGHK,1,c[:,:,1,1],c[:,:,1,Nc],vm)
-    Ipump = Imax./(((1+mK./c[:,:,2,Nc]).^2).*((1+mNa./c[:,:,1,1]).^3))
-    global const pNaLeak = (-fluxdata[:,:,1,1,1]-3*Ipump)./(log.(c[:,:,1,1]./c[:,:,1,3])+vm)
-
-    #compute K channel currents (glial)
-    pKLinG = pKIR*inwardrect(c[:,:,2,2],c[:,:,2,Nc],vmg)*pKLeakadjust
-    fluxdata[:,:,2,2,:] = mclin(pKLinG,1,c[:,:,2,2],c[:,:,2,Nc],vmg)
-    fluxdata[:,:,2,2,1] += NaKCl
-
-    #compute glial ATPase value
-    global const Imaxg = fluxdata[:,:,2,2,1].*((1+mK./c[:,:,2,Nc]).^2).*((1+mNa./c[:,:,1,2]).^3)./2
-
-    #compute glial sodium current and leak permeability value
-    Ipumpg = Imaxg./(((1+mK./c[:,:,2,Nc]).^2).*((1+mNa./c[:,:,1,2]).^3))
-    global const pNaLeakg = (-NaKCl-3*Ipumpg)./(log.(c[:,:,1,2]./c[:,:,1,3])+vmg)
+}
 
 
-    #Compute resting organic anion amounts and average valences
-    al = zeros(size(phi))
-    al[:,:,1:Nc-1] = alpha
-    al[:,:,Nc] = 1-sum(alpha,3)
-    aot = zeros(size(phi))
-    zot = copy(aot)
-    #set extracellular organic anion amounts and valence to ensure electroneutrality
-    aot[:,:,Nc] = 5e-4
-    cmphi = zeros(size(phi))
-    for k=1:Nc-1
-      cmphi[:,:,k] = cm[k]*(phi[:,:,k]-phi[:,:,Nc])
-      cmphi[:,:,Nc] += cmphi[:,:,k]
-      #set intracellular organic anion amounts to ensure osmotic pressure balance
-      aot[:,:,k] = al[:,:,k].*(aot[:,:,Nc]./al[:,:,Nc]+sum(c[:,:,:,Nc],3)-sum(c[:,:,:,k],3))
-      #set average valence to ensure electroneutrality
-      zot[:,:,k] = (-cz(c[:,:,:,k],z).*al[:,:,k]+cmphi[:,:,k])./aot[:,:,k]
-    end
-    zot[:,:,Nc] = (-cz(c[:,:,:,Nc],z).*al[:,:,Nc]-cmphi[:,:,Nc])./aot[:,:,Nc]
-    if spatially_uniform #return to Nx by Ny instead of 1 by 1 if necessary - check whether repmat will do this more efficiently
-      phitemp = copy(phi)
-      ctemp = copy(c)
-      alphatemp = copy(alpha)
-      aotemp = copy(aot)
-      zotemp = copy(zot)
-      phi = zeros(Nx,Ny,Nc)
-      c = zeros(Nx,Ny,Ni,Nc)
-      alpha = zeros(Nx,Ny,Nc-1)
-      aot = zeros(Nx,Ny,Nc)
-      zot = zeros(Nx,Ny,Nc)
-      for k = 1:Nc
-        phi[:,:,k] = phitemp[1,1,k]
-        aot[:,:,k] = aotemp[1,1,k]
-        zot[:,:,k] = zotemp[1,1,k]
-        for i=1:Ni
-          c[:,:,i,k] = ctemp[1,1,i,k]
-        end
-      end
-      for k=1:Nc-1
-        alpha[:,:,k] = alphatemp[1,1,k]
-      end
-    end
-    global const ao = aot
-    global const zo = zot
-  else
-    #cotransporter parameters from Bennett 2008
-    global const pNaKCl = 0.002*RTFC/FC      #Bennett: .002 in mS/cm^2 converted to mmol/cm^2/s
-    global const Imax = 1.3e1/FC           #maximum pump current in muA/cm^2 converted to mmol/cm^2/s from Yao, Huang, Miura, 2011
-    global const Imaxg = 1.3e1/FC
-    global const pNaLeak = 2e-2*RTFC/FC    #Kager:1e-2,Miura:2e-2%Na Leak conductance in mS/cm^2 converted to mmol/cm^2/s
-    global const pNaLeakg = 2e-2*RTFC/FC
-    global const zo = repmat([-1.0],Nc,1) #valence of organic anion
-    global const ao = repmat([5e-4],Nx,Ny,Nc)
-    println("If you get here, some of the above constants need to be made into matrices")
-  end
-  if fluid_flow
-  #hydraulic permeability constants from Basser 1992
-    kappan = 5e-9 # 5e-9 is grey matter hydraulic permeability in cm^4/(dynes sec)
-    #white matter hydraulic permeability 7.5e-9 cm^4/(dynes sec)
-    kappag = 5e-9 #glial compartment value
-    kappae = 5e-9
-    kappan *= 1e-2 #conversion to cm^2/sec/mPa
-    kappag *= 1e-2
-    kappae *= 1e-2
-    kappat = zeros(Nx,Ny,Nc)
-    kappat[:,:,1] = kappan
-    kappat[:,:,2] = kappag
-    kappat[:,:,3] = kappae
-    global const kappa = kappat*R*T #conversion to cm^2/sec/(mmol/cm^3)
-  else
-  #Set kappa to 0 for no flow
-    global const kappa = zeros(Nx,Ny,Nc)
-  end
 
-  #parameters for osmotic water flow
-  #based on B.E. Shapiro dissertation (2000)
-  zetat = 5.4e-5    #hydraulic permeability in cm/sec/(mmol/cm^3)
-  zetat /= ell  #conversion to 1/sec/(mmol/cm^3)
-  #     %based on Strieter, Stephenson, Palmer,
-  #     %Weinstein, Journal or General Physiology, 1990.
-  #     zeta=7e-8%6e-10%hydraulic permeability in cm/sec/mmHg
-  #     zeta=zeta*7.501e-6%conversion to cm/sec/mPa
-  #     zeta=zeta*R*T%conversion to cm/sec/(mmol/cm^3)
-  #     zeta=zeta/ell%conversion to 1/sec/(mmol/cm^3)
-  zetat *= ones(Nx,Ny,Nc-1)
-  zetaadjust = 1                       #parameter for varying glial hydraulic permeability
-  zetat[:,:,2] *= zetaadjust #adjust glial hydraulic permeability
-  global const zeta1 = zetat
-  if fluid_flow     #if spatial water flow is possible
-    zetaalphat = 0  #stiffness constant or 1/stiffness constant
-    global const S = true  #Indicates whether zetaalpha is the stiffness (true) or 1/stiffness (false)
-  else #constants may not be changed for no spatial water flow
-    zetaalphat = 0  #stiffness constant or 1/stiffness constant
-    global const S = true  #Indicates whether zetaalpha is the stiffness (true) or 1/stiffness (false)
-  end
-  global const zetaalpha = zetaalphat*ones(Nx,Ny,Nc-1)
-
-  #set flow rate and pressure to initial values
-  if fluid_flow
-    u = zeros(Nx,Ny,Nc)
-    #pressure in units of mol/l (mPa/R/T)
-    p = zeros(Nx,Ny,Nc)
-    #set intracellular pressure using stiffness constant
-    if S
-      p[:,:,1:Nc-1] = broadcast(+,zetaalpha.*(alpha-alphao),p[:,:,Nc:Nc])
-    else
-      p[:,:,1:Nc-1]=broadcast(+,1./zetaalpha.*(alpha-alphao),p[:,:,Nc:Nc])
-    end
-  else
-    u = zeros(Nx,Ny,Nc)
-    #pressure in units of mol/l (mPa/R/T)
-    p = zeros(Nx,Ny,Nc)
-  end
-
-  global const pzero = 0
-  global const pnx = 0
-  if !fluid_flow
-    (state_vars,con_vars)=[SimState(c,phi,alpha),ConstVars(pNaKCl,Imax,pNaLeak,Imaxg,pNaLeakg,ao,zo,kappa,zeta1,S,zetaalpha,pzero,pnx)]
-  else
-    (state_vars,con_vars)=[SimStateF(c,phi,alpha,p,u),ConstVars(pNaKCl,Imax,pNaLeak,Imaxg,pNaLeakg,ao,zo,kappa,zeta1,S,zetaalpha,u,p,pzero,pnx)]
-  end
-end
-*/
