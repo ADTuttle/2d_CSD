@@ -47,6 +47,8 @@ PetscErrorCode initialize_petsc(struct Solver *,int, char **);
 
 //Newton Solver
 void newton_solve(struct SimState *, double, struct GateType *, struct ExctType *, struct ConstVars *,struct Solver *,struct FluxData*); 
+//Calculate residual
+PetscErrorCode calc_residual(Vec,struct SimState *,struct SimState *,double,double *,double *,struct FluxData *,struct ConstVars *);
 
 //Find abs. max value of an array
 double array_max(double *,size_t);

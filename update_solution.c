@@ -22,8 +22,24 @@ void newton_solve(struct SimState *state_vars, double dt, struct GateType *gvars
    	double Dcb[Nx*Ny*Ni*Nc*2];
    	//compute diffusion coefficients
    	diff_coef(Dcs,state_vars->alpha,1);
+    for(int ion=0;ion<Ni;ion++)
+    {
+        for(int comp=0;comp<Nc;comp++)
+        {
+            printf("Dcs: Ion %d, Comp %d ",ion,comp);
+            printf("Dcs x: %f, Dcs y: %f\n",1e6*Dcs[c_index(0,0,comp,ion)*2],1e6*Dcs[c_index(0,0,comp,ion)*2+1]);
+        }
+    }
    	//Bath diffusion
   	diff_coef(Dcb,state_vars->alpha,Batheps);
+    for(int ion=0;ion<Ni;ion++)
+    {
+        for(int comp=0;comp<Nc;comp++)
+        {
+            printf("Dcb: Ion %d, Comp %d ",ion,comp);
+            printf("Dcb x: %f, Dcb y: %f\n",1e6*Dcb[c_index(0,0,comp,ion)*2],1e6*Dcb[c_index(0,0,comp,ion)*2+1]);
+        }
+    }
 
     double tol = reltol*array_max(state_vars->c,(size_t)Nx*Ny*Ni*Nc);
     double rsd = tol+1;
@@ -48,7 +64,9 @@ void newton_solve(struct SimState *state_vars, double dt, struct GateType *gvars
             printf("Comp: %d\n",comp);
             printf("wFlux: %f,%f,%f\n",flux->wflow[al_index(x,y,comp)],flux->dwdpi[al_index(x,y,comp)],flux->dwdal[al_index(x,y,comp)]);
         }
-        calc_residual(slvr.Res,state_vars_past,state_vars,dt,Dcs,Dcb,flux,con_vars);
+        // VecView(slvr->Res,PETSC_VIEWER_STDOUT_SELF);
+        calc_residual(slvr->Res,state_vars_past,state_vars,dt,Dcs,Dcb,flux,con_vars);
+        // VecView(slvr->Res,PETSC_VIEWER_STDOUT_SELF);
         break;
 
 
@@ -72,10 +90,6 @@ void newton_solve(struct SimState *state_vars, double dt, struct GateType *gvars
   iter = 0
   mflux = zeros(size(state_vars.c)) #initialize ion flux record
   for iter = 0:itermax
-    #compute membrane water flow related quantities
-    piw = squeeze(sum(state_vars.c,3),3)+con_vars.ao./al
-    wflow, dwdpi, dwdal = wflowm(piw, al)
-    fluxdata = FluxData(mflux,dfdci,dfdce,dfdphim,wflow,dwdpi,dwdal)
     Res = F(state_vars_past, state_vars, dt, Dcs, Dcb, fluxdata,con_vars)
     #if residual is small or iteration count is large, exit loop
     rsd = norm(Res,Inf)
@@ -134,3 +148,279 @@ void newton_solve(struct SimState *state_vars, double dt, struct GateType *gvars
   state_vars
 end
 */
+PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct SimState *state_vars,double dt,double *Dcs,double *Dcb,struct FluxData *flux,struct ConstVars *con_vars)
+{
+    double *c = state_vars->c;
+    double *phi = state_vars->phi;
+    double *al = state_vars->alpha;
+    double *cp = state_vars_past->c;
+    double *alp = state_vars_past->alpha; 
+    //Residual for concentration equations
+    double Rcvx,Rcvy,Resc;
+    double RcvxRight,RcvyUp;
+
+    double alNc,alpNc;
+    int ion,comp,x,y;
+
+    PetscErrorCode ierr;
+
+    for(x=0;x<Nx-1;x++)
+    {
+        for(y=0;y<Ny-1;y++)
+        {
+            for(ion=0;ion<Ni;ion++)
+            {
+                for(comp=0;comp<Nc-1;comp++)
+                {
+                    //First difference term
+                    Rcvx = Dcs[c_index(x,y,comp,ion)*2]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x+1,y,comp,ion)])/2;
+                    Rcvx = Rcvx*(log(c[c_index(x,y,comp,ion)])-log(c[c_index(x+1,y,comp,ion)])+z[ion]*(phi[phi_index(x,y,comp)]-phi[phi_index(x+1,y,comp)]))/dx*dt/dx;
+                    //Add Second right moving difference
+                    RcvxRight = 0;
+                    if(x<Nx-2)
+                    {
+                        RcvxRight = Dcs[c_index(x+1,y,comp,ion)*2]*(cp[c_index(x+1,y,comp,ion)]+cp[c_index(x+2,y,comp,ion)])/2;
+                        RcvxRight = RcvxRight*(log(c[c_index(x+1,y,comp,ion)])-log(c[c_index(x+2,y,comp,ion)])+z[ion]*(phi[phi_index(x+1,y,comp)]-phi[phi_index(x+2,y,comp)]))/dx*dt/dx;
+                    }  
+                    //Up down difference 
+                    Rcvy = Dcs[c_index(x,y,comp,ion)*2+1]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x,y+1,comp,ion)])/2;
+                    Rcvy = Rcvy*(log(c[c_index(x,y,comp,ion)])-log(c[c_index(x,y+1,comp,ion)])+z[ion]*(phi[phi_index(x,y,comp)]-phi[phi_index(x,y+1,comp)]))/dy*dt/dy;
+                    //Next upward difference
+                    RcvyUp = 0;
+                    if(y<Ny-2)
+                    {
+                        RcvyUp = Dcs[c_index(x,y+1,comp,ion)*2+1]*(cp[c_index(x,y+1,comp,ion)]+cp[c_index(x,y+2,comp,ion)])/2;
+                        RcvyUp = RcvyUp*(log(c[c_index(x,y+1,comp,ion)])-log(c[c_index(x,y+2,comp,ion)])+z[ion]*(phi[phi_index(x,y+1,comp)]-phi[phi_index(x,y+2,comp)]))/dy*dt/dy;
+                    }
+                    Resc = al[al_index(x,y,comp)]*c[c_index(x,y,comp,ion)]-alp[al_index(x,y,comp)]*c[c_index(x,y,comp,ion)];
+                    Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x,y,comp,ion)]*dt;
+
+                    ierr = VecSetValue(Res,Ind_1(x,y,ion,comp),Resc,INSERT_VALUES);CHKERRQ(ierr);
+
+                }
+                //Set Extracellular values
+                alNc = 1 - al[al_index(x,y,0)] - al[al_index(x,y,1)];
+                alpNc = 1 - al[al_index(x,y,0)] - al[al_index(x,y,1)];
+                comp = Nc-1;
+                //First difference term
+                Rcvx = Dcs[c_index(x,y,comp,ion)*2]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x+1,y,comp,ion)])/2;
+                Rcvx = Rcvx*(log(c[c_index(x,y,comp,ion)])-log(c[c_index(x+1,y,comp,ion)])+z[ion]*(phi[phi_index(x,y,comp)]-phi[phi_index(x+1,y,comp)]))/dx*dt/dx;
+                //Add Second right moving difference
+                RcvxRight = 0;
+                if(x<Nx-2)
+                {
+                    RcvxRight = Dcs[c_index(x+1,y,comp,ion)*2]*(cp[c_index(x+1,y,comp,ion)]+cp[c_index(x+2,y,comp,ion)])/2;
+                    RcvxRight = RcvxRight*(log(c[c_index(x+1,y,comp,ion)])-log(c[c_index(x+2,y,comp,ion)])+z[ion]*(phi[phi_index(x+1,y,comp)]-phi[phi_index(x+2,y,comp)]))/dx*dt/dx;
+                }  
+                //Up down difference 
+                Rcvy = Dcs[c_index(x,y,comp,ion)*2+1]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x,y+1,comp,ion)])/2;
+                Rcvy = Rcvy*(log(c[c_index(x,y,comp,ion)])-log(c[c_index(x,y+1,comp,ion)])+z[ion]*(phi[phi_index(x,y,comp)]-phi[phi_index(x,y+1,comp)]))/dy*dt/dy;
+                //Next upward difference
+                RcvyUp = 0;
+                if(y<Ny-2)
+                {
+                    RcvyUp = Dcs[c_index(x,y+1,comp,ion)*2+1]*(cp[c_index(x,y+1,comp,ion)]+cp[c_index(x,y+2,comp,ion)])/2;
+                    RcvyUp = RcvyUp*(log(c[c_index(x,y+1,comp,ion)])-log(c[c_index(x,y+2,comp,ion)])+z[ion]*(phi[phi_index(x,y+1,comp)]-phi[phi_index(x,y+2,comp)]))/dy*dt/dy;
+                }
+                Resc = alNc*c[c_index(x,y,comp,ion)]-alpNc*c[c_index(x,y,comp,ion)];
+                Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x,y,comp,ion)]*dt;
+                //Add bath variables
+                Resc += sqrt(pow(Dcb[c_index(x,y,comp,ion)*2],2)+pow(Dcb[c_index(x,y,comp,ion)*2+1],2))*(cp[c_index(x,y,comp,ion)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp)]-z[ion]*phibath)*dt;
+
+                ierr = VecSetValue(Res,Ind_1(x,y,ion,comp),Resc,INSERT_VALUES);CHKERRQ(ierr);
+            }
+        }
+    }
+    // Add the endpoints (x,Ny-1)
+    y=Ny-1;
+    for(x=0;x<Nx-1;x++)
+    { 
+        for(ion=0;ion<Ni;ion++)
+        {
+            for(comp=0;comp<Nc-1;comp++)
+            {
+                //First difference term
+                Rcvx = Dcs[c_index(x,y,comp,ion)*2]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x+1,y,comp,ion)])/2;
+                Rcvx = Rcvx*(log(c[c_index(x,y,comp,ion)])-log(c[c_index(x+1,y,comp,ion)])+z[ion]*(phi[phi_index(x,y,comp)]-phi[phi_index(x+1,y,comp)]))/dx*dt/dx;
+                //Add Second right moving difference
+                RcvxRight = 0;
+                if(x<Nx-2)
+                {
+                    RcvxRight = Dcs[c_index(x+1,y,comp,ion)*2]*(cp[c_index(x+1,y,comp,ion)]+cp[c_index(x+2,y,comp,ion)])/2;
+                    RcvxRight = RcvxRight*(log(c[c_index(x+1,y,comp,ion)])-log(c[c_index(x+2,y,comp,ion)])+z[ion]*(phi[phi_index(x+1,y,comp)]-phi[phi_index(x+2,y,comp)]))/dx*dt/dx;
+                }  
+                //Up down difference 
+                Rcvy = 0;
+                //Next upward difference
+                RcvyUp = 0;
+                Resc = al[al_index(x,y,comp)]*c[c_index(x,y,comp,ion)]-alp[al_index(x,y,comp)]*c[c_index(x,y,comp,ion)];
+                Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x,y,comp,ion)]*dt;
+
+                ierr = VecSetValue(Res,Ind_1(x,y,ion,comp),Resc,INSERT_VALUES);CHKERRQ(ierr);
+
+            }
+            //Set Extracellular values
+            alNc = 1 - al[al_index(x,y,0)] - al[al_index(x,y,1)];
+            alpNc = 1 - al[al_index(x,y,0)] - al[al_index(x,y,1)];
+            comp = Nc-1;
+            //First difference term
+            Rcvx = Dcs[c_index(x,y,comp,ion)*2]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x+1,y,comp,ion)])/2;
+            Rcvx = Rcvx*(log(c[c_index(x,y,comp,ion)])-log(c[c_index(x+1,y,comp,ion)])+z[ion]*(phi[phi_index(x,y,comp)]-phi[phi_index(x+1,y,comp)]))/dx*dt/dx;
+            //Add Second right moving difference
+            RcvxRight = 0;
+            if(x<Nx-2)
+            {
+                RcvxRight = Dcs[c_index(x+1,y,comp,ion)*2]*(cp[c_index(x+1,y,comp,ion)]+cp[c_index(x+2,y,comp,ion)])/2;
+                RcvxRight = RcvxRight*(log(c[c_index(x+1,y,comp,ion)])-log(c[c_index(x+2,y,comp,ion)])+z[ion]*(phi[phi_index(x+1,y,comp)]-phi[phi_index(x+2,y,comp)]))/dx*dt/dx;
+            }  
+            //Up down difference 
+            Rcvy = 0;
+            //Next upward difference
+            RcvyUp = 0;
+
+            Resc = alNc*c[c_index(x,y,comp,ion)]-alpNc*c[c_index(x,y,comp,ion)];
+            Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x,y,comp,ion)]*dt;
+            //Add bath variables
+            Resc += sqrt(pow(Dcb[c_index(x,y,comp,ion)*2],2)+pow(Dcb[c_index(x,y,comp,ion)*2+1],2))*(cp[c_index(x,y,comp,ion)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp)]-z[ion]*phibath)*dt;
+
+            ierr = VecSetValue(Res,Ind_1(x,y,ion,comp),Resc,INSERT_VALUES);CHKERRQ(ierr);
+        }
+
+    }
+    //Add the enpoints (Nx-1,y)
+    x=Nx-1;
+    for(y=0;y<Ny-1;y++)
+    {
+        for(ion=0;ion<Ni;ion++)
+        {
+            for(comp=0;comp<Nc-1;comp++)
+            {
+                //First difference term
+                Rcvx = 0;
+                //Add Second right moving difference
+                RcvxRight = 0;
+                //Up down difference 
+                Rcvy = Dcs[c_index(x,y,comp,ion)*2+1]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x,y+1,comp,ion)])/2;
+                Rcvy = Rcvy*(log(c[c_index(x,y,comp,ion)])-log(c[c_index(x,y+1,comp,ion)])+z[ion]*(phi[phi_index(x,y,comp)]-phi[phi_index(x,y+1,comp)]))/dy*dt/dy;
+                //Next upward difference
+                RcvyUp = 0;
+                if(y<Ny-2)
+                {
+                    RcvyUp = Dcs[c_index(x,y+1,comp,ion)*2+1]*(cp[c_index(x,y+1,comp,ion)]+cp[c_index(x,y+2,comp,ion)])/2;
+                    RcvyUp = RcvyUp*(log(c[c_index(x,y+1,comp,ion)])-log(c[c_index(x,y+2,comp,ion)])+z[ion]*(phi[phi_index(x,y+1,comp)]-phi[phi_index(x,y+2,comp)]))/dy*dt/dy;
+                }
+                Resc = al[al_index(x,y,comp)]*c[c_index(x,y,comp,ion)]-alp[al_index(x,y,comp)]*c[c_index(x,y,comp,ion)];
+                Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x,y,comp,ion)]*dt;
+
+                ierr = VecSetValue(Res,Ind_1(x,y,ion,comp),Resc,INSERT_VALUES);CHKERRQ(ierr);
+
+            }
+            //Set Extracellular values
+            alNc = 1 - al[al_index(x,y,0)] - al[al_index(x,y,1)];
+            alpNc = 1 - al[al_index(x,y,0)] - al[al_index(x,y,1)];
+            comp = Nc-1;
+            //First difference term
+            Rcvx = 0;
+            //Add Second right moving difference
+            RcvxRight = 0; 
+            //Up down difference 
+            Rcvy = Dcs[c_index(x,y,comp,ion)*2+1]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x,y+1,comp,ion)])/2;
+            Rcvy = Rcvy*(log(c[c_index(x,y,comp,ion)])-log(c[c_index(x,y+1,comp,ion)])+z[ion]*(phi[phi_index(x,y,comp)]-phi[phi_index(x,y+1,comp)]))/dy*dt/dy;
+            //Next upward difference
+            RcvyUp = 0;
+            if(y<Ny-2)
+            {
+                RcvyUp = Dcs[c_index(x,y+1,comp,ion)*2+1]*(cp[c_index(x,y+1,comp,ion)]+cp[c_index(x,y+2,comp,ion)])/2;
+                RcvyUp = RcvyUp*(log(c[c_index(x,y+1,comp,ion)])-log(c[c_index(x,y+2,comp,ion)])+z[ion]*(phi[phi_index(x,y+1,comp)]-phi[phi_index(x,y+2,comp)]))/dy*dt/dy;
+            }
+            Resc = alNc*c[c_index(x,y,comp,ion)]-alpNc*c[c_index(x,y,comp,ion)];
+            Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x,y,comp,ion)]*dt;
+            //Add bath variables
+            Resc += sqrt(pow(Dcb[c_index(x,y,comp,ion)*2],2)+pow(Dcb[c_index(x,y,comp,ion)*2+1],2))*(cp[c_index(x,y,comp,ion)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp)]-z[ion]*phibath)*dt;
+
+            ierr = VecSetValue(Res,Ind_1(x,y,ion,comp),Resc,INSERT_VALUES);CHKERRQ(ierr);
+        }
+    }
+    //Add the top right point: (Nx-1,Ny-1)
+    x=Nx-1;y=Ny-1;
+    for(ion=0;ion<Ni;ion++)
+    {
+        for(comp=0;comp<Nc-1;comp++)
+        {
+            //First difference term
+            Rcvx = 0;
+            //Add Second right moving difference
+            RcvxRight = 0;  
+            //Up down difference 
+            Rcvy = 0;
+            //Next upward difference
+            RcvyUp = 0;
+
+            Resc = al[al_index(x,y,comp)]*c[c_index(x,y,comp,ion)]-alp[al_index(x,y,comp)]*c[c_index(x,y,comp,ion)];
+            Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x,y,comp,ion)]*dt;
+
+            ierr = VecSetValue(Res,Ind_1(x,y,ion,comp),Resc,INSERT_VALUES);CHKERRQ(ierr);
+
+        }
+        //Set Extracellular values
+        alNc = 1 - al[al_index(x,y,0)] - al[al_index(x,y,1)];
+        alpNc = 1 - al[al_index(x,y,0)] - al[al_index(x,y,1)];
+        comp = Nc-1;
+        //First difference term
+        Rcvx = 0;
+        //Add Second right moving difference
+        RcvxRight = 0; 
+        //Up down difference 
+        Rcvy = 0;
+        //Next upward difference
+        RcvyUp = 0;
+
+        Resc = alNc*c[c_index(x,y,comp,ion)]-alpNc*c[c_index(x,y,comp,ion)];
+        Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x,y,comp,ion)]*dt;
+        //Add bath variables
+        Resc += sqrt(pow(Dcb[c_index(x,y,comp,ion)*2],2)+pow(Dcb[c_index(x,y,comp,ion)*2+1],2))*(cp[c_index(x,y,comp,ion)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp)]-z[ion]*phibath)*dt;
+
+        ierr = VecSetValue(Res,Ind_1(x,y,ion,comp),Resc,INSERT_VALUES);CHKERRQ(ierr);
+    }
+
+    for(x=0;x<Nx;x++)
+    {
+        for(y=0;y<Ny;y++)
+        {    
+            //Residual for electroneutrality condition
+            for(comp=0;comp<Nc-1;comp++)
+            {
+
+                Resc = al[al_index(x,y,comp)]*cz(c,z,x,y,comp)+con_vars->zo[phi_index(0,0,comp)]+con_vars->ao[phi_index(0,0,comp)];
+                ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp),Resc,INSERT_VALUES); CHKERRQ(ierr);
+            }
+            //Extracellular term
+            comp=Nc-1;
+            Resc = (1-al[al_index(x,y,0)]-al[al_index(x,y,1)])*cz(c,z,x,y,comp)+con_vars->zo[phi_index(0,0,comp)]+con_vars->ao[phi_index(0,0,comp)];
+            ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp),Resc,INSERT_VALUES); CHKERRQ(ierr);
+            
+            //Residual for water flow
+            //Plus modification to electroneutrality for non-zero mem.compacitance
+            for(comp=0;comp<Nc-1;comp++)
+            {
+                //Water flow
+                ierr = VecSetValue(Res,Ind_1(x,y,Ni+1,comp),al[al_index(x,y,comp)]-alp[al_index(x,y,comp)]+flux->wflow[al_index(x,y,comp)]*dt,INSERT_VALUES);
+
+                //Extracell voltage
+                ierr = VecSetValue(Res,Ind_1(x,y,Ni,Nc-1),-cm[comp]*(phi[phi_index(x,y,Nc-1)]-phi[phi_index(x,y,comp)]),ADD_VALUES);
+                //Intracell voltage mod
+                ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp),-cm[comp]*(phi[phi_index(x,y,comp)]-phi[phi_index(x,y,Nc-1)]),ADD_VALUES);
+            }
+        }
+    }
+    ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
+    ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
+
+    // VecView(Res,PETSC_VIEWER_STDOUT_SELF);
+    // printf("c: %f,%f,%f\n",al[al_index(0,0,0)],al[al_index(0,0,1)],al[al_index(3,0,0)]);
+
+
+
+    return ierr;
+}
+
