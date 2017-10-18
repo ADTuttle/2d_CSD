@@ -56,7 +56,7 @@ void init(struct SimState *state_vars)
 	}
 }
 
-void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct GateType* gate_vars)
+void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct GateType* gate_vars,struct FluxData *flux)
 {
 	//Everything that follows will asume spatially uniform
 	//At rest state
@@ -92,8 +92,8 @@ void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct Ga
     //set glial Cl concentration equal to neuronal Cl concentration
     c[c_index(0,0,1,2)] = c[c_index(0,0,0,2)];
 
-    struct FluxPoint *flux;
-    flux = (struct FluxPoint*)malloc(sizeof(struct FluxPoint));
+    // struct FluxPoint *flux;
+    // flux = (struct FluxPoint*)malloc(sizeof(struct FluxPoint));
 
     //compute cotransporter permeability so that glial Cl is at rest
     mclin(flux,c_index(0,0,1,2),pClLeakg,-1,c[c_index(0,0,1,2)],c[c_index(0,0,2,2)],vmg,0);
@@ -101,7 +101,7 @@ void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct Ga
     double NaKCl = -flux->mflux[c_index(0,0,1,2)]/2;
 
     //compute gating variables
-    gatevars_update(gate_vars,state_vars,1);
+    gatevars_update(gate_vars,state_vars,0,1);
 
     //compute K channel currents (neuron)
     double pKGHK = pKDR*gate_vars->gKDR[0]+pKA*gate_vars->gKA[0];
@@ -768,28 +768,32 @@ void Assemble_Index(PetscInt *row,PetscInt *col)
   return;
 }
 
-void initialize_data(struct SimState *state_vars,struct GateType* gate_vars,struct ConstVars* con_vars)
+void initialize_data(struct SimState *state_vars,struct GateType* gate_vars,struct ConstVars* con_vars,struct Solver *slvr,struct FluxData *flux)
 {
 	double reltol = 1e-11;
 	double tol = reltol*array_max(state_vars->c,(size_t)Nx*Ny*Nc*Ni);
   	double rsd = 1.0;
   	double *cp;
   	cp = (double *)malloc(sizeof(double)*Nx*Ny*Ni*Nc);
-  	memcpy(cp,state_vars->c,sizeof(double)*Nx*Ny*Ni*Nc);
-  	/*
-  	gexct = exct(texct+1)
-  	int k = 0
-  	double dt_temp = 0.1
+  	
+  	//Initialize and comput the excitation (it's zeros here)
+  	struct ExctType *gexct;
+  	gexct = (struct ExctType*)malloc(sizeof(struct ExctType));
+  	excitation(gexct,texct+1);
+  	int k = 0;
+  	double dt_temp = 0.1;
+  	
   	while(rsd>tol && dt_temp*k<10)
   	{
-    	cp = copy(state_vars.c)
-    	state_vars = numerical.newton_solve(F, J, state_vars, dt_temp, gvars, gexct,con_vars,sIndex)
-    	gvars = gatevars(gvars,state_vars,false)
-    	rsd = array_diff_max(state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/dt_temp
-    	k += 1
+    	memcpy(cp,state_vars->c,sizeof(double)*Nx*Ny*Ni*Nc);
+    	newton_solve(state_vars, dt_temp, gate_vars, gexct,con_vars,slvr,flux);
+    	gatevars_update(gate_vars,state_vars,dt_temp*1e3,0);
+    	rsd = array_diff_max(state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/dt_temp;
+    	k++;
 	}
-  	*/
+  	
   	free(cp);
+  	free(gexct);
 	if(rsd>1e-7)
   	{
     	fprintf(stderr, "Did not converge! Aborting...\n");
@@ -800,7 +804,65 @@ void initialize_data(struct SimState *state_vars,struct GateType* gate_vars,stru
     	return;
 	}
 	
+}
 
+
+PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
+{
+    PetscErrorCode ierr;
+	//Assemlbed the row and col indexing
+	Assemble_Index(slvr->row,slvr->col);
+	//Init Petsc
+	PetscInitialize(&argc,&argv,(char*)0,NULL);
+  	ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
+
+  	//Create Vectors
+  	ierr = VecCreate(PETSC_COMM_WORLD,&slvr->Q);CHKERRQ(ierr);
+  	ierr = PetscObjectSetName((PetscObject) slvr->Q, "Solution");CHKERRQ(ierr);
+  	ierr = VecSetSizes(slvr->Q,PETSC_DECIDE,NA);CHKERRQ(ierr);
+  	ierr = VecSetFromOptions(slvr->Q);CHKERRQ(ierr);
+  	ierr = VecDuplicate(slvr->Q,&slvr->Res);CHKERRQ(ierr);
+
+  	//Create Matrix
+  	ierr = MatCreate(PETSC_COMM_WORLD,&slvr->A);CHKERRQ(ierr);
+  	ierr = MatSetType(slvr->A,MATSEQAIJ);CHKERRQ(ierr);
+  	ierr = MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,NA,NA);CHKERRQ(ierr);
+  	ierr = MatSeqAIJSetPreallocation(slvr->A,3*Nv,NULL);CHKERRQ(ierr);
+  	ierr = MatSetFromOptions(slvr->A);CHKERRQ(ierr);
+  	ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
+
+  	//Create Solver Contexts
+    
+ ierr = KSPCreate(PETSC_COMM_WORLD,&slvr->ksp);CHKERRQ(ierr);
+  /*
+     Set operators. Here the matrix that defines the linear system
+     also serves as the preconditioning matrix.
+  */
+  ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
+  ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
+  // ILU Precond
+  ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
+  ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
+  ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
+  ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
+  ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
+  // ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
+
+  PetscReal div_tol = 1e12;
+  PetscReal abs_tol = 1e-15;
+  ierr = KSPSetTolerances(slvr->ksp,1e-10,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
+  ierr = KSPSetNormType(slvr->ksp,KSP_NORM_UNPRECONDITIONED);CHKERRQ(ierr);
+  /*
+    Set runtime options, e.g.,
+        -ksp_type <type> -pc_type <type> -ksp_monitor -ksp_rtol <rtol>
+    These options will override those specified above as long as
+    KSPSetFromOptions() is called _after_ any other customization
+    routines.
+  */
+  ierr = KSPSetFromOptions(slvr->ksp);CHKERRQ(ierr);
+  ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
+
+  return ierr;
 }
 
 

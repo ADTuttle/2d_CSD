@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <math.h>
 
-void mclin(struct FluxPoint *flux,int index,double pc,int zi,double ci,double ce,double phim,int ADD)
+void mclin(struct FluxData *flux,int index,double pc,int zi,double ci,double ce,double phim,int ADD)
 {
 	//Returns the flux value by ref.
 	// pc is the permeativity, zi is valence, ci/e intra/extra concentration
@@ -30,7 +30,7 @@ void mclin(struct FluxPoint *flux,int index,double pc,int zi,double ci,double ce
 
   	return;
 }
-void mcGoldman(struct FluxPoint *flux,int index,double pc,int zi,double ci,double ce,double phim,int ADD)
+void mcGoldman(struct FluxData *flux,int index,double pc,int zi,double ci,double ce,double phim,int ADD)
 {
     //compute value and derivatives of the function:
     //mflux=p.*(z*phim).*(ci.*exp(z*phim)-ce)./(exp(z*phim)-1)
@@ -127,9 +127,56 @@ double cz(double *cmat,const int *zvals,int x,int y,int comp)
 	}
 	return accumulate;
 }
+void diff_coef(double *Dc,double *alp,double scale)
+{
+  //diffusion coefficients at all points, for all ions, in all compartments, in both x and y directions
+	double tortuosity=1.6;
+	double alNcL,alNcR,alNcU;
+  	for(int x=0;x<Nx-1;x++)
+  	{
+	  	for(int y=0;y<Ny-1;y++)
+	  	{
+	  		alNcL=1-alp[al_index(x,y,0)]-alp[al_index(x,y,1)]; //Left extracell
+			alNcR=1-alp[al_index(x+1,y,0)]-alp[al_index(x+1,y,1)]; //Right extracell
+			alNcU=1-alp[al_index(x,y+1,0)]-alp[al_index(x,y+1,1)];
+		  	for(int ion = 0; ion<Ni;ion++)
+		  	{
+			    //diffusion coefficients in x direction
+			    if(x==(Nx-1))
+			    {
+			    	//Boundary is zero
+			    	Dc[c_index(x,y,Nc-1,ion)*2] = 0;
+			    }
+			    else
+			    {
+					//diffusion coefficients in the extracellular space proportional to volume fraction
+			    	Dc[c_index(x,y,Nc-1,ion)*2] = scale*D[ion]/2*(alNcL+alNcR)/(pow(tortuosity,2));
+			    }
+			    //diffusion coefficients in neuronal compartment equal to 0
+			    Dc[c_index(x,y,0,ion)*2] = 0.0 ;      
+			    //diffusion coefficients in glial compartment proportional to default volume fraction        
+			    Dc[c_index(x,y,1,ion)*2] = 0*scale*D[ion]*alphao[al_index(x,y,1)]/pow(tortuosity,2);   
+			    //diffusion coefficients in y direction
+			    if(y==(Ny-1))
+			    {
+			    	//Boundary is zero
+			    	Dc[c_index(x,y,Nc-1,ion)*2+1] = 0;
+			    }
+			    else
+			    {
+			    	//diffusion coefficients in the extracellular space proportional to volume fraction
+			    	Dc[c_index(x,y,Nc-1,ion)*2+1] = scale*D[ion]/2*(alNcL+alNcU)/pow(tortuosity,2); 
+				}
+				//diffusion coefficients in neuronal compartment equal to 0
+			    Dc[c_index(x,y,0,ion)*2+1] = 0.0;
+			    //diffusion coefficients in glial compartment proportional to default volume fraction
+			    Dc[c_index(x,y,1,ion)*2+1] = 0.25*scale*D[ion]*alphao[al_index(x,y,1)]/pow(tortuosity,2);
+		  	}
+		}
+	}
+}
 
-
-void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,int firstpass)
+void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,double dtms,int firstpass)
 {
 	if(firstpass)
 	{
@@ -220,13 +267,13 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,int 
 		  		//gating variables mNaT
 		  		alpha = xoverexpminusone(v,0.32,51.9,0.25,1); //0.32*(Vm+51.9)./(1-exp(-0.25*(Vm+51.9)))
 		  		beta = xoverexpminusone(v,0.28,24.89,0.2,0); //0.28*(Vm+24.89)./(exp(0.2*(Vm+24.89))-1)
-		    	gate_vars->mNaT[xy_index(x,y)] = alpha/(alpha+beta);
-
+		    	gate_vars->mNaT[xy_index(x,y)] = (gate_vars->mNaT[xy_index(x,y)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
 		  		//gating variable hNaT
 		  		alpha = 0.128*exp(-(0.056*v+2.94));
 		  		beta = 4/(exp(-(0.2*v+6))+1);
 		    	gate_vars->hNaT[xy_index(x,y)] = alpha/(alpha+beta);
+		    	gate_vars->hNaT[xy_index(x,y)] = (gate_vars->hNaT[xy_index(x,y)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
 		    	gate_vars->gNaT[xy_index(x,y)] = pow(gate_vars->mNaT[xy_index(x,y)],3)*gate_vars->hNaT[xy_index(x,y)];
 
@@ -234,20 +281,21 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,int 
 		  		//gating variable mNaP
 		  		alpha = 1/(1+exp(-(0.143*v+5.67)))/6;
 		  		beta = 1/6-alpha; //1./(1+exp(0.143*Vm+5.67))/6
-		    	gate_vars->mNaP[xy_index(x,y)] = alpha/(alpha+beta);
+		  		gate_vars->mNaP[xy_index(x,y)] = (gate_vars->mNaP[xy_index(x,y)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+	
 
 		  		//gating variable hNaP
 		  		alpha = 5.12e-6*exp(-(0.056*v+2.94));
 		  		beta = 1.6e-4/(1+exp(-(0.2*v+8)));
-		    	gate_vars->hNaP[xy_index(x,y)] = alpha/(alpha+beta);
-		  	
+		  		gate_vars->hNaP[xy_index(x,y)] = (gate_vars->hNaP[xy_index(x,y)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+
 		  		gate_vars->gNaP[xy_index(x,y)] = pow(gate_vars->mNaP[xy_index(x,y)],2)*gate_vars->hNaP[xy_index(x,y)];
 
 		  		//compute KDR current
 		  		//gating variable mKDR
 		  		alpha = xoverexpminusone(v,0.016,34.9,0.2,1); //0.016*(Vm+34.9)./(1-exp(-0.2*(Vm+34.9)))
 		  		beta = 0.25*exp(-(0.025*v+1.25));
-		    	gate_vars->mKDR[xy_index(x,y)] = alpha/(alpha+beta);
+		    	gate_vars->mKDR[xy_index(x,y)] = (gate_vars->mKDR[xy_index(x,y)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
 		  		gate_vars->gKDR[xy_index(x,y)] = pow(gate_vars->mKDR[xy_index(x,y)],2);
 
@@ -255,15 +303,213 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,int 
 		  		//gating variable mKA
 		  		alpha = xoverexpminusone(v,0.02,56.9,0.1,1); //0.02*(Vm+56.9)./(1-exp(-0.1*(Vm+56.9)))
 		  		beta = xoverexpminusone(v,0.0175,29.9,0.1,0); //0.0175*(Vm+29.9)./(exp(0.1*(Vm+29.9))-1)
-		    	gate_vars->mKA[xy_index(x,y)] = alpha/(alpha+beta);
+		    	gate_vars->mKA[xy_index(x,y)] = (gate_vars->mKA[xy_index(x,y)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
 		 		//gating variable hKA
 		  		alpha = 0.016*exp(-(0.056*v+4.61));
 		  		beta = 0.5/(exp(-(0.2*v+11.98))+1);
-		    	gate_vars->hKA[xy_index(x,y)] = alpha/(alpha+beta);
+		    	gate_vars->hKA[xy_index(x,y)] = (gate_vars->hKA[xy_index(x,y)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
 		  		gate_vars->gKA[xy_index(x,y)] = pow(gate_vars->mKA[xy_index(x,y)],2)*gate_vars->hKA[xy_index(x,y)];
   			}
   		}
   	}
 }
+
+void excitation(struct ExctType *exct,double t)
+{
+  //compute excitation conductance to trigger csd
+  //Leak conductances in mS/cm^2
+  //all units converted to mmol/cm^2/sec
+  	double pexct,pany;
+  	double xexct;
+  	for(int i=0;i<Nx;i++)
+  	{
+	  	for(int j=0;j<Ny;j++)
+	  		{
+	  		if(two_points_exct)
+	  		{
+	  			fprintf(stderr, "Two Points Exct is not implemented\n");
+	    		exit(EXIT_FAILURE); /* indicate failure.*/
+	    		// centerpointx=floor(Nx/2)
+	    		// xexct[centerpointx+1:centerpointx+Nexct,1:Nexct]=xexct[1:Nexct,1:Nexct]
+	    		// xexct[centerpointx+1-Nexct:centerpointx,1:Nexct]=xexct[Nexct:-1:1,1:Nexct]
+	  		}
+	  		if( t<texct && i<Nexct && j<Nexct)
+	  		{
+	    		pexct=pmax*(sin(pi*t/texct))*RTFC/FC;
+	    		xexct=pow((cos(pi/2*dx*i/Nexct))*(cos(pi/2*dy*j/Nexct)),2);
+	    		pany=pexct*xexct;
+	    		exct->pNa[xy_index(i,j)]=pany;
+	    		exct->pK[xy_index(i,j)]=pany;
+	    		exct->pCl[xy_index(i,j)]=pany;
+			}
+	  		else
+	  		{
+	    		//pexct=0*RTFC/FC
+	    		exct->pNa[xy_index(i,j)]=0;
+	    		exct->pK[xy_index(i,j)]=0;
+	    		exct->pCl[xy_index(i,j)]=0;
+			}
+		}
+	}
+  
+}
+
+void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState *state_vars_past,struct GateType *gvars, struct ExctType *gexct,struct ConstVars *con_vars)
+{
+    //Variables to save to for ease of notation
+    double vm,vmg,vmgp;
+    double ci,cg,ce,cgp,cep;
+    double Na,K;//Variables for pump (so it's clear)
+
+    //For calculationg permeabilities
+    double pGHK,pLin;
+    double Ipump,NaKCl;
+    for(int x=0;x<Nx;x++)
+    {
+        for(int y=0;y<Ny;y++)
+        {
+            vm = state_vars->phi[phi_index(x,y,0)]-state_vars->phi[phi_index(x,y,Nc-1)];
+            vmg = state_vars->phi[phi_index(x,y,1)]-state_vars->phi[phi_index(x,y,Nc-1)];
+            vmgp = state_vars_past->phi[phi_index(x,y,1)]-state_vars_past->phi[phi_index(x,y,Nc-1)];
+
+            //Compute Na Channel currents
+            ci = state_vars->c[c_index(x,y,0,0)];
+            cg = state_vars->c[c_index(x,y,1,0)];
+            ce = state_vars->c[c_index(x,y,Nc-1,0)];
+
+            //Neurons
+            pGHK = pNaT*gvars->gNaT[xy_index(x,y)]+pNaP*gvars->gNaP[xy_index(x,y)];
+            pLin = con_vars->pNaLeak + gexct->pK[xy_index(x,y)]; //Add excitation
+            //Initialize GHK Flux
+            mcGoldman(flux,c_index(x,y,0,0),pGHK,1,ci,ce,vm,0);
+            //Add leak current to that.
+            mclin(flux,c_index(x,y,0,0),pLin,1,ci,ce,vm,1);
+
+            //Glial NaLeak
+            mclin(flux,c_index(x,y,1,0),con_vars->pNaLeakg,1,cg,ce,vmg,0);
+
+            // Compute K channel Currents
+            ci = state_vars->c[c_index(x,y,0,1)];
+            cg = state_vars->c[c_index(x,y,1,1)];
+            ce = state_vars->c[c_index(x,y,Nc-1,1)];
+
+            //Neurons
+            pGHK = pKDR*gvars->gKDR[xy_index(x,y)]+pKA*gvars->gKA[xy_index(x,y)];
+            pLin = pKLeak+gexct->pK[xy_index(x,y)]; //add excitation
+            mcGoldman(flux,c_index(x,y,0,1),pGHK,1,ci,ce,vm,0);
+            mclin(flux,c_index(x,y,0,1),pLin,1,ci,ce,vm,1);
+
+            //Glial K Leak(using past)
+            cgp = state_vars_past->c[c_index(x,y,1,1)];
+            cep = state_vars_past->c[c_index(x,y,Nc-1,1)];
+
+            pLin = pKIR*inwardrect(cgp,cep,vmgp)*pKLeakadjust;
+            mclin(flux,c_index(x,y,1,1),pLin,1,cg,ce,vmg,0);
+
+            //Compute Cl Channel Current
+            ci = state_vars->c[c_index(x,y,0,2)];
+            cg = state_vars->c[c_index(x,y,1,2)];
+            ce = state_vars->c[c_index(x,y,Nc-1,2)];
+
+            //Neurons
+            pLin = pClLeak+gexct->pCl[xy_index(x,y)]; //add excitation
+            mclin(flux,c_index(x,y,0,2),pLin,-1,ci,ce,vm,0);
+
+            //Glia
+            mclin(flux,c_index(x,y,1,2),pClLeakg,-1,cg,ce,vmg,0);
+
+            //Pump Currents(all past values)
+
+            //Neurons
+            Na = state_vars_past->c[c_index(x,y,0,0)];
+            K = state_vars_past->c[c_index(x,y,Nc-1,1)];
+
+            Ipump = npump*con_vars->Imax/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
+            //Add to flux(it's explicit so no derivatives)
+            flux->mflux[c_index(x,y,0,0)]+=3*Ipump; //Na part
+            flux->mflux[c_index(x,y,0,1)]-=2*Ipump; //K part
+
+            //Glia
+            Na = state_vars_past->c[c_index(x,y,1,0)];
+            //K is the same(extracellular)
+            Ipump = glpump*con_vars->Imaxg/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
+            //Add to flux(it's explicit so no derivatives)
+            flux->mflux[c_index(x,y,1,0)]+=3*Ipump; //Na part
+            flux->mflux[c_index(x,y,1,1)]-=2*Ipump; //K part
+
+            //NaKCl Cotransporter
+            //I'm going to reuse variables names...
+            Na = state_vars_past->c[c_index(x,y,1,0)];//glia Na
+            K = state_vars_past->c[c_index(x,y,1,1)]; // glia K.
+            cgp = state_vars_past->c[c_index(x,y,1,2)]; //glia Cl
+
+            cep = state_vars_past->c[c_index(x,y,Nc-1,0)];//Ext Na
+            ce = state_vars_past->c[c_index(x,y,Nc-1,1)]; // Ext K.
+            ci = state_vars_past->c[c_index(x,y,Nc-1,2)]; //Ext Cl
+
+            NaKCl = con_vars->pNaKCl*log(Na*K*pow(cgp,2)/(cep*ce*pow(ci,2)));
+            //Add to flux
+            flux->mflux[c_index(x,y,1,0)]+=NaKCl; //Sodium
+            flux->mflux[c_index(x,y,1,1)]+=NaKCl; //K
+            flux->mflux[c_index(x,y,1,2)]+=2*NaKCl; //Cl
+
+            //Change units of flux from mmol/cm^2 to mmol/cm^3/s
+            for(int ion=0;ion<Ni;ion++)
+            {
+                flux->mflux[c_index(x,y,Nc-1,ion)] = 0;
+                for(int comp = 0;comp<Nc-1;comp++)
+                {
+                    flux->mflux[c_index(x,y,comp,ion)]/=ell;
+                    flux->dfdci[c_index(x,y,comp,ion)]/=ell;
+                    flux->dfdce[c_index(x,y,comp,ion)]/=ell;
+                    flux->dfdphim[c_index(x,y,comp,ion)]/=ell;
+
+                    //And calculate the extracellular flux
+                    flux->mflux[c_index(x,y,Nc-1,ion)] -= flux->mflux[c_index(x,y,comp,ion)];
+                }
+
+            }
+        }
+    }
+}
+void wflowm(struct FluxData *flux,struct SimState *state_vars,struct ConstVars *con_vars)
+{
+  //piw = sum of c over ions + ao/alpha
+  // piw is the total number of ions in a compartment
+  //outward transmembrane water flow seen as a function of
+  //osmotic pressure and volume fraction or pressure.
+    double dwdpi,dwdal,piw,piwNc;
+    for(int x=0;x<Nx-1;x++)
+    {
+        for(int y=0;y<Ny-1;y++)
+        {
+            //Calculate the pi for extracellular
+            piwNc = 0;
+            for(int ion=0;ion<Ni;ion++)
+            {
+                piwNc +=state_vars->c[c_index(x,y,Nc-1,ion)];
+            }
+            piwNc +=con_vars->ao[al_index(0,0,Nc-1)]/(1-state_vars->alpha[al_index(x,y,0)]-state_vars->alpha[al_index(x,y,1)]);
+            for(int comp = 0;comp<Nc-1;comp++)
+            {
+                piw = 0;
+                for(int ion=0;ion<Ni;ion++)
+                {
+                    piw +=state_vars->c[c_index(x,y,comp,ion)];
+                }
+                piw +=con_vars->ao[al_index(0,0,comp)]/state_vars->alpha[al_index(x,y,comp)];
+                //ao, zeta1, and zetalpha are currently constant in space
+                dwdpi = con_vars->zeta1[al_index(0,0,comp)];
+                dwdal = con_vars->zeta1[al_index(0,0,comp)]*con_vars->zetaalpha[al_index(0,0,comp)];
+
+                flux->wflow[al_index(x,y,comp)] = dwdpi*(piwNc-piw)+dwdal*(state_vars->alpha[al_index(x,y,comp)]-alphao[comp]);
+                flux->dwdpi[al_index(x,y,comp)] = dwdpi;
+                flux->dwdal[al_index(x,y,comp)] = dwdal;
+            }
+        }
+    }
+}
+
+

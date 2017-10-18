@@ -1,5 +1,8 @@
 #ifndef __CONSTANTS__
 #define __CONSTANTS__
+#include <petsctime.h>
+#include <petscksp.h>
+#include <petscmat.h>
 
 //set global parameters here (static constants)
 
@@ -49,7 +52,8 @@ static const  double  R = 8.314472e6;    //gas static constant in nJ/K/mmol
 static const  double  T = 273.15+37;     //absolute temperature in K
 static const  double  FC = 9.64853399e7; //Faraday static constant in muC/mmol
 static const  double  RTFC = R*T/FC;
-
+#define pi 3.14159265358979323846 //M_PI is defined in some C implementations, but isn't in gen.
+//So we define pi here.
 
 //Bath variables
 static const double cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
@@ -117,13 +121,13 @@ struct SimState{
 };
 
 struct FluxData{
-	double mflux[Nx*Ny*Ni*(Nc-1)];
+	double mflux[Nx*Ny*Ni*Nc];
 	double dfdci[Nx*Ny*Ni*(Nc-1)];
 	double dfdce[Nx*Ny*Ni*(Nc-1)];
 	double dfdphim[Nx*Ny*Ni*(Nc-1)];
-	double wflow[Nx*Ny*Ni*(Nc-1)];
-	double dwdpi[Nx*Ny*Ni*(Nc-1)];
-	double dwdal[Nx*Ny*Ni*(Nc-1)];
+	double wflow[Nx*Ny*(Nc-1)];
+	double dwdpi[Nx*Ny*(Nc-1)];
+	double dwdal[Nx*Ny*(Nc-1)];
 };
 
 struct FluxPoint{
@@ -182,6 +186,17 @@ struct ConstVars{
 	int S; //boolean
 	double zetaalpha[Nc-1];
 };
+struct Solver{
+	PetscInt row[Nz];
+	PetscInt col[Nz];
+	Vec Q;      /* Update*/
+	Vec Res;
+  	Mat A;            /* linear system matrix */
+  	KSP ksp;         /* linear solver context */
+  	PC pc;           /* preconditioner context */
+  	PetscMPIInt    size;
+};
+
 /*
 struct ConstVars{
 	double pNaKCl;

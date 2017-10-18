@@ -24,22 +24,29 @@ int main(int argc, char **argv)
     //Create the gating variables
     struct GateType *gate_vars;
     gate_vars = (struct GateType*) malloc(sizeof(struct GateType));
+    //Create the flux structure
+    struct FluxData *flux;
+    flux = (struct FluxData*) malloc(sizeof(struct FluxData));
+
     //Set the constant variables
-    set_params(state_vars,con_vars,gate_vars);
+    set_params(state_vars,con_vars,gate_vars,flux);
 
     printf("Initialization Routine\n");
-    PetscInt *row = malloc(Nz*sizeof(PetscInt));
-  	PetscInt *col = malloc(Nz*sizeof(PetscInt));
-  	PetscScalar *vals =malloc(Nz*sizeof(PetscScalar));
-	
-	Assemble_Index(row,col);
+    // PetscInt *row = malloc(Nz*sizeof(PetscInt));
+  	// PetscInt *col = malloc(Nz*sizeof(PetscInt));
+  	// PetscScalar *vals =malloc(Nz*sizeof(PetscScalar));
+
+  	struct Solver *slvr;
+  	slvr = (struct Solver*)malloc(sizeof(struct Solver));
+  	PetscErrorCode ierr=0;
+  	ierr = initialize_petsc(slvr,argc,argv);CHKERRQ(ierr);
 
 	//Run Initialization routine to get to steady state
-	initialize_data(state_vars,gate_vars,con_vars);
+	initialize_data(state_vars,gate_vars,con_vars,slvr,flux);
 
     //Free memory
     free(state_vars);free(con_vars);free(gate_vars);
-    free(row);free(col);free(vals);
+    free(slvr);
     return 0;
 }
 
