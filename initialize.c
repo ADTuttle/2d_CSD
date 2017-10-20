@@ -97,7 +97,7 @@ void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct Ga
 
     //compute cotransporter permeability so that glial Cl is at rest
     mclin(flux,c_index(0,0,1,2),pClLeakg,-1,c[c_index(0,0,1,2)],c[c_index(0,0,2,2)],vmg,0);
-    con_vars->pNaKCl = -flux->mflux[c_index(0,0,1,2)]/2/log(c[c_index(0,0,1,0)]*c[c_index(0,0,2,2)]*c[c_index(0,0,1,2)]*c[c_index(0,0,1,2)]/(c[c_index(0,0,2,0)]*c[c_index(0,0,2,1)]*c[c_index(0,0,2,2)]*c[c_index(0,0,2,2)]));
+    con_vars->pNaKCl = -flux->mflux[c_index(0,0,1,2)]/2/log(c[c_index(0,0,1,0)]*c[c_index(0,0,1,1)]*c[c_index(0,0,1,2)]*c[c_index(0,0,1,2)]/(c[c_index(0,0,2,0)]*c[c_index(0,0,2,1)]*c[c_index(0,0,2,2)]*c[c_index(0,0,2,2)]));
     double NaKCl = -flux->mflux[c_index(0,0,1,2)]/2;
 
     //compute gating variables
@@ -776,6 +776,10 @@ void initialize_data(struct SimState *state_vars,struct GateType* gate_vars,stru
   	double *cp;
   	cp = (double *)malloc(sizeof(double)*Nx*Ny*Ni*Nc);
   	
+    //Compute Gating variables
+    //compute gating variables
+    gatevars_update(gate_vars,state_vars,0,1);
+
   	//Initialize and comput the excitation (it's zeros here)
   	struct ExctType *gexct;
   	gexct = (struct ExctType*)malloc(sizeof(struct ExctType));
@@ -833,34 +837,34 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
 
   	//Create Solver Contexts
     
- ierr = KSPCreate(PETSC_COMM_WORLD,&slvr->ksp);CHKERRQ(ierr);
-  /*
+    ierr = KSPCreate(PETSC_COMM_WORLD,&slvr->ksp);CHKERRQ(ierr);
+    /*
      Set operators. Here the matrix that defines the linear system
      also serves as the preconditioning matrix.
-  */
-  ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
-  ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
-  // ILU Precond
-  ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
-  ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
-  ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
-  ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
-  ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
-  // ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
+    */
+    ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
+    ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
+    // ILU Precond
+    ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
+    ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
+    ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
+    ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
+    ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
+    // ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
 
-  PetscReal div_tol = 1e12;
-  PetscReal abs_tol = 1e-15;
-  ierr = KSPSetTolerances(slvr->ksp,1e-10,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
-  ierr = KSPSetNormType(slvr->ksp,KSP_NORM_UNPRECONDITIONED);CHKERRQ(ierr);
-  /*
-    Set runtime options, e.g.,
+    PetscReal div_tol = 1e12;
+    PetscReal abs_tol = 1e-15;
+    ierr = KSPSetTolerances(slvr->ksp,1e-10,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
+    ierr = KSPSetNormType(slvr->ksp,KSP_NORM_UNPRECONDITIONED);CHKERRQ(ierr);
+    /*
+        Set runtime options, e.g.,
         -ksp_type <type> -pc_type <type> -ksp_monitor -ksp_rtol <rtol>
     These options will override those specified above as long as
     KSPSetFromOptions() is called _after_ any other customization
     routines.
-  */
-  ierr = KSPSetFromOptions(slvr->ksp);CHKERRQ(ierr);
-  ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
+    */
+    ierr = KSPSetFromOptions(slvr->ksp);CHKERRQ(ierr);
+    ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
 
   return ierr;
 }

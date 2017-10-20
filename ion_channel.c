@@ -38,6 +38,8 @@ void mcGoldman(struct FluxData *flux,int index,double pc,int zi,double ci,double
     double xi = zi*phim/2;
     double r = exp(xi);
 
+
+
     //compute s=x/sinh(x)
     //Watch out for division by zero
     double s;
@@ -71,8 +73,7 @@ void mcGoldman(struct FluxData *flux,int index,double pc,int zi,double ci,double
     	w = (sinh(xi)/xi-cosh(xi))/xi;
     }
     //compute dfdphim
-    double dfdphim = zi/2*(mflux*s*w+mi-me);
-
+    double dfdphim = (double)zi/2*(mflux*s*w+mi-me);
     if(ADD) //If ADD, we accumulate this result
     {
     	flux->mflux[index] += mflux;
@@ -181,7 +182,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,doub
 	if(firstpass)
 	{
 		//membrane potential in mV
-		double v = state_vars->phi[phi_index(0,0,0)]-state_vars->phi[phi_index(0,0,Nc-1)];
+		double v = (state_vars->phi[phi_index(0,0,0)]-state_vars->phi[phi_index(0,0,Nc-1)])*RTFC;
 		//Iniitialize the point gating variables
 		//Cause we assume a uniform start
 		double alpha,beta;
@@ -192,7 +193,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,doub
   		beta = xoverexpminusone(v,0.28,24.89,0.2,0); //0.28*(Vm+24.89)./(exp(0.2*(Vm+24.89))-1)
     	gate_vars->mNaT[0] = alpha/(alpha+beta);
 
-
+    
   		//gating variable hNaT
   		alpha = 0.128*exp(-(0.056*v+2.94));
   		beta = 4/(exp(-(0.2*v+6))+1);
@@ -386,10 +387,9 @@ void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState 
             mcGoldman(flux,c_index(x,y,0,0),pGHK,1,ci,ce,vm,0);
             //Add leak current to that.
             mclin(flux,c_index(x,y,0,0),pLin,1,ci,ce,vm,1);
-
             //Glial NaLeak
             mclin(flux,c_index(x,y,1,0),con_vars->pNaLeakg,1,cg,ce,vmg,0);
-
+          
             // Compute K channel Currents
             ci = state_vars->c[c_index(x,y,0,1)];
             cg = state_vars->c[c_index(x,y,1,1)];
@@ -401,7 +401,7 @@ void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState 
             mcGoldman(flux,c_index(x,y,0,1),pGHK,1,ci,ce,vm,0);
             mclin(flux,c_index(x,y,0,1),pLin,1,ci,ce,vm,1);
 
-            //Glial K Leak(using past)
+            // Glial K Leak(using past)
             cgp = state_vars_past->c[c_index(x,y,1,1)];
             cep = state_vars_past->c[c_index(x,y,Nc-1,1)];
 
@@ -454,17 +454,17 @@ void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState 
             flux->mflux[c_index(x,y,1,0)]+=NaKCl; //Sodium
             flux->mflux[c_index(x,y,1,1)]+=NaKCl; //K
             flux->mflux[c_index(x,y,1,2)]+=2*NaKCl; //Cl
-
+            
             //Change units of flux from mmol/cm^2 to mmol/cm^3/s
             for(int ion=0;ion<Ni;ion++)
             {
                 flux->mflux[c_index(x,y,Nc-1,ion)] = 0;
                 for(int comp = 0;comp<Nc-1;comp++)
                 {
-                    flux->mflux[c_index(x,y,comp,ion)]/=ell;
-                    flux->dfdci[c_index(x,y,comp,ion)]/=ell;
-                    flux->dfdce[c_index(x,y,comp,ion)]/=ell;
-                    flux->dfdphim[c_index(x,y,comp,ion)]/=ell;
+                    flux->mflux[c_index(x,y,comp,ion)]=flux->mflux[c_index(x,y,comp,ion)]/ell;
+                    flux->dfdci[c_index(x,y,comp,ion)]=flux->dfdci[c_index(x,y,comp,ion)]/ell;
+                    flux->dfdce[c_index(x,y,comp,ion)]=flux->dfdce[c_index(x,y,comp,ion)]/ell;
+                    flux->dfdphim[c_index(x,y,comp,ion)]=flux->dfdphim[c_index(x,y,comp,ion)]/ell;
 
                     //And calculate the extracellular flux
                     flux->mflux[c_index(x,y,Nc-1,ion)] -= flux->mflux[c_index(x,y,comp,ion)];

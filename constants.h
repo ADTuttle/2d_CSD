@@ -122,23 +122,14 @@ struct SimState{
 
 struct FluxData{
 	double mflux[Nx*Ny*Ni*Nc];
-	double dfdci[Nx*Ny*Ni*(Nc-1)];
-	double dfdce[Nx*Ny*Ni*(Nc-1)];
-	double dfdphim[Nx*Ny*Ni*(Nc-1)];
+	double dfdci[Nx*Ny*Ni*Nc];
+	double dfdce[Nx*Ny*Ni*Nc];
+	double dfdphim[Nx*Ny*Ni*Nc];
 	double wflow[Nx*Ny*(Nc-1)];
 	double dwdpi[Nx*Ny*(Nc-1)];
 	double dwdal[Nx*Ny*(Nc-1)];
 };
 
-struct FluxPoint{
-	double mflux[Ni*(Nc-1)];
-	double dfdci[Ni*(Nc-1)];
-	double dfdce[Ni*(Nc-1)];
-	double dfdphim[Ni*(Nc-1)];
-	double wflow[Ni*(Nc-1)];
-	double dwdpi[Ni*(Nc-1)];
-	double dwdal[Ni*(Nc-1)];
-};
 
 struct GateType{
 	double mNaT[Nx*Ny];
