@@ -786,6 +786,7 @@ void initialize_data(struct SimState *state_vars,struct GateType* gate_vars,stru
   	excitation(gexct,texct+1);
   	int k = 0;
   	double dt_temp = 0.1;
+    // double dt_temp = 0.01;
   	
   	while(rsd>tol && dt_temp*k<10)
   	{

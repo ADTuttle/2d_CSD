@@ -19,7 +19,8 @@ static const   int z[3] = {1,1,-1};//valences of ion species
 static const   double D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
 //grid parameters
-static const   double dt = 1e-2 ;        //time step (in s)
+// static const   double dt = 1e-2 ;        //time step (in s)
+static const 	double dt = 0.01;
 static const   double Time = 2e-2;
 // static const    Time = 1e-1
 // static const     Time=10

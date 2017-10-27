@@ -133,9 +133,9 @@ void diff_coef(double *Dc,double *alp,double scale)
   //diffusion coefficients at all points, for all ions, in all compartments, in both x and y directions
 	double tortuosity=1.6;
 	double alNcL,alNcR,alNcU;
-  	for(int x=0;x<Nx-1;x++)
+  	for(int x=0;x<Nx;x++)
   	{
-	  	for(int y=0;y<Ny-1;y++)
+	  	for(int y=0;y<Ny;y++)
 	  	{
 	  		alNcL=1-alp[al_index(x,y,0)]-alp[al_index(x,y,1)]; //Left extracell
 			alNcR=1-alp[al_index(x+1,y,0)]-alp[al_index(x+1,y,1)]; //Right extracell
@@ -156,7 +156,7 @@ void diff_coef(double *Dc,double *alp,double scale)
 			    //diffusion coefficients in neuronal compartment equal to 0
 			    Dc[c_index(x,y,0,ion)*2] = 0.0 ;      
 			    //diffusion coefficients in glial compartment proportional to default volume fraction        
-			    Dc[c_index(x,y,1,ion)*2] = 0*scale*D[ion]*alphao[al_index(x,y,1)]/pow(tortuosity,2);   
+			    Dc[c_index(x,y,1,ion)*2] = 0*scale*D[ion]*alphao[al_index(0,0,1)]/pow(tortuosity,2);   
 			    //diffusion coefficients in y direction
 			    if(y==(Ny-1))
 			    {
@@ -167,11 +167,13 @@ void diff_coef(double *Dc,double *alp,double scale)
 			    {
 			    	//diffusion coefficients in the extracellular space proportional to volume fraction
 			    	Dc[c_index(x,y,Nc-1,ion)*2+1] = scale*D[ion]/2*(alNcL+alNcU)/pow(tortuosity,2); 
+                   
 				}
 				//diffusion coefficients in neuronal compartment equal to 0
 			    Dc[c_index(x,y,0,ion)*2+1] = 0.0;
 			    //diffusion coefficients in glial compartment proportional to default volume fraction
-			    Dc[c_index(x,y,1,ion)*2+1] = 0.25*scale*D[ion]*alphao[al_index(x,y,1)]/pow(tortuosity,2);
+			    Dc[c_index(x,y,1,ion)*2+1] = 0.25*scale*D[ion]*alphao[al_index(0,0,1)]/pow(tortuosity,2);
+        
 		  	}
 		}
 	}
@@ -481,9 +483,9 @@ void wflowm(struct FluxData *flux,struct SimState *state_vars,struct ConstVars *
   //outward transmembrane water flow seen as a function of
   //osmotic pressure and volume fraction or pressure.
     double dwdpi,dwdal,piw,piwNc;
-    for(int x=0;x<Nx-1;x++)
+    for(int x=0;x<Nx;x++)
     {
-        for(int y=0;y<Ny-1;y++)
+        for(int y=0;y<Ny;y++)
         {
             //Calculate the pi for extracellular
             piwNc = 0;
