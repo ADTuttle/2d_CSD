@@ -37,9 +37,9 @@ PetscErrorCode newton_solve(struct SimState *state_vars, double dt, struct GateT
    	//compute diffusion coefficients
    	diff_coef(Dcs,state_vars->alpha,1);
     /*
-    for(int ion=0;ion<Ni;ion++)
+    for(PetscInt ion=0;ion<Ni;ion++)
     {
-        for(int comp=0;comp<Nc;comp++)
+        for(PetscInt comp=0;comp<Nc;comp++)
         {
             printf("Dcs: Ion %d, Comp %d ",ion,comp);
             printf("Dcs x: %f, Dcs y: %f\n",1e6*Dcs[c_index(0,0,comp,ion)*2],1e6*Dcs[c_index(0,4,comp,ion)*2+1]);
@@ -50,9 +50,9 @@ PetscErrorCode newton_solve(struct SimState *state_vars, double dt, struct GateT
    	//Bath diffusion
   	diff_coef(Dcb,state_vars->alpha,Batheps);
     /*
-    for(int ion=0;ion<Ni;ion++)
+    for(PetscInt ion=0;ion<Ni;ion++)
     {
-        for(int comp=0;comp<Nc;comp++)
+        for(PetscInt comp=0;comp<Nc;comp++)
         {
             printf("Dcb: Ion %d, Comp %d ",ion,comp);
             printf("Dcb x: %f, Dcb y: %f\n",1e6*Dcb[c_index(0,0,comp,ion)*2],1e6*Dcb[c_index(0,4,comp,ion)*2+1]);
@@ -64,18 +64,18 @@ PetscErrorCode newton_solve(struct SimState *state_vars, double dt, struct GateT
     double tol = reltol*array_max(state_vars->c,(size_t)Nx*Ny*Ni*Nc);
     rsd = tol+1;
 
-    int x=0;int y=0;
-    for(int iter=0;iter<itermax;iter++)
+    PetscInt x=0;PetscInt y=0;
+    for(PetscInt iter=0;iter<itermax;iter++)
     {
         printf("\n");
-        for(int ion=0;ion<Ni;ion++)
+        for(PetscInt ion=0;ion<Ni;ion++)
         {
-            for(int comp=0;comp<Nc;comp++)
+            for(PetscInt comp=0;comp<Nc;comp++)
             {
                 printf("Ion: %d, Comp %d, C: %f\n",ion,comp,state_vars->c[c_index(0,0,comp,ion)]);
             }
         }
-    for(int comp=0;comp<Nc;comp++)
+    for(PetscInt comp=0;comp<Nc;comp++)
     {
         printf("Comp %d, Phi: %f\n",comp,state_vars->phi[phi_index(0,0,comp)]);
     }
@@ -88,9 +88,9 @@ PetscErrorCode newton_solve(struct SimState *state_vars, double dt, struct GateT
         //Compute membrane ionic flux relation quantitites
         ionmflux(flux,state_vars,state_vars_past,gvars,gexct,con_vars);
 
-        for(int ion=0;ion<Ni;ion++)
+        for(PetscInt ion=0;ion<Ni;ion++)
         {
-            for(int comp=0;comp<Nc;comp++)
+            for(PetscInt comp=0;comp<Nc;comp++)
             {
                 printf("Ion: %d, Comp %d\n",ion,comp);
                 printf("Flux: %f*1e3, dfdci: %f, dfdce: %f, dfdphim: %f\n",1e3*flux->mflux[c_index(0,0,comp,ion)],flux->dfdci[c_index(0,0,comp,ion)],flux->dfdce[c_index(0,0,comp,ion)],flux->dfdphim[c_index(0,0,comp,ion)]);
@@ -99,7 +99,7 @@ PetscErrorCode newton_solve(struct SimState *state_vars, double dt, struct GateT
         printf("\n");
         //Compute membrane water flow related quantities
         wflowm(flux,state_vars,con_vars);
-        for(int comp=0;comp<Nc-1;comp++)
+        for(PetscInt comp=0;comp<Nc-1;comp++)
         {
             printf("Comp: %d\n",comp);
             printf("wFlux: %f,%f,%f\n",flux->wflow[al_index(x,y,comp)],flux->dwdpi[al_index(x,y,comp)],flux->dwdal[al_index(x,y,comp)]);
@@ -129,9 +129,9 @@ PetscErrorCode newton_solve(struct SimState *state_vars, double dt, struct GateT
         {
             for(y=0;y<Ny;y++)
             {
-                for(int comp=0;comp<Nc;comp++)
+                for(PetscInt comp=0;comp<Nc;comp++)
                 {
-                    for(int ion = 0;ion<Ni;ion++)
+                    for(PetscInt ion = 0;ion<Ni;ion++)
                     {
                         // ierr = VecGetValues(slvr->Q,1,Ind_1(x,y,ion,comp),&temp); CHKERRQ(ierr);
                         state_vars->c[c_index(x,y,comp,ion)]+=temp[Ind_1(x,y,ion,comp)];
@@ -139,7 +139,7 @@ PetscErrorCode newton_solve(struct SimState *state_vars, double dt, struct GateT
                     // ierr = VecGetValues(slvr->Q,1,Ind_1(x,y,Ni,comp),&temp); CHKERRQ(ierr);
                     state_vars->phi[phi_index(x,y,comp)]+=temp[Ind_1(x,y,Ni,comp)];
                 }
-                for(int comp=0;comp<Nc-1;comp++)
+                for(PetscInt comp=0;comp<Nc-1;comp++)
                 {
                     // ierr = VecGetValues(slvr->Q,1,Ind_1(x,y,Ni+1,comp),&temp); CHKERRQ(ierr);
                     state_vars->alpha[al_index(x,y,comp)]+=temp[Ind_1(x,y,Ni+1,comp)];
@@ -177,7 +177,7 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
     double RcvxRight,RcvyUp;
 
     double alNc,alpNc;
-    int ion,comp,x,y;
+    PetscInt ion,comp,x,y;
 
     PetscErrorCode ierr;
 
@@ -323,8 +323,8 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
     double *c = state_vars->c;
     double *al = state_vars->alpha;
     double *cp = state_vars_past->c;
-    int ind = 0;
-    int x,y,ion,comp;
+    PetscInt ind = 0;
+    PetscInt x,y,ion,comp;
 
     PetscErrorCode ierr;
 
@@ -578,17 +578,17 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,Ni+1,comp),Ac,INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
                 //Off diagonal (from aNc=1-sum(ak))
-                for (int l=0; l<comp; l++)
+                for (PetscInt l=0; l<comp; l++)
                 {
                     ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,Ni+1,l),flux->dwdpi[al_index(x,y,comp)]*con_vars->ao[phi_index(0,0,Nc-1)]/pow(1-al[al_index(x,y,0)]-al[al_index(x,y,1)],2)*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++; 
                 }
-                for (int l=comp+1; l<Nc-1; l++)
+                for (PetscInt l=comp+1; l<Nc-1; l++)
                 {
                     ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,Ni+1,l),flux->dwdpi[al_index(x,y,comp)]*con_vars->ao[phi_index(0,0,Nc-1)]/pow(1-al[al_index(x,y,0)]-al[al_index(x,y,1)],2)*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
-                for (int ion=0; ion<Ni; ion++)
+                for (PetscInt ion=0; ion<Ni; ion++)
                 {
                   //Volume to extra c
                     ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,ion,Nc-1),flux->dwdpi[al_index(x,y,comp)]*dt,INSERT_VALUES);CHKERRQ(ierr);

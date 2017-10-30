@@ -20,7 +20,7 @@ void mcGoldman(struct FluxData *,int,double,int,double,double,double,int);
 //Conductance for potassium inward rectifier
 double inwardrect(double,double,double);
 //Returns of c_i*z_i
-double cz(double *,const int *,int,int,int); 
+double cz(double *,const PetscInt *,int,int,int); 
 //Computes diffusion coef
 void diff_coef(double *,double *,double);
 //Calculate the ion fluxes and derivatives
@@ -34,11 +34,11 @@ void gatevars_update(struct GateType *,struct SimState *,double,int);
 void excitation(struct ExctType *,double);
 
 // Indexing functions
-int c_index(int,int,int,int);
-int phi_index(int,int,int);
-int al_index(int,int,int);
-int xy_index(int,int);
-int Ind_1(int,int,int,int);
+PetscInt c_index(int,int,int,int);
+PetscInt phi_index(int,int,int);
+PetscInt al_index(int,int,int);
+PetscInt xy_index(int,int);
+PetscInt Ind_1(int,int,int,int);
 
 
 //Create Petsc Structures

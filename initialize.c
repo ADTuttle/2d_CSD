@@ -6,23 +6,23 @@
 #include <stdio.h>
 #include <math.h>
 
-int c_index(int x,int y,int comp,int ion)
+PetscInt c_index(PetscInt x,PetscInt y,PetscInt comp,PetscInt ion)
 {
 	return Nc*Ni* (Nx * y + x) + comp*Ni+ion; 
 }
-int phi_index(int x,int y,int comp)
+PetscInt phi_index(PetscInt x,PetscInt y,PetscInt comp)
 {
 	return Nc* (Nx * y + x) + comp; 
 }
-int al_index(int x,int y,int comp)
+PetscInt al_index(PetscInt x,PetscInt y,PetscInt comp)
 {
 	return (Nc-1)* (Nx * y + x) + comp; 
 }
-int xy_index(int x,int y)
+PetscInt xy_index(PetscInt x,PetscInt y)
 {
 	return Nx*y+x;
 }
-int Ind_1(int x,int y,int ion,int comp)
+PetscInt Ind_1(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp)
 {
   return Nv*(Nx*y+x)+ion*Nc+comp;
 }
@@ -30,9 +30,9 @@ int Ind_1(int x,int y,int ion,int comp)
 
 void init(struct SimState *state_vars)
 {
-	for(int x=0;x<Nx;x++)
+	for(PetscInt x=0;x<Nx;x++)
 	{
-		for(int y=0;y<Ny;y++)
+		for(PetscInt y=0;y<Ny;y++)
 		{
 			//initial volume fractions
 			state_vars->alpha[al_index(x,y,0)]=alphao[0];
@@ -63,9 +63,9 @@ void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct Ga
 	double c[Ni*Nc];
 	double phi[Nc];
 	double alpha[Nc];
-	for(int comp=0;comp<Nc;comp++)
+	for(PetscInt comp=0;comp<Nc;comp++)
 	{
-		for(int ion=0;ion<Ni;ion++)
+		for(PetscInt ion=0;ion<Ni;ion++)
 		{
 			c[c_index(0,0,comp,ion)]=state_vars->c[c_index(0,0,comp,ion)];
 		}
@@ -77,7 +77,7 @@ void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct Ga
 		else
 		{
 			alpha[al_index(0,0,comp)]=1; //Adding in the extracellular vol
-			for(int i=0;i<Nc-1;i++)
+			for(PetscInt i=0;i<Nc-1;i++)
 			{
 				alpha[al_index(0,0,comp)]-=alpha[al_index(0,0,i)];
 			}
@@ -92,7 +92,7 @@ void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct Ga
     //set glial Cl concentration equal to neuronal Cl concentration
     c[c_index(0,0,1,2)] = c[c_index(0,0,0,2)];
 
-    // struct FluxPoint *flux;
+    // struct FluxPoPetscInt *flux;
     // flux = (struct FluxPoint*)malloc(sizeof(struct FluxPoint));
 
     //compute cotransporter permeability so that glial Cl is at rest
@@ -137,13 +137,13 @@ void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct Ga
     con_vars->ao[Nc-1] = 5e-4;
     double cmphi[Nc];
     double osmotic;
-    for(int k=0;k<Nc-1;k++)
+    for(PetscInt k=0;k<Nc-1;k++)
     {
       cmphi[k] = cm[k]*(phi[k]-phi[Nc-1]);
       cmphi[Nc-1] += cmphi[k];
       //set intracellular organic anion amounts to ensure osmotic pressure balance
       osmotic=0;
-      for(int ion=0;ion<Ni;ion++)
+      for(PetscInt ion=0;ion<Ni;ion++)
       {
       	osmotic += c[c_index(0,0,Nc-1,ion)]-c[c_index(0,0,k,ion)];
       }
@@ -154,9 +154,9 @@ void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct Ga
     con_vars->zo[Nc-1] = (-cz(c,z,0,0,Nc-1)*alpha[Nc-1]-cmphi[Nc-1])/con_vars->ao[Nc-1];
     //Copy the point data to vectors.
     //Only needed for uniform data
-    for(int x=0;x<Nx;x++)
+    for(PetscInt x=0;x<Nx;x++)
     {
-    	for(int y=0;y<Ny;y++)
+    	for(PetscInt y=0;y<Ny;y++)
     	{
     		//Gating variables (already set in gatevars_update)
     		//We changed c_index(0,0,0/1,2), neuronal/glial Cl.
@@ -171,7 +171,7 @@ void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct Ga
  	//parameters for osmotic water flow
   	
 	 double zetaadjust = 1; //modify glial permeability  
-  	for(int comp=0;comp<Nc-1;comp++)
+  	for(PetscInt comp=0;comp<Nc-1;comp++)
   	{
   		//based on B.E. Shapiro dissertation (2000) 
   		con_vars->zeta1[comp] = 5.4e-5;  //hydraulic permeability in cm/sec/(mmol/cm^3)
@@ -213,7 +213,7 @@ void initialize_data(struct SimState *state_vars,struct GateType* gate_vars,stru
   	struct ExctType *gexct;
   	gexct = (struct ExctType*)malloc(sizeof(struct ExctType));
   	excitation(gexct,texct+1);
-  	int k = 0;
+  	PetscInt k = 0;
   	double dt_temp = 0.1;
     // double dt_temp = 0.01;
   	
@@ -250,11 +250,16 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
   	ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
 
   	//Create Vectors
+    /*
   	ierr = VecCreate(PETSC_COMM_WORLD,&slvr->Q);CHKERRQ(ierr);
   	ierr = PetscObjectSetName((PetscObject) slvr->Q, "Solution");CHKERRQ(ierr);
   	ierr = VecSetSizes(slvr->Q,PETSC_DECIDE,NA);CHKERRQ(ierr);
   	ierr = VecSetFromOptions(slvr->Q);CHKERRQ(ierr);
   	ierr = VecDuplicate(slvr->Q,&slvr->Res);CHKERRQ(ierr);
+    */
+    ierr = VecCreateSeq(PETSC_COMM_WORLD,NA,&slvr->Q);CHKERRQ(ierr);
+    ierr = VecSetFromOptions(slvr->Q);CHKERRQ(ierr);
+    ierr = VecDuplicate(slvr->Q,&slvr->Res);CHKERRQ(ierr);
 
   	//Create Matrix
   	ierr = MatCreate(PETSC_COMM_WORLD,&slvr->A);CHKERRQ(ierr);

@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <math.h>
 
-void mclin(struct FluxData *flux,int index,double pc,int zi,double ci,double ce,double phim,int ADD)
+void mclin(struct FluxData *flux,PetscInt index,double pc,PetscInt zi,double ci,double ce,double phim,PetscInt ADD)
 {
 	//Returns the flux value by ref.
 	// pc is the permeativity, zi is valence, ci/e intra/extra concentration
@@ -30,7 +30,7 @@ void mclin(struct FluxData *flux,int index,double pc,int zi,double ci,double ce,
 
   	return;
 }
-void mcGoldman(struct FluxData *flux,int index,double pc,int zi,double ci,double ce,double phim,int ADD)
+void mcGoldman(struct FluxData *flux,PetscInt index,double pc,PetscInt zi,double ci,double ce,double phim,PetscInt ADD)
 {
     //compute value and derivatives of the function:
     //mflux=p.*(z*phim).*(ci.*exp(z*phim)-ce)./(exp(z*phim)-1)
@@ -90,7 +90,7 @@ void mcGoldman(struct FluxData *flux,int index,double pc,int zi,double ci,double
     }
     return;
 }
-double xoverexpminusone(double v,double aa,double bb,double cc,int dd)
+double xoverexpminusone(double v,double aa,double bb,double cc,PetscInt dd)
 {
 	//computes aa*(v+bb)/(exp(cc*(v+bb))-1) if dd==0
  	//computes aa*(v+bb)/(1-exp(-cc*(v+bb)) otherwise
@@ -118,11 +118,11 @@ double inwardrect(double ci,double ce,double phim)
   	double cKo = .003; //#3 mM is base extracellular potassium concentration
   	return sqrt(ce/cKo)*(1+exp(18.5/42.5))/(1+exp((RTFC*phim-Enernst+18.5)/42.5))*(1+exp((-118.6+EKdef)/44.1))/(1+exp((-118.6+RTFC*phim)/44.1));
 }
-double cz(double *cmat,const int *zvals,int x,int y,int comp) 
+double cz(double *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt comp) 
 { 
 	//function to compute sum over i of c_i*z_i
 	double accumulate=0;
-	for(int ion=0;ion<Ni;ion++)
+	for(PetscInt ion=0;ion<Ni;ion++)
 	{
 		accumulate += z[ion]*cmat[c_index(x,y,comp,ion)];
 	}
@@ -133,14 +133,14 @@ void diff_coef(double *Dc,double *alp,double scale)
   //diffusion coefficients at all points, for all ions, in all compartments, in both x and y directions
 	double tortuosity=1.6;
 	double alNcL,alNcR,alNcU;
-  	for(int x=0;x<Nx;x++)
+  	for(PetscInt x=0;x<Nx;x++)
   	{
-	  	for(int y=0;y<Ny;y++)
+	  	for(PetscInt y=0;y<Ny;y++)
 	  	{
 	  		alNcL=1-alp[al_index(x,y,0)]-alp[al_index(x,y,1)]; //Left extracell
 			alNcR=1-alp[al_index(x+1,y,0)]-alp[al_index(x+1,y,1)]; //Right extracell
 			alNcU=1-alp[al_index(x,y+1,0)]-alp[al_index(x,y+1,1)];
-		  	for(int ion = 0; ion<Ni;ion++)
+		  	for(PetscInt ion = 0; ion<Ni;ion++)
 		  	{
 			    //diffusion coefficients in x direction
 			    if(x==(Nx-1))
@@ -179,13 +179,13 @@ void diff_coef(double *Dc,double *alp,double scale)
 	}
 }
 
-void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,double dtms,int firstpass)
+void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,double dtms,PetscInt firstpass)
 {
 	if(firstpass)
 	{
 		//membrane potential in mV
 		double v = (state_vars->phi[phi_index(0,0,0)]-state_vars->phi[phi_index(0,0,Nc-1)])*RTFC;
-		//Iniitialize the point gating variables
+		//Iniitialize the poPetscInt gating variables
 		//Cause we assume a uniform start
 		double alpha,beta;
 
@@ -237,7 +237,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,doub
   		gate_vars->gKA[0] = pow(gate_vars->mKA[0],2)*gate_vars->hKA[0];
 
   		//Copy them over the remaining Nx by Ny points.
-  		for(int i=0;i<Nx*Ny;i++)
+  		for(PetscInt i=0;i<Nx*Ny;i++)
   		{
   			gate_vars->mNaT[i] = gate_vars->mNaT[0];
   			gate_vars->hNaT[i] = gate_vars->hNaT[0];
@@ -259,9 +259,9 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,doub
     else //if it's not the firstpass, then we actually have values in v.
 	{
 		double v, alpha,beta;
-		for(int x=0;x<Nx;x++)
+		for(PetscInt x=0;x<Nx;x++)
 		{
-			for(int y=0;y<Ny;y++)
+			for(PetscInt y=0;y<Ny;y++)
 			{
 				//membrane potential in mV
 				v = (state_vars->phi[phi_index(x,y,0)]-state_vars->phi[phi_index(x,y,Nc-1)])*RTFC;
@@ -324,9 +324,9 @@ void excitation(struct ExctType *exct,double t)
   //all units converted to mmol/cm^2/sec
   	double pexct,pany;
   	double xexct;
-  	for(int i=0;i<Nx;i++)
+  	for(PetscInt i=0;i<Nx;i++)
   	{
-	  	for(int j=0;j<Ny;j++)
+	  	for(PetscInt j=0;j<Ny;j++)
 	  		{
 	  		if(two_points_exct)
 	  		{
@@ -367,9 +367,9 @@ void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState 
     //For calculationg permeabilities
     double pGHK,pLin;
     double Ipump,NaKCl;
-    for(int x=0;x<Nx;x++)
+    for(PetscInt x=0;x<Nx;x++)
     {
-        for(int y=0;y<Ny;y++)
+        for(PetscInt y=0;y<Ny;y++)
         {
             vm = state_vars->phi[phi_index(x,y,0)]-state_vars->phi[phi_index(x,y,Nc-1)];
             vmg = state_vars->phi[phi_index(x,y,1)]-state_vars->phi[phi_index(x,y,Nc-1)];
@@ -468,10 +468,10 @@ void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState 
             flux->mflux[c_index(x,y,1,2)]+=2*NaKCl; //Cl
             
             //Change units of flux from mmol/cm^2 to mmol/cm^3/s
-            for(int ion=0;ion<Ni;ion++)
+            for(PetscInt ion=0;ion<Ni;ion++)
             {
                 flux->mflux[c_index(x,y,Nc-1,ion)] = 0;
-                for(int comp = 0;comp<Nc-1;comp++)
+                for(PetscInt comp = 0;comp<Nc-1;comp++)
                 {
                     flux->mflux[c_index(x,y,comp,ion)]=flux->mflux[c_index(x,y,comp,ion)]/ell;
                     flux->dfdci[c_index(x,y,comp,ion)]=flux->dfdci[c_index(x,y,comp,ion)]/ell;
@@ -493,21 +493,21 @@ void wflowm(struct FluxData *flux,struct SimState *state_vars,struct ConstVars *
   //outward transmembrane water flow seen as a function of
   //osmotic pressure and volume fraction or pressure.
     double dwdpi,dwdal,piw,piwNc;
-    for(int x=0;x<Nx;x++)
+    for(PetscInt x=0;x<Nx;x++)
     {
-        for(int y=0;y<Ny;y++)
+        for(PetscInt y=0;y<Ny;y++)
         {
             //Calculate the pi for extracellular
             piwNc = 0;
-            for(int ion=0;ion<Ni;ion++)
+            for(PetscInt ion=0;ion<Ni;ion++)
             {
                 piwNc +=state_vars->c[c_index(x,y,Nc-1,ion)];
             }
             piwNc +=con_vars->ao[al_index(0,0,Nc-1)]/(1-state_vars->alpha[al_index(x,y,0)]-state_vars->alpha[al_index(x,y,1)]);
-            for(int comp = 0;comp<Nc-1;comp++)
+            for(PetscInt comp = 0;comp<Nc-1;comp++)
             {
                 piw = 0;
-                for(int ion=0;ion<Ni;ion++)
+                for(PetscInt ion=0;ion<Ni;ion++)
                 {
                     piw +=state_vars->c[c_index(x,y,comp,ion)];
                 }

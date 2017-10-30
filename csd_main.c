@@ -32,8 +32,8 @@ int main(int argc, char **argv)
     set_params(state_vars,con_vars,gate_vars,flux);
 
     printf("Initialization Routine\n");
-    // PetscInt *row = malloc(Nz*sizeof(PetscInt));
-  	// PetscInt *col = malloc(Nz*sizeof(PetscInt));
+    // PetscPetscInt *row = malloc(Nz*sizeof(PetscInt));
+  	// PetscPetscInt *col = malloc(Nz*sizeof(PetscInt));
   	// PetscScalar *vals =malloc(Nz*sizeof(PetscScalar));
 
   	struct Solver *slvr;
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
     struct ExctType *gexct;
     gexct = (struct ExctType*)malloc(sizeof(struct ExctType));
     excitation(gexct,0);
-    
+
     for(double t=dt;t<=Time;t+=dt)
     {
         printf("Netwon Solve\n");
@@ -65,6 +65,8 @@ int main(int argc, char **argv)
 
     //Free memory
     free(state_vars);free(con_vars);free(gate_vars);
+    VecDestroy(&slvr->Q); VecDestroy(&slvr->Res); MatDestroy(&slvr->A);
+    KSPDestroy(&slvr->ksp); PCDestroy(&slvr->pc);
     free(slvr);
     return 0;
 }

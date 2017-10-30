@@ -14,8 +14,8 @@ static const int two_points_exct = 0;   //if true, triggers SD at origin and (Nx
 static const int savefreq = 500;
 
 //basic ion static constants
-static const   int Ni = 3;            //number of ion species (Na, K, Cl)
-static const   int z[3] = {1,1,-1};//valences of ion species
+static const   PetscInt Ni = 3;            //number of ion species (Na, K, Cl)
+static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   double D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
 //grid parameters
@@ -26,26 +26,26 @@ static const   double Time = 2e-2;
 // static const     Time=10
 //static const    Time = 60//2e-2        //total simulated time in seconds
 // static const    Time=2e-2
-static const  int  Nc = 3;            //number of compartments
- // static const int  Nx = 100;         //number of grid points in the x direction
- // static const int   Ny = 100;      //number of grid points in the y direction
-// static const  int  Nx = 50;
-// static const  int  Ny = 50;
-static const int   Nx = 5;
-static const int  Ny = 5;
+static const  PetscInt  Nc = 3;            //number of compartments
+ // static const PetscInt  Nx = 100;         //number of grid points in the x direction
+ // static const PetscInt   Ny = 100;      //number of grid points in the y direction
+// static const  PetscInt  Nx = 50;
+// static const  PetscInt  Ny = 50;
+static const PetscInt   Nx = 5;
+static const PetscInt  Ny = 5;
 static const double  dx = 0.01;        //grid size in x direction (in cm)
 static const double   dy = 0.01;        //grid size in y direction (in cm)
 static const double  Lx = Nx*dx;          //width of domain in cm (x)
 static const double  Ly = Ny*dy;         //length of domain in cm (y)
-static const int  Nt = (int)Time/dt;     //total number of time steps
+static const PetscInt  Nt = (int)Time/dt;     //total number of time steps
 
 //Newton solve parameters
-static const int  Nv = (Ni+2)*Nc-1;  //number of variables to be solved for at each grid point
-static const int  NA = Nx*Ny*Nv;     //total number of unknowns
-static const int Nz = Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny);
+static const PetscInt  Nv = (Ni+2)*Nc-1;  //number of variables to be solved for at each grid point
+static const PetscInt  NA = Nx*Ny*Nv;     //total number of unknowns
+static const PetscInt Nz = Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny);
 
-// static const int  itermax = 10;      //maximum Newton iterations allowed
-static const int itermax = 3;
+// static const PetscInt  itermax = 10;      //maximum Newton iterations allowed
+static const PetscInt itermax = 3;
 static const double  reltol = 1e-11;    //relative tolerance
 
 
@@ -65,11 +65,11 @@ static const double phibath=-0/RTFC;
 //excitation parameters
 static const  double  pmax  = 5;          //max value for excitation
 static const  double  texct = 2;          //time for excitation
-static const  int  Nexct = 5;          //number of grid points for excitation in each directionexport pmax, texct, Nexct
+static const  PetscInt  Nexct = 5;          //number of grid points for excitation in each directionexport pmax, texct, Nexct
 
 //initial state setup
-static const int rest_state = 1;        //if true, membrane parameters are set so that the initial voltages and concentrations are at a rest state
-static const int spatially_uniform = 0; //if true, all initial values and parameters are spatially uniform
+static const PetscInt rest_state = 1;        //if true, membrane parameters are set so that the initial voltages and concentrations are at a rest state
+static const PetscInt spatially_uniform = 0; //if true, all initial values and parameters are spatially uniform
 
 
 
@@ -185,7 +185,7 @@ struct Solver{
   	Mat A;            /* linear system matrix */
   	KSP ksp;         /* linear solver context */
   	PC pc;           /* preconditioner context */
-  	PetscMPIInt    size;
+  	PetscMPIInt   size;
 };
 
 /*
@@ -199,7 +199,7 @@ struct ConstVars{
 	double zo[Nx*Ny];
 	double kappa[Nx*Ny];
 	double zeta1[Nx*Ny];
-	int S; //boolean
+	PetscInt S; //boolean
 	double zetaalpha[Nx*Ny];
 };
 */
