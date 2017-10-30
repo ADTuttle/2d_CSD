@@ -264,7 +264,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,doub
 			for(int y=0;y<Ny;y++)
 			{
 				//membrane potential in mV
-				v = state_vars->phi[phi_index(x,y,0)]-state_vars->phi[phi_index(x,y,Nc-1)];
+				v = (state_vars->phi[phi_index(x,y,0)]-state_vars->phi[phi_index(x,y,Nc-1)])*RTFC;
 				
 				//compute current NaT
 		  		//gating variables mNaT
@@ -279,14 +279,12 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,doub
 		    	gate_vars->hNaT[xy_index(x,y)] = (gate_vars->hNaT[xy_index(x,y)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
 		    	gate_vars->gNaT[xy_index(x,y)] = pow(gate_vars->mNaT[xy_index(x,y)],3)*gate_vars->hNaT[xy_index(x,y)];
-
 		  		//compute current NaP
 		  		//gating variable mNaP
 		  		alpha = 1/(1+exp(-(0.143*v+5.67)))/6;
-		  		beta = 1/6-alpha; //1./(1+exp(0.143*Vm+5.67))/6
+		  		beta = 1.0/6.0-alpha; //1./(1+exp(0.143*Vm+5.67))/6
 		  		gate_vars->mNaP[xy_index(x,y)] = (gate_vars->mNaP[xy_index(x,y)] + alpha*dtms)/(1+(alpha+beta)*dtms);
-	
-
+	   
 		  		//gating variable hNaP
 		  		alpha = 5.12e-6*exp(-(0.056*v+2.94));
 		  		beta = 1.6e-4/(1+exp(-(0.2*v+8)));
@@ -341,7 +339,7 @@ void excitation(struct ExctType *exct,double t)
 	  		if( t<texct && i<Nexct && j<Nexct)
 	  		{
 	    		pexct=pmax*(sin(pi*t/texct))*RTFC/FC;
-	    		xexct=pow((cos(pi/2*dx*i/Nexct))*(cos(pi/2*dy*j/Nexct)),2);
+	    		xexct=pow((cos(pi/2*(i+.5)/Nexct))*(cos(pi/2*(j+.5)/Nexct)),2);
 	    		pany=pexct*xexct;
 	    		exct->pNa[xy_index(i,j)]=pany;
 	    		exct->pK[xy_index(i,j)]=pany;
@@ -384,11 +382,23 @@ void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState 
 
             //Neurons
             pGHK = pNaT*gvars->gNaT[xy_index(x,y)]+pNaP*gvars->gNaP[xy_index(x,y)];
-            pLin = con_vars->pNaLeak + gexct->pK[xy_index(x,y)]; //Add excitation
+            pLin = con_vars->pNaLeak + gexct->pNa[xy_index(x,y)]; //Add excitation
             //Initialize GHK Flux
             mcGoldman(flux,c_index(x,y,0,0),pGHK,1,ci,ce,vm,0);
             //Add leak current to that.
             mclin(flux,c_index(x,y,0,0),pLin,1,ci,ce,vm,1);
+            if(x==0 && y==0)
+            {
+
+            //Add leak current to that.
+                mclin(flux,c_index(x,y,0,0),pLin,1,ci,ce,vm,0);
+                printf("Na Flux: %f\n",1e6*flux->mflux[c_index(x,y,0,0)]);
+                printf("%f\n",1e6*pLin);
+                printf("gext: %f\n",1e6*gexct->pNa[xy_index(x,y)]);
+                printf("\n\n");
+                 //Initialize GHK Flux
+            mcGoldman(flux,c_index(x,y,0,0),pGHK,1,ci,ce,vm,1);
+            }
             //Glial NaLeak
             mclin(flux,c_index(x,y,1,0),con_vars->pNaLeakg,1,cg,ce,vmg,0);
           

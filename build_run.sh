@@ -1,5 +1,6 @@
 #!/bin/bash
 make csd
-./csd
+#./csd -ksp_monitor
+./csd 
 #lldb ./csd
 rm csd

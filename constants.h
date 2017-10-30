@@ -44,7 +44,8 @@ static const int  Nv = (Ni+2)*Nc-1;  //number of variables to be solved for at e
 static const int  NA = Nx*Ny*Nv;     //total number of unknowns
 static const int Nz = Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny);
 
-static const int  itermax = 10;      //maximum Newton iterations allowed
+// static const int  itermax = 10;      //maximum Newton iterations allowed
+static const int itermax = 3;
 static const double  reltol = 1e-11;    //relative tolerance
 
 
@@ -179,8 +180,6 @@ struct ConstVars{
 	double zetaalpha[Nc-1];
 };
 struct Solver{
-	PetscInt row[Nz];
-	PetscInt col[Nz];
 	Vec Q;      /* Update*/
 	Vec Res;
   	Mat A;            /* linear system matrix */

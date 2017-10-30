@@ -6,8 +6,14 @@
 #include <stdio.h>
 #include <math.h>
 
-void newton_solve(struct SimState *state_vars, double dt, struct GateType *gvars, struct ExctType *gexct, struct ConstVars *con_vars,struct Solver *slvr,struct FluxData *flux) 
+PetscErrorCode newton_solve(struct SimState *state_vars, double dt, struct GateType *gvars, struct ExctType *gexct, struct ConstVars *con_vars,struct Solver *slvr,struct FluxData *flux) 
 {
+
+    PetscReal rsd;
+    PetscErrorCode ierr = 0;
+    PetscScalar *temp;
+    PetscInt num_iter;
+
     //Save the "current" aka past state
 	struct SimState *state_vars_past;
     state_vars_past = (struct SimState*)malloc(sizeof(struct SimState));
@@ -30,6 +36,7 @@ void newton_solve(struct SimState *state_vars, double dt, struct GateType *gvars
    	double Dcb[Nx*Ny*Ni*Nc*2];
    	//compute diffusion coefficients
    	diff_coef(Dcs,state_vars->alpha,1);
+    /*
     for(int ion=0;ion<Ni;ion++)
     {
         for(int comp=0;comp<Nc;comp++)
@@ -38,8 +45,11 @@ void newton_solve(struct SimState *state_vars, double dt, struct GateType *gvars
             printf("Dcs x: %f, Dcs y: %f\n",1e6*Dcs[c_index(0,0,comp,ion)*2],1e6*Dcs[c_index(0,4,comp,ion)*2+1]);
         }
     }
+    printf("\n");
+    */
    	//Bath diffusion
   	diff_coef(Dcb,state_vars->alpha,Batheps);
+    /*
     for(int ion=0;ion<Ni;ion++)
     {
         for(int comp=0;comp<Nc;comp++)
@@ -48,29 +58,33 @@ void newton_solve(struct SimState *state_vars, double dt, struct GateType *gvars
             printf("Dcb x: %f, Dcb y: %f\n",1e6*Dcb[c_index(0,0,comp,ion)*2],1e6*Dcb[c_index(0,4,comp,ion)*2+1]);
         }
     }
-    for(int ion=0;ion<Ni;ion++)
-    {
-        for(int comp=0;comp<Nc;comp++)
-        {
-            printf("Ion: %d, Comp %d, C: %f\n",ion,comp,state_vars->c[c_index(0,0,comp,ion)]);
-        }
-    }
-    for(int comp=0;comp<Nc;comp++)
-    {
-        printf("Comp %d, Phi: %f\n",comp,state_vars->phi[phi_index(0,0,comp)]);
-    }
+    */
+    
 
     double tol = reltol*array_max(state_vars->c,(size_t)Nx*Ny*Ni*Nc);
-    double rsd = tol+1;
+    rsd = tol+1;
 
     int x=0;int y=0;
     for(int iter=0;iter<itermax;iter++)
     {
+        printf("\n");
+        for(int ion=0;ion<Ni;ion++)
+        {
+            for(int comp=0;comp<Nc;comp++)
+            {
+                printf("Ion: %d, Comp %d, C: %f\n",ion,comp,state_vars->c[c_index(0,0,comp,ion)]);
+            }
+        }
+    for(int comp=0;comp<Nc;comp++)
+    {
+        printf("Comp %d, Phi: %f\n",comp,state_vars->phi[phi_index(0,0,comp)]);
+    }
         printf("Gvars:\n");
         printf("NaT :%f,%f,%f*1e-6\n",gvars->mNaT[0],gvars->hNaT[0],1e6*gvars->gNaT[0]);
         printf("NaP :%f,%f,%f\n",gvars->mNaP[0],gvars->hNaP[0],gvars->gNaP[0]);
         printf("KDR :%f,%f\n",gvars->mKDR[0],gvars->gKDR[0]);
         printf("KA :%f,%f,%f\n",gvars->mKA[0],gvars->hKA[0],gvars->gKA[0]);
+        printf("\n");
         //Compute membrane ionic flux relation quantitites
         ionmflux(flux,state_vars,state_vars_past,gvars,gexct,con_vars);
 
@@ -79,9 +93,10 @@ void newton_solve(struct SimState *state_vars, double dt, struct GateType *gvars
             for(int comp=0;comp<Nc;comp++)
             {
                 printf("Ion: %d, Comp %d\n",ion,comp);
-                printf("Flux*1e6: %f, dfdci: %f, dfdce: %f, dfdphim: %f\n",1e6*flux->mflux[c_index(0,0,comp,ion)],flux->dfdci[c_index(0,0,comp,ion)],flux->dfdce[c_index(0,0,comp,ion)],flux->dfdphim[c_index(0,0,comp,ion)]);
+                printf("Flux: %f*1e3, dfdci: %f, dfdce: %f, dfdphim: %f\n",1e3*flux->mflux[c_index(0,0,comp,ion)],flux->dfdci[c_index(0,0,comp,ion)],flux->dfdce[c_index(0,0,comp,ion)],flux->dfdphim[c_index(0,0,comp,ion)]);
             }
         }
+        printf("\n");
         //Compute membrane water flow related quantities
         wflowm(flux,state_vars,con_vars);
         for(int comp=0;comp<Nc-1;comp++)
@@ -89,12 +104,55 @@ void newton_solve(struct SimState *state_vars, double dt, struct GateType *gvars
             printf("Comp: %d\n",comp);
             printf("wFlux: %f,%f,%f\n",flux->wflow[al_index(x,y,comp)],flux->dwdpi[al_index(x,y,comp)],flux->dwdal[al_index(x,y,comp)]);
         }
+        printf("\n");
         // VecView(slvr->Res,PETSC_VIEWER_STDOUT_SELF);
-        calc_residual(slvr->Res,state_vars_past,state_vars,dt,Dcs,Dcb,flux,con_vars);
+        ierr = calc_residual(slvr->Res,state_vars_past,state_vars,dt,Dcs,Dcb,flux,con_vars);CHKERRQ(ierr);
         // VecView(slvr->Res,PETSC_VIEWER_STDOUT_SELF);
-        calc_jacobian(slvr->A,state_vars_past,state_vars,dt,Dcs,Dcb,flux,con_vars);
-        break;
+        ierr = VecNorm(slvr->Res,NORM_2,&rsd);CHKERRQ(ierr);
+        if(rsd<tol)
+        {
+            return ierr;
+        }
+        ierr = calc_jacobian(slvr->A,state_vars_past,state_vars,dt,Dcs,Dcb,flux,con_vars);CHKERRQ(ierr);
+        //Set the new operator
+        ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
 
+        //Solve
+        ierr = KSPSolve(slvr->ksp,slvr->Res,slvr->Q);CHKERRQ(ierr);
+        ierr = KSPView(slvr->ksp,PETSC_VIEWER_STDOUT_SELF);CHKERRQ(ierr);
+        ierr = KSPGetIterationNumber(slvr->ksp,&num_iter);
+        printf("Number of KSP Iterations: %d\n",num_iter);
+        fprintf(stderr, "Performed first solve....\n");
+        exit(EXIT_FAILURE); /* indicate failure.*/
+        ierr = VecGetArray(slvr->Q,&temp);CHKERRQ(ierr);
+        for(x=0;x<Nx;x++)
+        {
+            for(y=0;y<Ny;y++)
+            {
+                for(int comp=0;comp<Nc;comp++)
+                {
+                    for(int ion = 0;ion<Ni;ion++)
+                    {
+                        // ierr = VecGetValues(slvr->Q,1,Ind_1(x,y,ion,comp),&temp); CHKERRQ(ierr);
+                        state_vars->c[c_index(x,y,comp,ion)]+=temp[Ind_1(x,y,ion,comp)];
+                    }
+                    // ierr = VecGetValues(slvr->Q,1,Ind_1(x,y,Ni,comp),&temp); CHKERRQ(ierr);
+                    state_vars->phi[phi_index(x,y,comp)]+=temp[Ind_1(x,y,Ni,comp)];
+                }
+                for(int comp=0;comp<Nc-1;comp++)
+                {
+                    // ierr = VecGetValues(slvr->Q,1,Ind_1(x,y,Ni+1,comp),&temp); CHKERRQ(ierr);
+                    state_vars->alpha[al_index(x,y,comp)]+=temp[Ind_1(x,y,Ni+1,comp)];
+                }
+            }
+        }
+        ierr = VecRestoreArray(slvr->Q,&temp);CHKERRQ(ierr);
+
+
+        if(details)
+        {
+            printf("Iteration: %d, Residual: %f\n",iter,rsd);
+        }
     }
 
     if(rsd>tol)
@@ -103,76 +161,10 @@ void newton_solve(struct SimState *state_vars, double dt, struct GateType *gvars
         exit(EXIT_FAILURE); /* indicate failure.*/
     }
 
-  	return;
+    return ierr;
 }
 
-/*
-  al = fullalpha(state_vars.alpha)
-  Dcs = diff_coeff(al) #compute diffusion coefficients
-  Dcb=Batheps*diff_coeff(al)
-  tol = reltol*maximum(abs,state_vars.c)
-  rsd = tol+1
-  iter = 0
-  mflux = zeros(size(state_vars.c)) #initialize ion flux record
-  for iter = 0:itermax
-    Res = F(state_vars_past, state_vars, dt, Dcs, Dcb, fluxdata,con_vars)
-    #if residual is small or iteration count is large, exit loop
-    rsd = norm(Res,Inf)
-#    write(diagnostics, "$(rsd)\n")
-    if (rsd < tol)
-        break
-    end
-    #println(iter)
-    Jac = J(state_vars_past, state_vars, dt, Dcs, Dcb, fluxdata,con_vars)
-    # println(full(Jac[1:2*Nv,1:2*Nv]))
-    # Ka=0
-    # K=Nx*Ny
-    # println("Full Jacobian det: $(det(full(Jac[(1+Ka*Nv):K*Nv,(1+Ka*Nv):K*Nv])))")
-    # println("Full cond:$(cond(full(Jac[(1+Ka*Nv):K*Nv,(1+Ka*Nv):K*Nv])))")
-    # println("Full rank: $(rank(full(Jac[(1+Ka*Nv):K*Nv,(1+Ka*Nv):K*Nv])))")
-    # println("Size: $(size(Jac[(1+Ka*Nv):K*Nv,(1+Ka*Nv):K*Nv]))")
-#     if iter==1
-#       global Jac1 = full(Jac)
-#     end
-    if !(use_direct_solve)
-      #Q = -call_gmres(Jac, Res)
-     #   @time Q = -iterative_solve(Jac,Res)
-        # println("Preconditioner")
-        P=Preconditioner_ILU(Jac)
-        # b=rand(NA)
-        # println("Precond norm: $(norm(P\b)/norm(b))")
-        # @time P=Preconditioner_ADI(state_vars_past, state_vars, dt, Dcs,Dcb, fluxdata,con_vars)
-        # println("Solve")
-        # Q = -iterative_solve(Jac,Res,P,NA)
-        println("Iterativesolve")
-        @time Q = -iterative_solve(Jac,Res,P,NA)
-        println("Iterative solve done")
-    else
-        @time Q = -Jac\Res#solve for correction
-    end
-    #   println("iteration: $(iter), residual: $(rsd)")
-    #   state_vars.p=1
-    #update c, phi, and alpha
-    for k = 1:Nc
-        for j=1:Ni
-            state_vars.c[:,:,j,k] += reshape(Q[Ind_1(1,1,j,k):Nv:NA],Nx,Ny)
-        end
-        state_vars.phi[:,:,k] += reshape(Q[Ind_1(1,1,Ni+1,k):Nv:NA],Nx,Ny)
-    end
-    for k = 1:Nc-1
-        state_vars.alpha[:,:,k] += reshape(Q[Ind_1(1,1,Ni+2,k):Nv:NA],Nx,Ny)
-    end
-    al = fullalpha(state_vars.alpha)
-  end
-  if rsd > tol
-    println("REACHED MAXIMUM NEWTON SOLVE STEPS")
-  end
-  if details
-    println("iteration: $(iter), residual: $(rsd)")
-  end
-  state_vars
-end
-*/
+
 PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct SimState *state_vars,double dt,double *Dcs,double *Dcb,struct FluxData *flux,struct ConstVars *con_vars)
 {
     double *c = state_vars->c;

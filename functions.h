@@ -40,13 +40,12 @@ int al_index(int,int,int);
 int xy_index(int,int);
 int Ind_1(int,int,int,int);
 
-//Create the sparse row and column vectors
-void Assemble_Index(PetscInt *,PetscInt *);
+
 //Create Petsc Structures
 PetscErrorCode initialize_petsc(struct Solver *,int, char **);
 
 //Newton Solver
-void newton_solve(struct SimState *, double, struct GateType *, struct ExctType *, struct ConstVars *,struct Solver *,struct FluxData*); 
+PetscErrorCode newton_solve(struct SimState *, double, struct GateType *, struct ExctType *, struct ConstVars *,struct Solver *,struct FluxData*); 
 //Calculate residual
 PetscErrorCode calc_residual(Vec,struct SimState *,struct SimState *,double,double *,double *,struct FluxData *,struct ConstVars *);
 PetscErrorCode calc_jacobian(Mat,struct SimState *,struct SimState *,double,double *,double *,struct FluxData *,struct ConstVars *);

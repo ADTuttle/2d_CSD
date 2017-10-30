@@ -4,7 +4,7 @@ PETSC_DIR=/Users/Austin/Documents/C_Progs/petsc-3.7.7/arch-darwin-c-debug
 # include ${PETSC_DIR}/lib/petsc/conf/variables
 # include ${PETSC_DIR}/lib/petsc/conf/rules
 
-Includes = -I$(PETSC_DIR)/../include -I$(PETSC_DIR)/include -I/opt/X11/include -I$(PETSC_DIR)/../include/petsc/mpiuni
+Includes = -I$(PETSC_DIR)/../include -I$(PETSC_DIR)/include -I/opt/X11/include -I$(PETSC_DIR)/../include/petsc/mpiuni -I$(PETSC_DIR)/include/petscconf.h
 
 CSD_Includes = -I constants.h -I functions.h
 
