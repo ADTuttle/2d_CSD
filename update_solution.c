@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <math.h>
 
-PetscErrorCode newton_solve(struct SimState *state_vars, double dt, struct GateType *gvars, struct ExctType *gexct, struct ConstVars *con_vars,struct Solver *slvr,struct FluxData *flux) 
+PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_vars_past, double dt, struct GateType *gvars, struct ExctType *gexct, struct ConstVars *con_vars,struct Solver *slvr,struct FluxData *flux) 
 {
 
     PetscReal rsd;
@@ -15,9 +15,7 @@ PetscErrorCode newton_solve(struct SimState *state_vars, double dt, struct GateT
     PetscInt num_iter;
 
     //Save the "current" aka past state
-	struct SimState *state_vars_past;
-    state_vars_past = (struct SimState*)malloc(sizeof(struct SimState));
-    memcpy(state_vars_past,state_vars,sizeof(struct SimState)); 
+    memcpy(state_vars_past,state_vars,sizeof(struct SimState));
 
     printf("ConstVars:\n");
     printf("%f,%f,%f\n",1e6*con_vars->pNaKCl,1e6*con_vars->Imax,1e6*con_vars->pNaLeak);
@@ -106,24 +104,38 @@ PetscErrorCode newton_solve(struct SimState *state_vars, double dt, struct GateT
         }
         printf("\n");
         // VecView(slvr->Res,PETSC_VIEWER_STDOUT_SELF);
+        PetscScalar zero = 0;
+        ierr = VecSet(slvr->Res,zero);CHKERRQ(ierr);
+        ierr = VecSet(slvr->Q,zero);CHKERRQ(ierr);
         ierr = calc_residual(slvr->Res,state_vars_past,state_vars,dt,Dcs,Dcb,flux,con_vars);CHKERRQ(ierr);
         // VecView(slvr->Res,PETSC_VIEWER_STDOUT_SELF);
-        ierr = VecNorm(slvr->Res,NORM_2,&rsd);CHKERRQ(ierr);
+        ierr = VecNorm(slvr->Res,NORM_MAX,&rsd);CHKERRQ(ierr);
+        printf("Rsd: %f\n",rsd);
         if(rsd<tol)
         {
             return ierr;
         }
+        ierr = MatZeroEntries(slvr->A);CHKERRQ(ierr);
         ierr = calc_jacobian(slvr->A,state_vars_past,state_vars,dt,Dcs,Dcb,flux,con_vars);CHKERRQ(ierr);
         //Set the new operator
+        // ierr = KSPSetOperators(slvr->ksp,NULL,NULL);CHKERRQ(ierr);
         ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
+        // ierr = PCSetOperators(slvr->pc,slvr->A,slvr->A);CHKERRQ(ierr);
+        // ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
 
         //Solve
+        ierr = KSPSetUp(slvr->ksp);CHKERRQ(ierr);
         ierr = KSPSolve(slvr->ksp,slvr->Res,slvr->Q);CHKERRQ(ierr);
         ierr = KSPView(slvr->ksp,PETSC_VIEWER_STDOUT_SELF);CHKERRQ(ierr);
         ierr = KSPGetIterationNumber(slvr->ksp,&num_iter);
+
+
+        
+        ierr = KSPDestroy(&slvr->ksp);CHKERRQ(ierr);
+        // VecView(slvr->Q,PETSC_VIEWER_STDOUT_SELF);
         printf("Number of KSP Iterations: %d\n",num_iter);
-        fprintf(stderr, "Performed first solve....\n");
-        exit(EXIT_FAILURE); /* indicate failure.*/
+        // fprintf(stderr, "Performed first solve....\n");
+        // exit(EXIT_FAILURE); /* indicate failure.*/
         ierr = VecGetArray(slvr->Q,&temp);CHKERRQ(ierr);
         for(x=0;x<Nx;x++)
         {
@@ -134,15 +146,15 @@ PetscErrorCode newton_solve(struct SimState *state_vars, double dt, struct GateT
                     for(PetscInt ion = 0;ion<Ni;ion++)
                     {
                         // ierr = VecGetValues(slvr->Q,1,Ind_1(x,y,ion,comp),&temp); CHKERRQ(ierr);
-                        state_vars->c[c_index(x,y,comp,ion)]+=temp[Ind_1(x,y,ion,comp)];
+                        state_vars->c[c_index(x,y,comp,ion)]-=temp[Ind_1(x,y,ion,comp)];
                     }
                     // ierr = VecGetValues(slvr->Q,1,Ind_1(x,y,Ni,comp),&temp); CHKERRQ(ierr);
-                    state_vars->phi[phi_index(x,y,comp)]+=temp[Ind_1(x,y,Ni,comp)];
+                    state_vars->phi[phi_index(x,y,comp)]-=temp[Ind_1(x,y,Ni,comp)];
                 }
                 for(PetscInt comp=0;comp<Nc-1;comp++)
                 {
                     // ierr = VecGetValues(slvr->Q,1,Ind_1(x,y,Ni+1,comp),&temp); CHKERRQ(ierr);
-                    state_vars->alpha[al_index(x,y,comp)]+=temp[Ind_1(x,y,Ni+1,comp)];
+                    state_vars->alpha[al_index(x,y,comp)]-=temp[Ind_1(x,y,Ni+1,comp)];
                 }
             }
         }
@@ -160,7 +172,6 @@ PetscErrorCode newton_solve(struct SimState *state_vars, double dt, struct GateT
         fprintf(stderr, "Netwon Iteration did not converge! Stopping...\n");
         exit(EXIT_FAILURE); /* indicate failure.*/
     }
-
     return ierr;
 }
 
@@ -180,7 +191,7 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
     PetscInt ion,comp,x,y;
 
     PetscErrorCode ierr;
-
+    
     for(x=0;x<Nx;x++)
     {
         for(y=0;y<Ny;y++)
@@ -310,6 +321,12 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
             }
         }
     }
+    /*
+    for(int i=0;i<NA;i++)
+    {
+        ierr = VecSetValue(Res,i,1,INSERT_VALUES);CHKERRQ(ierr);
+    }
+    */
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
     // VecView(Res,PETSC_VIEWER_STDOUT_SELF);
@@ -319,18 +336,19 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
 }
 
 PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct SimState *state_vars,double dt,double *Dcs,double *Dcb,struct FluxData *flux,struct ConstVars *con_vars)
-{
+{ 
+    printf("Calculating Jacobian!\n");
+    PetscErrorCode ierr;
     double *c = state_vars->c;
     double *al = state_vars->alpha;
     double *cp = state_vars_past->c;
     PetscInt ind = 0;
     PetscInt x,y,ion,comp;
 
-    PetscErrorCode ierr;
-
     double Ftmpx,Fc0x,Fc1x,Fph0x,Fph1x;
     double Ftmpy,Fc0y,Fc1y,Fph0y,Fph1y;
     double Ac,Aphi;
+    
     //Ionic concentration equations
     for(x=0;x<Nx;x++)
     {
@@ -516,6 +534,7 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
             }
         }
     }
+    
     //Electroneutrality charge-capcitance condition
     for(x=0;x<Nx;x++)
     {
@@ -600,6 +619,14 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
             }
         }
     }
+    
+    /*
+    for(int i=0;i<NA;i++)
+    {
+        ierr = MatSetValue(Jac,i,i,2,INSERT_VALUES);CHKERRQ(ierr);
+    }
+    */
+
     ierr = MatAssemblyBegin(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     printf("Nz: %d, Ind: %d\n",Nz,ind);

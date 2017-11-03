@@ -5,10 +5,11 @@
 #include <petsctime.h>
 #include <petscksp.h>
 #include <petscmat.h>
+#include "petscsys.h" 
 //Function to initialize the state
 void init(struct SimState *);
 //Solve until steady state (mostly to update gating_vars)
-void initialize_data(struct SimState*,struct GateType*,struct ConstVars*,struct Solver*,struct FluxData*);
+void initialize_data(struct SimState*,struct SimState *,struct GateType*,struct ConstVars*,struct Solver*,struct FluxData*);
 
 //Set the paramaters based on the constants
 void set_params(struct SimState *,struct ConstVars*,struct GateType*,struct FluxData*);
@@ -43,9 +44,10 @@ PetscInt Ind_1(int,int,int,int);
 
 //Create Petsc Structures
 PetscErrorCode initialize_petsc(struct Solver *,int, char **);
+void Get_Nonzero_in_Rows(int *);
 
 //Newton Solver
-PetscErrorCode newton_solve(struct SimState *, double, struct GateType *, struct ExctType *, struct ConstVars *,struct Solver *,struct FluxData*); 
+PetscErrorCode newton_solve(struct SimState *,struct SimState *, double, struct GateType *, struct ExctType *, struct ConstVars *,struct Solver *,struct FluxData*); 
 //Calculate residual
 PetscErrorCode calc_residual(Vec,struct SimState *,struct SimState *,double,double *,double *,struct FluxData *,struct ConstVars *);
 PetscErrorCode calc_jacobian(Mat,struct SimState *,struct SimState *,double,double *,double *,struct FluxData *,struct ConstVars *);
@@ -54,6 +56,8 @@ PetscErrorCode calc_jacobian(Mat,struct SimState *,struct SimState *,double,doub
 double array_max(double *,size_t);
 // abs. max, but for difference
 double array_diff_max(double *,double *,size_t);
+//Calc l2_norm of one array
+double l2_norm(double *,size_t);
 
 
 

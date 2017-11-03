@@ -27,6 +27,20 @@ csd:
 
 	rm csd_main.o initialize.o ion_channel.o array_function.o update_solution.o
 
+debug: 
+	clang -g -o csd_main.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/csd_main.c
+	clang -g -o initialize.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/initialize.c
+	clang -g -o ion_channel.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/ion_channel.c
+	clang -g -o array_function.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/array_functions.c
+	clang -g -o update_solution.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/update_solution.c
+
+
+	clang -g $(LFlags)   -o csd initialize.o csd_main.o ion_channel.o array_function.o update_solution.o $(Linker) -lpetsc -lf2clapack -lf2cblas -lX11 -ldl 
+	#View assembly file?
+	# gcc -O3 $(LFlags)   -S csd initialize.o csd_main.o ion_channel.o array_function.o update_solution.o $(Linker) -lpetsc -lf2clapack -lf2cblas -lX11 -ldl 
+
+	rm csd_main.o initialize.o ion_channel.o array_function.o update_solution.o
+
 ex1: ex1.o  chkopts
 	-${CLINKER} -o ex1 ex1.o  ${PETSC_KSP_LIB}
 	${RM} ex1.o

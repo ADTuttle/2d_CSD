@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include "functions.h"
 
+
+
 int main(int argc, char **argv)
 {
     printf("\n\n\nGrid size: %dx%d, with %d ions, and %d compartments.\n",Nx,Ny,Ni,Nc);
@@ -11,6 +13,8 @@ int main(int argc, char **argv)
     //Create state_variables struct
     struct SimState *state_vars;
     state_vars=(struct SimState*)malloc(sizeof(struct SimState));
+    struct SimState *state_vars_past;
+    state_vars_past=(struct SimState*)malloc(sizeof(struct SimState));
 
     //Initialize
     init(state_vars);
@@ -42,7 +46,7 @@ int main(int argc, char **argv)
   	ierr = initialize_petsc(slvr,argc,argv);CHKERRQ(ierr);
 
 	//Run Initialization routine to get to steady state
-	initialize_data(state_vars,gate_vars,con_vars,slvr,flux);
+	initialize_data(state_vars,state_vars_past,gate_vars,con_vars,slvr,flux);
 
     printf("Beginning Main Routine \n");
     printf("\n\n\n");
@@ -54,7 +58,7 @@ int main(int argc, char **argv)
     for(double t=dt;t<=Time;t+=dt)
     {
         printf("Netwon Solve\n");
-        newton_solve(state_vars, dt, gate_vars, gexct,con_vars,slvr,flux);
+        newton_solve(state_vars,state_vars_past,dt,gate_vars,gexct,con_vars,slvr,flux);
         //Update gating variables
         gatevars_update(gate_vars,state_vars,dt*1e3,0);
         //Update Excitation
@@ -66,7 +70,7 @@ int main(int argc, char **argv)
     //Free memory
     free(state_vars);free(con_vars);free(gate_vars);
     VecDestroy(&slvr->Q); VecDestroy(&slvr->Res); MatDestroy(&slvr->A);
-    KSPDestroy(&slvr->ksp); PCDestroy(&slvr->pc);
+    KSPDestroy(&slvr->ksp);
     free(slvr);
     return 0;
 }

@@ -1,6 +1,8 @@
 #!/bin/bash
-make csd
-#./csd -ksp_monitor
-./csd 
+#make csd
+make debug
+./csd -malloc_log -malloc_debug
+#./csd
+#./csd -ksp_monitor 
 #lldb ./csd
 rm csd

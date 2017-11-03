@@ -387,18 +387,6 @@ void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState 
             mcGoldman(flux,c_index(x,y,0,0),pGHK,1,ci,ce,vm,0);
             //Add leak current to that.
             mclin(flux,c_index(x,y,0,0),pLin,1,ci,ce,vm,1);
-            if(x==0 && y==0)
-            {
-
-            //Add leak current to that.
-                mclin(flux,c_index(x,y,0,0),pLin,1,ci,ce,vm,0);
-                printf("Na Flux: %f\n",1e6*flux->mflux[c_index(x,y,0,0)]);
-                printf("%f\n",1e6*pLin);
-                printf("gext: %f\n",1e6*gexct->pNa[xy_index(x,y)]);
-                printf("\n\n");
-                 //Initialize GHK Flux
-            mcGoldman(flux,c_index(x,y,0,0),pGHK,1,ci,ce,vm,1);
-            }
             //Glial NaLeak
             mclin(flux,c_index(x,y,1,0),con_vars->pNaLeakg,1,cg,ce,vmg,0);
           

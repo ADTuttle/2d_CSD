@@ -197,7 +197,7 @@ void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct Ga
     return;
 }
 
-void initialize_data(struct SimState *state_vars,struct GateType* gate_vars,struct ConstVars* con_vars,struct Solver *slvr,struct FluxData *flux)
+void initialize_data(struct SimState *state_vars,struct SimState *state_vars_past, struct GateType* gate_vars,struct ConstVars* con_vars,struct Solver *slvr,struct FluxData *flux)
 {
 	double reltol = 1e-11;
 	double tol = reltol*array_max(state_vars->c,(size_t)Nx*Ny*Nc*Ni);
@@ -220,7 +220,7 @@ void initialize_data(struct SimState *state_vars,struct GateType* gate_vars,stru
   	while(rsd>tol && dt_temp*k<10)
   	{
     	memcpy(cp,state_vars->c,sizeof(double)*Nx*Ny*Ni*Nc);
-    	newton_solve(state_vars, dt_temp, gate_vars, gexct,con_vars,slvr,flux);
+    	newton_solve(state_vars,state_vars_past, dt_temp, gate_vars, gexct,con_vars,slvr,flux);
     	gatevars_update(gate_vars,state_vars,dt_temp*1e3,0);
     	rsd = array_diff_max(state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/dt_temp;
         printf("Init_Data rsd: %f, Tol: %f\n",1e6*rsd,1e6*tol);
@@ -257,17 +257,30 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
   	ierr = VecSetFromOptions(slvr->Q);CHKERRQ(ierr);
   	ierr = VecDuplicate(slvr->Q,&slvr->Res);CHKERRQ(ierr);
     */
+    /*
     ierr = VecCreateSeq(PETSC_COMM_WORLD,NA,&slvr->Q);CHKERRQ(ierr);
     ierr = VecSetFromOptions(slvr->Q);CHKERRQ(ierr);
+    ierr = VecCreateSeq(PETSC_COMM_WORLD,NA,&slvr->Res);CHKERRQ(ierr);
+    ierr = VecSetFromOptions(slvr->Res);CHKERRQ(ierr);
+    */
+    ierr = VecCreate(PETSC_COMM_WORLD,&slvr->Q);CHKERRQ(ierr);
+    ierr = VecSetType(slvr->Q,VECSEQ);
+    ierr = VecSetSizes(slvr->Q,PETSC_DECIDE,NA);CHKERRQ(ierr);
     ierr = VecDuplicate(slvr->Q,&slvr->Res);CHKERRQ(ierr);
 
   	//Create Matrix
-  	ierr = MatCreate(PETSC_COMM_WORLD,&slvr->A);CHKERRQ(ierr);
+    //Get number of nonzeros in each row
+    int nnz[NA];
+    Get_Nonzero_in_Rows(nnz);
+    //Construct matrix using that
+  	// ierr = MatCreateSeqAIJ(PETSC_COMM_WORLD,NA,NA,5*Nv,nnz,&slvr->A);CHKERRQ(ierr);
+    ierr = MatCreate(PETSC_COMM_WORLD,&slvr->A);CHKERRQ(ierr);
   	ierr = MatSetType(slvr->A,MATSEQAIJ);CHKERRQ(ierr);
   	ierr = MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,NA,NA);CHKERRQ(ierr);
-  	ierr = MatSeqAIJSetPreallocation(slvr->A,3*Nv,NULL);CHKERRQ(ierr);
-  	ierr = MatSetFromOptions(slvr->A);CHKERRQ(ierr);
-  	ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
+  	ierr = MatSeqAIJSetPreallocation(slvr->A,5*Nv,nnz);CHKERRQ(ierr);
+  	// ierr = MatSetFromOptions(slvr->A);CHKERRQ(ierr);
+  	// ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
+    ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
 
   	//Create Solver Contexts
     
@@ -277,19 +290,27 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
      also serves as the preconditioning matrix.
     */
     ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
-    ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
+    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
+    // ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
+    // ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
     // ILU Precond
     ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
+    /*
     ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
     ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
     ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
     ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
+    */
     // ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
-
+    ierr = PCSetType(slvr->pc,PCLU);CHKERRQ(ierr);
+    ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
+    /*
     PetscReal div_tol = 1e12;
-    PetscReal abs_tol = 1e-15;
-    ierr = KSPSetTolerances(slvr->ksp,1e-10,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
+    PetscReal abs_tol = 1e-25;
+    PetscReal rel_tol = 1e-15;
+    ierr = KSPSetTolerances(slvr->ksp,rel_tol,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
     ierr = KSPSetNormType(slvr->ksp,KSP_NORM_UNPRECONDITIONED);CHKERRQ(ierr);
+    */
     /*
         Set runtime options, e.g.,
         -ksp_type <type> -pc_type <type> -ksp_monitor -ksp_rtol <rtol>
@@ -297,10 +318,228 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
     KSPSetFromOptions() is called _after_ any other customization
     routines.
     */
-    ierr = KSPSetFromOptions(slvr->ksp);CHKERRQ(ierr);
-    ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
+    // ierr = KSPSetFromOptions(slvr->ksp);CHKERRQ(ierr);
+    // ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
 
   return ierr;
+}
+
+void Get_Nonzero_in_Rows(int *nnz)
+{
+    //Make sure nnz is initialized to zero
+    for(int i=0;i<NA;i++)
+    {
+        nnz[i]=0;
+    }
+    int ind = 0;
+    int x,y,comp,ion;
+    //Ionic concentration equations
+    for(x=0;x<Nx;x++)
+    {
+        for(y=0;y<Ny;y++)
+        {
+            for(ion=0;ion<Ni;ion++)
+            {
+                for(comp=0;comp<Nc-1;comp++)
+                {
+                    //Electrodiffusion contributions
+                    if(x<Nx-1)
+                    {
+                        nnz[Ind_1(x+1,y,ion,comp)]++; //Ind_1(x,y,ion,comp)
+                        ind++;
+                        //Right c with left phi (-Fph0x)
+                        nnz[Ind_1(x+1,y,ion,comp)]++;//Ind_1(x,y,Ni,comp)
+                        ind++;
+                    }
+                    if(x>0)
+                    {
+                        //left c with right c (-Fc1x)
+                        nnz[Ind_1(x-1,y,ion,comp)]++;//Ind_1(x,y,ion,comp)
+                        ind++;
+                        //Left c with right phi (-Fph1x)
+                        nnz[Ind_1(x-1,y,ion,comp)]++;//Ind_1(x,y,Ni,comp)
+                        ind++;
+                    }
+                    if(y<Ny-1)
+                    {
+                        // Upper c with lower c (-Fc0y)
+                        nnz[Ind_1(x,y+1,ion,comp)]++;//Ind_1(x,y,ion,comp);
+                        ind++;
+                        //Upper c with lower phi (-Fph0y)
+                        nnz[Ind_1(x,y+1,ion,comp)]++;//Ind_1(x,y,Ni,comp)
+                        ind++;
+                    }
+                    if(y>0)
+                    {
+                        //Lower c with Upper c (-Fc1y)
+                        nnz[Ind_1(x,y-1,ion,comp)]++;//Ind_1(x,y,ion,comp)
+                        ind++;
+                        //Lower c with Upper phi (-Fph1y)
+                        nnz[Ind_1(x,y-1,ion,comp)]++;//Ind_1(x,y,Ni,comp)
+                        ind++;
+                    }
+      
+                    //membrane current contributions
+                    // Different Compartment Terms
+                    // C Extracellular with C Inside
+                    nnz[Ind_1(x,y,ion,Nc-1)]++;//Ind_1(x,y,ion,comp)
+                    ind++;
+                    // C Intra with C Extra
+                    nnz[Ind_1(x,y,ion,comp)]++;//Ind_1(x,y,ion,Nc-1)
+                    ind++;
+                    // C Extracellular with Phi Inside
+                    nnz[Ind_1(x,y,ion,Nc-1)]++;//Ind_1(x,y,Ni,comp)
+                    ind++;
+                    // C Intra with Phi Extra
+                    nnz[Ind_1(x,y,ion,comp)]++;//Ind_1(x,y,Ni,Nc-1)
+                    ind++;
+                    //Volume terms
+                    //C extra with intra alpha
+                    nnz[Ind_1(x,y,ion,Nc-1)]++;//Ind_1(x,y,Ni+1,comp)
+                    ind++;
+                    //C intra with intra alpha
+                    nnz[Ind_1(x,y,ion,comp)]++;//Ind_1(x,y,Ni+1,comp)
+                    ind++;
+                    //Same compartment terms
+                    // c with c
+                    nnz[Ind_1(x,y,ion,comp)]++;//Ind_1(x,y,ion,comp)
+                    ind++;
+                     // c with phi
+                    nnz[Ind_1(x,y,ion,comp)]++;//Ind_1(x,y,Ni,comp)
+                    ind++;
+
+                }
+                //Extracellular terms
+                comp = Nc-1;
+                //Electrodiffusion contributions
+                if(x<Nx-1)
+                {
+                    // Right c with left c (-Fc0x)
+                    nnz[Ind_1(x+1,y,ion,comp)]++;//Ind_1(x,y,ion,comp)
+                    ind++;
+                    //Right c with left phi (-Fph0x)
+                    nnz[Ind_1(x+1,y,ion,comp)]++;//Ind_1(x,y,Ni,comp)
+                    ind++;
+                }
+                if(x>0)
+                {
+                    //left c with right c (-Fc1x)
+                    nnz[Ind_1(x-1,y,ion,comp)]++;//Ind_1(x,y,ion,comp)
+                    ind++;
+                    //Left c with right phi (-Fph1x)
+                    nnz[Ind_1(x-1,y,ion,comp)]++;//Ind_1(x,y,Ni,comp)
+                    ind++;
+                }
+                if(y<Ny-1)
+                {
+                    // Upper c with lower c (-Fc0y)
+                    nnz[Ind_1(x,y+1,ion,comp)]++;//Ind_1(x,y,ion,comp)
+                    ind++;
+                    //Upper c with lower phi (-Fph0y)
+                    nnz[Ind_1(x,y+1,ion,comp)]++;//Ind_1(x,y,Ni,comp)
+                    ind++;
+                }
+                if(y>0)
+                {
+                    //Lower c with Upper c (-Fc1y)
+                    nnz[Ind_1(x,y-1,ion,comp)]++;//Ind_1(x,y,ion,comp)
+                    ind++;
+                    //Lower c with Upper phi (-Fph1y)
+                    nnz[Ind_1(x,y-1,ion,comp)]++;//Ind_1(x,y,Ni,comp)
+                    ind++;
+                }
+            
+                //Membrane current contribution
+                //Add bath contributions
+                //Insert extracell to extracell parts
+                // c with c
+                nnz[Ind_1(x,y,ion,Nc-1)]++;//Ind_1(x,y,ion,Nc-1)
+                ind++;
+                 // c with phi
+                nnz[Ind_1(x,y,ion,Nc-1)]++;//Ind_1(x,y,Ni,Nc-1)
+                ind++;
+            }
+        }
+    }
+    //Electroneutrality charge-capcitance condition
+    for(x=0;x<Nx;x++)
+    {
+        for(y=0;y<Ny;y++)
+        {
+            //electroneutral-concentration entries
+            for(ion=0;ion<Ni;ion++)
+            {
+                for(comp=0;comp<Nc-1;comp++)
+                {
+                    //Phi with C entries
+                    nnz[Ind_1(x,y,Ni,comp)]++;//Ind_1(x,y,ion,comp)
+                    ind++;
+                }
+                //Phi with C extracellular one
+                comp = Nc-1;
+                nnz[Ind_1(x,y,Ni,comp)]++;//Ind_1(x,y,ion,comp)
+                ind++;
+
+            }
+            //electroneutrality-voltage entries
+            //extraphi with extra phi
+            nnz[Ind_1(x,y,Ni,Nc-1)]++;//Ind_1(x,y,Ni,Nc-1)
+            ind++;
+            for(comp=0;comp<Nc-1;comp++)
+            {
+                //Extra phi with intra phi
+                nnz[Ind_1(x,y,Ni,Nc-1)]++;//Ind_1(x,y,Ni,comp)
+                ind++;
+                // Intra phi with Extraphi
+                nnz[Ind_1(x,y,Ni,comp)]++;//Ind_1(x,y,Ni,Nc-1)
+                ind++;
+                //Intra phi with Intra phi
+                nnz[Ind_1(x,y,Ni,comp)]++;//Ind_1(x,y,Ni,comp)
+                ind++;
+                //Extra phi with intra-Volume
+                nnz[Ind_1(x,y,Ni,Nc-1)]++;//Ind_1(x,y,Ni+1,comp)
+                ind++;
+                //Intra phi with Intra Vol
+                nnz[Ind_1(x,y,Ni,comp)]++;//Ind_1(x,y,Ni+1,comp)
+                ind++;
+            }
+        }
+    }
+    //water flow
+    for(x=0;x<Nx;x++)
+    {
+        for(y=0;y<Ny;y++)
+        {
+            for(comp=0;comp<Nc-1;comp++)
+            {
+                //Water flow volume fraction entries
+                //Volume to Volume
+                nnz[Ind_1(x,y,Ni+1,comp)]++;//Ind_1(x,y,Ni+1,comp)
+                ind++;
+                //Off diagonal (from aNc=1-sum(ak))
+                for (PetscInt l=0; l<comp; l++)
+                {
+                    nnz[Ind_1(x,y,Ni+1,comp)]++;//Ind_1(x,y,Ni+1,l)
+                    ind++; 
+                }
+                for (PetscInt l=comp+1; l<Nc-1; l++)
+                {
+                    nnz[Ind_1(x,y,Ni+1,comp)]++;//Ind_1(x,y,Ni+1,l)
+                    ind++;
+                }
+                for (PetscInt ion=0; ion<Ni; ion++)
+                {
+                  //Volume to extra c
+                    nnz[Ind_1(x,y,Ni+1,comp)]++;//Ind_1(x,y,ion,Nc-1)
+                    ind++;
+                  //Volume to intra c
+                    nnz[Ind_1(x,y,Ni+1,comp)]++;//Ind_1(x,y,ion,comp)
+                    ind++;
+                }
+            }
+        }
+    }
+    return;
 }
 
 
