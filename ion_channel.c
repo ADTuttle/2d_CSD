@@ -118,8 +118,8 @@ double inwardrect(double ci,double ce,double phim)
   	double cKo = .003; //#3 mM is base extracellular potassium concentration
   	return sqrt(ce/cKo)*(1+exp(18.5/42.5))/(1+exp((RTFC*phim-Enernst+18.5)/42.5))*(1+exp((-118.6+EKdef)/44.1))/(1+exp((-118.6+RTFC*phim)/44.1));
 }
-double cz(double *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt comp) 
-{ 
+double cz(double *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt comp)
+{
 	//function to compute sum over i of c_i*z_i
 	double accumulate=0;
 	for(PetscInt ion=0;ion<Ni;ion++)
@@ -137,9 +137,18 @@ void diff_coef(double *Dc,double *alp,double scale)
   	{
 	  	for(PetscInt y=0;y<Ny;y++)
 	  	{
+
 	  		alNcL=1-alp[al_index(x,y,0)]-alp[al_index(x,y,1)]; //Left extracell
-			alNcR=1-alp[al_index(x+1,y,0)]-alp[al_index(x+1,y,1)]; //Right extracell
-			alNcU=1-alp[al_index(x,y+1,0)]-alp[al_index(x,y+1,1)];
+			alNcR = 0;
+			if(x<Nx-1)
+			{
+				alNcR = 1 - alp[al_index(x + 1, y, 0)] - alp[al_index(x + 1, y, 1)]; //Right extracell
+			}
+            alNcU = 0;
+			if(y<Ny-1)
+			{
+				alNcU = 1 - alp[al_index(x, y + 1, 0)] - alp[al_index(x, y + 1, 1)];
+			}
 		  	for(PetscInt ion = 0; ion<Ni;ion++)
 		  	{
 			    //diffusion coefficients in x direction
@@ -154,9 +163,9 @@ void diff_coef(double *Dc,double *alp,double scale)
 			    	Dc[c_index(x,y,Nc-1,ion)*2] = scale*D[ion]/2*(alNcL+alNcR)/(pow(tortuosity,2));
 			    }
 			    //diffusion coefficients in neuronal compartment equal to 0
-			    Dc[c_index(x,y,0,ion)*2] = 0.0 ;      
-			    //diffusion coefficients in glial compartment proportional to default volume fraction        
-			    Dc[c_index(x,y,1,ion)*2] = 0*scale*D[ion]*alphao[al_index(0,0,1)]/pow(tortuosity,2);   
+			    Dc[c_index(x,y,0,ion)*2] = 0.0 ;
+			    //diffusion coefficients in glial compartment proportional to default volume fraction
+			    Dc[c_index(x,y,1,ion)*2] = 0*scale*D[ion]*alphao[al_index(0,0,1)]/pow(tortuosity,2);
 			    //diffusion coefficients in y direction
 			    if(y==(Ny-1))
 			    {
@@ -166,14 +175,14 @@ void diff_coef(double *Dc,double *alp,double scale)
 			    else
 			    {
 			    	//diffusion coefficients in the extracellular space proportional to volume fraction
-			    	Dc[c_index(x,y,Nc-1,ion)*2+1] = scale*D[ion]/2*(alNcL+alNcU)/pow(tortuosity,2); 
-                   
+			    	Dc[c_index(x,y,Nc-1,ion)*2+1] = scale*D[ion]/2*(alNcL+alNcU)/pow(tortuosity,2);
+
 				}
 				//diffusion coefficients in neuronal compartment equal to 0
 			    Dc[c_index(x,y,0,ion)*2+1] = 0.0;
 			    //diffusion coefficients in glial compartment proportional to default volume fraction
 			    Dc[c_index(x,y,1,ion)*2+1] = 0.25*scale*D[ion]*alphao[al_index(0,0,1)]/pow(tortuosity,2);
-        
+
 		  	}
 		}
 	}
@@ -195,7 +204,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,doub
   		beta = xoverexpminusone(v,0.28,24.89,0.2,0); //0.28*(Vm+24.89)./(exp(0.2*(Vm+24.89))-1)
     	gate_vars->mNaT[0] = alpha/(alpha+beta);
 
-    
+
   		//gating variable hNaT
   		alpha = 0.128*exp(-(0.056*v+2.94));
   		beta = 4/(exp(-(0.2*v+6))+1);
@@ -213,7 +222,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,doub
   		alpha = 5.12e-6*exp(-(0.056*v+2.94));
   		beta = 1.6e-4/(1+exp(-(0.2*v+8)));
     	gate_vars->hNaP[0] = alpha/(alpha+beta);
-  	
+
   		gate_vars->gNaP[0] = pow(gate_vars->mNaP[0],2)*gate_vars->hNaP[0];
   		//compute KDR current
   		//gating variable mKDR
@@ -265,7 +274,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,doub
 			{
 				//membrane potential in mV
 				v = (state_vars->phi[phi_index(x,y,0)]-state_vars->phi[phi_index(x,y,Nc-1)])*RTFC;
-				
+
 				//compute current NaT
 		  		//gating variables mNaT
 		  		alpha = xoverexpminusone(v,0.32,51.9,0.25,1); //0.32*(Vm+51.9)./(1-exp(-0.25*(Vm+51.9)))
@@ -284,7 +293,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,doub
 		  		alpha = 1/(1+exp(-(0.143*v+5.67)))/6;
 		  		beta = 1.0/6.0-alpha; //1./(1+exp(0.143*Vm+5.67))/6
 		  		gate_vars->mNaP[xy_index(x,y)] = (gate_vars->mNaP[xy_index(x,y)] + alpha*dtms)/(1+(alpha+beta)*dtms);
-	   
+
 		  		//gating variable hNaP
 		  		alpha = 5.12e-6*exp(-(0.056*v+2.94));
 		  		beta = 1.6e-4/(1+exp(-(0.2*v+8)));
@@ -354,7 +363,7 @@ void excitation(struct ExctType *exct,double t)
 			}
 		}
 	}
-  
+
 }
 
 void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState *state_vars_past,struct GateType *gvars, struct ExctType *gexct,struct ConstVars *con_vars)
@@ -389,7 +398,7 @@ void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState 
             mclin(flux,c_index(x,y,0,0),pLin,1,ci,ce,vm,1);
             //Glial NaLeak
             mclin(flux,c_index(x,y,1,0),con_vars->pNaLeakg,1,cg,ce,vmg,0);
-          
+
             // Compute K channel Currents
             ci = state_vars->c[c_index(x,y,0,1)];
             cg = state_vars->c[c_index(x,y,1,1)];
@@ -454,7 +463,7 @@ void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState 
             flux->mflux[c_index(x,y,1,0)]+=NaKCl; //Sodium
             flux->mflux[c_index(x,y,1,1)]+=NaKCl; //K
             flux->mflux[c_index(x,y,1,2)]+=2*NaKCl; //Cl
-            
+
             //Change units of flux from mmol/cm^2 to mmol/cm^3/s
             for(PetscInt ion=0;ion<Ni;ion++)
             {

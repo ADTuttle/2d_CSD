@@ -193,7 +193,6 @@ void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct Ga
 
 
 
-    free(flux);
     return;
 }
 
@@ -279,8 +278,11 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
   	ierr = MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,NA,NA);CHKERRQ(ierr);
   	ierr = MatSeqAIJSetPreallocation(slvr->A,5*Nv,nnz);CHKERRQ(ierr);
   	// ierr = MatSetFromOptions(slvr->A);CHKERRQ(ierr);
-  	// ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
-    ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
+  	ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
+    // ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
+
+    //Initialize Space
+    ierr = initialize_jacobian(slvr->A); CHKERRQ(ierr);
 
   	//Create Solver Contexts
     
@@ -543,4 +545,231 @@ void Get_Nonzero_in_Rows(int *nnz)
 }
 
 
+PetscErrorCode initialize_jacobian(Mat Jac) {
+    printf("Initializing Jacobian Memory\n");
+    PetscErrorCode ierr;
+    PetscInt ind = 0;
+    PetscInt x,y,ion,comp;
+
+    //Ionic concentration equations
+    for(x=0;x<Nx;x++)
+    {
+        for(y=0;y<Ny;y++)
+        {
+            for(ion=0;ion<Ni;ion++)
+            {
+                for(comp=0;comp<Nc-1;comp++)
+                {
+                    //Electrodiffusion contributions
+                    if(x<Nx-1)
+                    {
+                        // Right c with left c (-Fc0x)
+
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                        //Right c with left phi (-Fph0x)
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                    }
+                    if(x>0)
+                    {
+                        //left c with right c (-Fc1x)
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                        //Left c with right phi (-Fph1x)
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                    }
+                    if(y<Ny-1)
+                    {
+                        // Upper c with lower c (-Fc0y)
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                        //Upper c with lower phi (-Fph0y)
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                    }
+                    if(y>0)
+                    {
+                        //Lower c with Upper c (-Fc1y)
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                        //Lower c with Upper phi (-Fph1y)
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                    }
+                    //Diagonal term contribution
+                    //membrane current contributions
+                    // Different Compartment Terms
+                    // C Extracellular with C Inside
+                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    // C Intra with C Extra
+                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp),Ind_1(x,y,ion,Nc-1),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    // C Extracellular with Phi Inside
+                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    // C Intra with Phi Extra
+                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp),Ind_1(x,y,Ni,Nc-1),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    //Volume terms
+                    //C extra with intra alpha
+                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,Ni+1,comp),0,INSERT_VALUES);
+                    ind++;
+                    //C intra with intra alpha
+                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp),Ind_1(x,y,Ni+1,comp),0,INSERT_VALUES);
+                    ind++;
+                    //Same compartment terms
+                    // c with c
+                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    // c with phi
+                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+
+                }
+                //Extracellular terms
+                comp = Nc-1;
+                //Electrodiffusion contributions
+                if(x<Nx-1)
+                {
+                    // Right c with left c (-Fc0x)
+                    ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    //Right c with left phi (-Fph0x)
+                    ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                }
+                if(x>0)
+                {
+                    //left c with right c (-Fc1x)
+                    ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    //Left c with right phi (-Fph1x)
+                    ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                }
+                if(y<Ny-1)
+                {
+                    // Upper c with lower c (-Fc0y)
+                    ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    //Upper c with lower phi (-Fph0y)
+                    ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                }
+                if(y>0)
+                {
+                    //Lower c with Upper c (-Fc1y)
+                    ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    //Lower c with Upper phi (-Fph1y)
+                    ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                }
+
+                //Diagonal term contribution
+
+                //Membrane current contribution
+                //Add bath contributions
+                //Insert extracell to extracell parts
+                // c with c
+                ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,ion,Nc-1),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+                // c with phi
+                ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,Ni,Nc-1),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+            }
+        }
+    }
+
+    //Electroneutrality charge-capcitance condition
+    for(x=0;x<Nx;x++)
+    {
+        for(y=0;y<Ny;y++)
+        {
+            //electroneutral-concentration entries
+            for(ion=0;ion<Ni;ion++)
+            {
+                for(comp=0;comp<Nc-1;comp++)
+                {
+                    //Phi with C entries
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES); CHKERRQ(ierr);
+                    ind++;
+                }
+                //Phi with C extracellular one
+                comp = Nc-1;
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES); CHKERRQ(ierr);
+                ind++;
+
+            }
+            //electroneutrality-voltage entries
+            //extraphi with extra phi
+            ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1),Ind_1(x,y,Ni,Nc-1),0,INSERT_VALUES);CHKERRQ(ierr);
+            ind++;
+            for(comp=0;comp<Nc-1;comp++)
+            {
+                //Extra phi with intra phi
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+                // Intra phi with Extraphi
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni,Nc-1),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+                //Intra phi with Intra phi
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+                //Extra phi with intra-Volume
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1),Ind_1(x,y,Ni+1,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+                //Intra phi with Intra Vol
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni+1,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+            }
+        }
+    }
+    //water flow
+    for(x=0;x<Nx;x++)
+    {
+        for(y=0;y<Ny;y++)
+        {
+            for(comp=0;comp<Nc-1;comp++)
+            {
+                //Water flow volume fraction entries
+                //Volume to Volume
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,Ni+1,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+                //Off diagonal (from aNc=1-sum(ak))
+                for (PetscInt l=0; l<comp; l++)
+                {
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,Ni+1,l),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                }
+                for (PetscInt l=comp+1; l<Nc-1; l++)
+                {
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,Ni+1,l),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                }
+                for (ion=0; ion<Ni; ion++)
+                {
+                    //Volume to extra c
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,ion,Nc-1),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    //Volume to intra c
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                }
+            }
+        }
+    }
+
+//    for (int i = 0; i < NA; i++)
+//    {
+//        ierr = MatSetValue(Jac,i,i,0,INSERT_VALUES); CHKERRQ(ierr);
+//    }
+    ierr = MatAssemblyBegin(Jac,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(Jac,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+
+    return ierr;
+}
 

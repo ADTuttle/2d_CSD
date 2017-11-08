@@ -45,12 +45,13 @@ PetscInt Ind_1(int,int,int,int);
 //Create Petsc Structures
 PetscErrorCode initialize_petsc(struct Solver *,int, char **);
 void Get_Nonzero_in_Rows(int *);
+PetscErrorCode initialize_jacobian(Mat);
 
 //Newton Solver
 PetscErrorCode newton_solve(struct SimState *,struct SimState *, double, struct GateType *, struct ExctType *, struct ConstVars *,struct Solver *,struct FluxData*); 
 //Calculate residual
 PetscErrorCode calc_residual(Vec,struct SimState *,struct SimState *,double,double *,double *,struct FluxData *,struct ConstVars *);
-PetscErrorCode calc_jacobian(Mat,struct SimState *,struct SimState *,double,double *,double *,struct FluxData *,struct ConstVars *);
+PetscErrorCode calc_jacobian(struct Solver *,struct SimState *,struct SimState *,double,double *,double *,struct FluxData *,struct ConstVars *);
 
 //Find abs. max value of an array
 double array_max(double *,size_t);
@@ -58,6 +59,8 @@ double array_max(double *,size_t);
 double array_diff_max(double *,double *,size_t);
 //Calc l2_norm of one array
 double l2_norm(double *,size_t);
+
+void print_all(double *, double *,struct ConstVars *,struct FluxData *, struct GateType *, struct SimState*, struct Solver *);
 
 
 

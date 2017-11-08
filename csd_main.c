@@ -1,4 +1,3 @@
-/* Hello World program */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,7 +14,6 @@ int main(int argc, char **argv)
     state_vars=(struct SimState*)malloc(sizeof(struct SimState));
     struct SimState *state_vars_past;
     state_vars_past=(struct SimState*)malloc(sizeof(struct SimState));
-
     //Initialize
     init(state_vars);
 
@@ -36,9 +34,6 @@ int main(int argc, char **argv)
     set_params(state_vars,con_vars,gate_vars,flux);
 
     printf("Initialization Routine\n");
-    // PetscPetscInt *row = malloc(Nz*sizeof(PetscInt));
-  	// PetscPetscInt *col = malloc(Nz*sizeof(PetscInt));
-  	// PetscScalar *vals =malloc(Nz*sizeof(PetscScalar));
 
   	struct Solver *slvr;
   	slvr = (struct Solver*)malloc(sizeof(struct Solver));
