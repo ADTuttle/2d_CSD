@@ -21,9 +21,9 @@ void mcGoldman(struct FluxData *,int,double,int,double,double,double,int);
 //Conductance for potassium inward rectifier
 double inwardrect(double,double,double);
 //Returns of c_i*z_i
-double cz(double *,const PetscInt *,int,int,int); 
+double cz(const double *,const PetscInt *,int,int,int);
 //Computes diffusion coef
-void diff_coef(double *,double *,double);
+void diff_coef(double *,const double *,double);
 //Calculate the ion fluxes and derivatives
 void ionmflux(struct FluxData *,struct SimState *,struct SimState *,struct GateType *, struct ExctType *,struct ConstVars *);
 //Water flow
@@ -51,7 +51,7 @@ PetscErrorCode initialize_jacobian(Mat);
 PetscErrorCode newton_solve(struct SimState *,struct SimState *, double, struct GateType *, struct ExctType *, struct ConstVars *,struct Solver *,struct FluxData*); 
 //Calculate residual
 PetscErrorCode calc_residual(Vec,struct SimState *,struct SimState *,double,double *,double *,struct FluxData *,struct ConstVars *);
-PetscErrorCode calc_jacobian(struct Solver *,struct SimState *,struct SimState *,double,double *,double *,struct FluxData *,struct ConstVars *);
+PetscErrorCode calc_jacobian(Mat ,struct SimState *,struct SimState *,double,double *,double *,struct FluxData *,struct ConstVars *);
 
 //Find abs. max value of an array
 double array_max(double *,size_t);

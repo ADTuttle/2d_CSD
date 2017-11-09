@@ -232,8 +232,7 @@ void initialize_data(struct SimState *state_vars,struct SimState *state_vars_pas
   	{
     	fprintf(stderr, "Did not converge! Aborting...\n");
     	exit(EXIT_FAILURE); /* indicate failure.*/
-	}	
-  	else
+	} else
   	{
     	return;
 	}
@@ -263,7 +262,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
     ierr = VecSetFromOptions(slvr->Res);CHKERRQ(ierr);
     */
     ierr = VecCreate(PETSC_COMM_WORLD,&slvr->Q);CHKERRQ(ierr);
-    ierr = VecSetType(slvr->Q,VECSEQ);
+    ierr = VecSetType(slvr->Q,VECSEQ);CHKERRQ(ierr);
     ierr = VecSetSizes(slvr->Q,PETSC_DECIDE,NA);CHKERRQ(ierr);
     ierr = VecDuplicate(slvr->Q,&slvr->Res);CHKERRQ(ierr);
 
@@ -279,10 +278,10 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
   	ierr = MatSeqAIJSetPreallocation(slvr->A,5*Nv,nnz);CHKERRQ(ierr);
   	// ierr = MatSetFromOptions(slvr->A);CHKERRQ(ierr);
   	ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
-    // ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
 
     //Initialize Space
     ierr = initialize_jacobian(slvr->A); CHKERRQ(ierr);
+    ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
 
   	//Create Solver Contexts
     
@@ -291,28 +290,32 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
      Set operators. Here the matrix that defines the linear system
      also serves as the preconditioning matrix.
     */
-    ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
+//    ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
     ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
-    // ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
-    // ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
+//     ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
+//     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
     // ILU Precond
     ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
+
+    //LU Direct solve
+//    /*
+    ierr = PCSetType(slvr->pc,PCLU);CHKERRQ(ierr);
+    ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
+//    */
     /*
     ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
     ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
     ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
     ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
-    */
+
     // ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
-    ierr = PCSetType(slvr->pc,PCLU);CHKERRQ(ierr);
-    ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
-    /*
     PetscReal div_tol = 1e12;
     PetscReal abs_tol = 1e-25;
     PetscReal rel_tol = 1e-15;
     ierr = KSPSetTolerances(slvr->ksp,rel_tol,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
     ierr = KSPSetNormType(slvr->ksp,KSP_NORM_UNPRECONDITIONED);CHKERRQ(ierr);
     */
+
     /*
         Set runtime options, e.g.,
         -ksp_type <type> -pc_type <type> -ksp_monitor -ksp_rtol <rtol>
@@ -320,8 +323,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
     KSPSetFromOptions() is called _after_ any other customization
     routines.
     */
-    // ierr = KSPSetFromOptions(slvr->ksp);CHKERRQ(ierr);
-    // ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
+     ierr = KSPSetFromOptions(slvr->ksp);CHKERRQ(ierr);
+     ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
 
   return ierr;
 }
@@ -529,7 +532,7 @@ void Get_Nonzero_in_Rows(int *nnz)
                     nnz[Ind_1(x,y,Ni+1,comp)]++;//Ind_1(x,y,Ni+1,l)
                     ind++;
                 }
-                for (PetscInt ion=0; ion<Ni; ion++)
+                for (ion=0; ion<Ni; ion++)
                 {
                   //Volume to extra c
                     nnz[Ind_1(x,y,Ni+1,comp)]++;//Ind_1(x,y,ion,Nc-1)
@@ -615,10 +618,10 @@ PetscErrorCode initialize_jacobian(Mat Jac) {
                     ind++;
                     //Volume terms
                     //C extra with intra alpha
-                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,Ni+1,comp),0,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,Ni+1,comp),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                     //C intra with intra alpha
-                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp),Ind_1(x,y,Ni+1,comp),0,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp),Ind_1(x,y,Ni+1,comp),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                     //Same compartment terms
                     // c with c

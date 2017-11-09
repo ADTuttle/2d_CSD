@@ -118,17 +118,17 @@ double inwardrect(double ci,double ce,double phim)
   	double cKo = .003; //#3 mM is base extracellular potassium concentration
   	return sqrt(ce/cKo)*(1+exp(18.5/42.5))/(1+exp((RTFC*phim-Enernst+18.5)/42.5))*(1+exp((-118.6+EKdef)/44.1))/(1+exp((-118.6+RTFC*phim)/44.1));
 }
-double cz(double *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt comp)
+double cz(const double *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt comp)
 {
 	//function to compute sum over i of c_i*z_i
 	double accumulate=0;
 	for(PetscInt ion=0;ion<Ni;ion++)
 	{
-		accumulate += z[ion]*cmat[c_index(x,y,comp,ion)];
+		accumulate += zvals[ion]*cmat[c_index(x,y,comp,ion)];
 	}
 	return accumulate;
 }
-void diff_coef(double *Dc,double *alp,double scale)
+void diff_coef(double *Dc,const double *alp,double scale)
 {
   //diffusion coefficients at all points, for all ions, in all compartments, in both x and y directions
 	double tortuosity=1.6;
@@ -264,8 +264,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,doub
   			gate_vars->gKA[i] = gate_vars->gKA[0];
 
   		}
-    }
-    else //if it's not the firstpass, then we actually have values in v.
+    } else //if it's not the firstpass, then we actually have values in v.
 	{
 		double v, alpha,beta;
 		for(PetscInt x=0;x<Nx;x++)
@@ -436,6 +435,7 @@ void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState 
             K = state_vars_past->c[c_index(x,y,Nc-1,1)];
 
             Ipump = npump*con_vars->Imax/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
+
             //Add to flux(it's explicit so no derivatives)
             flux->mflux[c_index(x,y,0,0)]+=3*Ipump; //Na part
             flux->mflux[c_index(x,y,0,1)]-=2*Ipump; //K part

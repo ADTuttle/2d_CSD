@@ -66,7 +66,7 @@ void print_all(double *Dcs, double *Dcb, struct ConstVars *con_vars, struct Flux
         for(PetscInt comp=0;comp<Nc;comp++)
         {
             printf("Ion: %d, Comp %d\n",ion,comp);
-            printf("Flux: %f*1e3, dfdci: %f, dfdce: %f, dfdphim: %f\n",1e3*flux->mflux[c_index(0,0,comp,ion)],flux->dfdci[c_index(0,0,comp,ion)],flux->dfdce[c_index(0,0,comp,ion)],flux->dfdphim[c_index(0,0,comp,ion)]);
+            printf("Flux: %f*1e20, dfdci: %f, dfdce: %f, dfdphim: %f\n",1e20*flux->mflux[c_index(0,0,comp,ion)],flux->dfdci[c_index(0,0,comp,ion)],flux->dfdce[c_index(0,0,comp,ion)],flux->dfdphim[c_index(0,0,comp,ion)]);
         }
     }
     printf("\n");
