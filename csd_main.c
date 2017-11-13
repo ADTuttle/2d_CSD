@@ -8,7 +8,7 @@
 int main(int argc, char **argv)
 {
     printf("\n\n\nGrid size: %dx%d, with %d ions, and %d compartments.\n",Nx,Ny,Ni,Nc);
-    
+    printf("SIZE: %lu,%lu\n",sizeof(double),sizeof(PetscReal));
     //Create state_variables struct
     struct SimState *state_vars;
     state_vars=(struct SimState*)malloc(sizeof(struct SimState));
@@ -50,9 +50,9 @@ int main(int argc, char **argv)
     gexct = (struct ExctType*)malloc(sizeof(struct ExctType));
     excitation(gexct,0);
 
-    for(double t=dt;t<=Time;t+=dt)
+    for(PetscReal t=dt;t<=Time;t+=dt)
     {
-        printf("Netwon Solve\n");
+        printf("Time: %f, Netwon Solve\n",t);
         newton_solve(state_vars,state_vars_past,dt,gate_vars,gexct,con_vars,slvr,flux);
         //Update gating variables
         gatevars_update(gate_vars,state_vars,dt*1e3,0);

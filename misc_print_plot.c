@@ -1,8 +1,9 @@
 #include "functions.h"
-#include "constants.h"
+#include <string.h>
+#include <math.h>
 
 
-void print_all(double *Dcs, double *Dcb, struct ConstVars *con_vars, struct FluxData *flux, struct GateType *gvars,
+void print_all(PetscReal *Dcs, PetscReal *Dcb, struct ConstVars *con_vars, struct FluxData *flux, struct GateType *gvars,
                struct SimState *state_vars, struct Solver *slvr)
 {
     printf("ConstVars:\n");
@@ -46,12 +47,16 @@ void print_all(double *Dcs, double *Dcb, struct ConstVars *con_vars, struct Flux
     {
         for(PetscInt comp=0;comp<Nc;comp++)
         {
-            printf("Ion: %d, Comp %d, C: %f\n",ion,comp,state_vars->c[c_index(0,0,comp,ion)]);
+            printf("Ion: %d, Comp %d, C: %.10e\n",ion,comp,state_vars->c[c_index(0,0,comp,ion)]);
         }
     }
     for(PetscInt comp=0;comp<Nc;comp++)
     {
-        printf("Comp %d, Phi: %f\n",comp,state_vars->phi[phi_index(0,0,comp)]);
+        printf("Comp %d, Phi: %.10e\n",comp,state_vars->phi[phi_index(0,0,comp)]);
+    }
+    for(PetscInt comp=0;comp<Nc-1;comp++)
+    {
+        printf("Comp %d, alpha: %.10e\n",comp,state_vars->alpha[al_index(0,0,comp)]);
     }
     printf("Gvars:\n");
     printf("NaT :%f,%f,%f*1e-6\n",gvars->mNaT[0],gvars->hNaT[0],1e6*gvars->gNaT[0]);
@@ -85,3 +90,120 @@ void print_all(double *Dcs, double *Dcb, struct ConstVars *con_vars, struct Flux
 
 }
 
+const char* getfield(char* line, int num)
+{
+    const char* tok;
+    for (tok = strtok(line, ",");
+         tok && *tok;
+         tok = strtok(NULL, ",\n"))
+    {
+        if (!--num)
+            return tok;
+    }
+    return NULL;
+}
+
+void find_print(int rowC, int colC, double valC, int iter)
+{
+    if(iter!=2){
+        return;
+    }
+    if(rowC>0){
+        return;
+    }
+
+    int row,col;
+    double val;
+
+    //Open Julia Mat file.
+    FILE *fp;
+    fp = fopen("../../../Julia_work/2d_modules/matrix.txt","r");
+    if(fp==NULL)
+    {
+        fprintf(stderr, "File not found....\n");
+        exit(EXIT_FAILURE); /* indicate failure.*/
+    }
+
+    //Begin searching for the right row and col.
+    char line[1024];
+    while (fgets(line, 1024, fp))
+    {
+        char* tmp = strdup(line);
+        row = -1; col=-1; val=0;
+
+        row = atoi(getfield(tmp,1));
+
+
+        tmp = strdup(line);
+        col = atoi(getfield(tmp,2));
+
+        if(row==rowC && col==colC)
+        {
+            tmp = strdup(line);
+            val = atof(getfield(tmp,3));
+            if(val!=0) {
+                if (fabs(val - valC)/fabs(val) > 5e-16) {
+                    printf("Row: %d, Col: %d, J: %f, C: %f, Diff: %fe-16\n", row, col, val, valC,
+                           1e16 * (val - valC) / val);
+                }
+            }
+            /*
+            if(val==0){
+                    printf("Row: %d, Col: %d, J: %f, C: %f, Diff: %fe-16\n",row,col,val,valC,1e16*(val-valC));
+
+            }
+            else{
+                    printf("Row: %d, Col: %d, J: %f, C: %f, Diff: %fe-16,Abs: %f\n",row,col,val,valC,1e16*(val-valC)/val,1e16*(val-valC));
+            }
+             */
+            return;
+        }
+        free(tmp);
+    }
+
+
+    fclose(fp);
+    return;
+
+}
+
+void compare_res(double *Res, int iter)
+{
+    if(iter!=0){
+        return;
+    }
+
+    FILE *fp;
+    fp = fopen("../../../Julia_work/2d_modules/Res.txt","r");
+    if(fp==NULL)
+    {
+        fprintf(stderr, "File not found....\n");
+        exit(EXIT_FAILURE); /* indicate failure.*/
+    }
+
+    //Begin searching for the right row and col.
+    char line[1024];
+    int row=0;
+    double val;
+    while (fgets(line, 1024, fp))
+    {
+        char* tmp = strdup(line);
+        val=0;
+        val = atof(getfield(tmp,1));
+
+        if(val==0){
+            printf("Row: %d, J: %.10e, C: %.10e, diff: %.10e\n",row,val,Res[row],val-Res[row]);
+        }else{
+            printf("Row: %d, J: %.10e, C: %.10e,abs: %.10e, diff: %.10e\n",row,val,Res[row],val-Res[row],(val-Res[row])/val);
+        }
+        row++;
+        if(row>70){
+            break;
+        }
+        free(tmp);
+    }
+
+
+    fclose(fp);
+    return;
+}

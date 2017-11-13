@@ -2,17 +2,17 @@
 #include "functions.h"
 
 
-PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_vars_past, double dt, struct GateType *gvars, struct ExctType *gexct, struct ConstVars *con_vars,struct Solver *slvr,struct FluxData *flux)
+PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_vars_past, PetscReal dt, struct GateType *gvars, struct ExctType *gexct, struct ConstVars *con_vars,struct Solver *slvr,struct FluxData *flux)
 {
 
-    PetscScalar rsd;
+    PetscReal rsd;
     PetscErrorCode ierr = 0;
-    PetscScalar *temp;
+    PetscReal *temp;
     PetscInt num_iter;
 
     PetscInt index[NA];
-    PetscScalar before[NA];
-    PetscScalar after[NA];
+    PetscReal before[NA];
+    PetscReal after[NA];
     for(int i=0;i<NA;i++)
     {
         index[i]=i;
@@ -26,14 +26,14 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
     //x will be saved at even positions (0,2,4,...)
     //y at odd (1,3,5,...)
     //still use c_index(x,y,comp,ion), but with ind*2 or ind*2+1
-   	double Dcs[Nx*Ny*Ni*Nc*2];
-   	double Dcb[Nx*Ny*Ni*Nc*2];
+   	PetscReal Dcs[Nx*Ny*Ni*Nc*2];
+   	PetscReal Dcb[Nx*Ny*Ni*Nc*2];
    	//compute diffusion coefficients
    	diff_coef(Dcs,state_vars->alpha,1);
    	//Bath diffusion
   	diff_coef(Dcb,state_vars->alpha,Batheps);
 
-    double tol = reltol*array_max(state_vars->c,(size_t)Nx*Ny*Ni*Nc);
+    PetscReal tol = reltol*array_max(state_vars->c,(size_t)Nx*Ny*Ni*Nc);
     rsd = tol+1;
 
     PetscInt x=0;PetscInt y=0;
@@ -47,41 +47,38 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
         wflowm(flux,state_vars,con_vars);
 
         //Optional Print a bunch of info statement
-//        print_all(Dcs,Dcb,con_vars,flux,gvars,state_vars,slvr);
+        printf("\n\n Iteration: %d\n\n",iter);
+        print_all(Dcs,Dcb,con_vars,flux,gvars,state_vars,slvr);
 
         // VecView(slvr->Res,PETSC_VIEWER_STDOUT_SELF);
 
 //        if(iter==1){
+//            printf("\n\n\n");
 //            ierr = VecGetValues(slvr->Res,NA,index,before); CHKERRQ(ierr);
 //        }
 
-        PetscScalar zero = 0;
+        PetscReal zero = 0;
         ierr = VecSet(slvr->Res,zero);CHKERRQ(ierr);
         ierr = VecSet(slvr->Q,zero);CHKERRQ(ierr);
         ierr = calc_residual(slvr->Res,state_vars_past,state_vars,dt,Dcs,Dcb,flux,con_vars);CHKERRQ(ierr);
 //        if(iter==1){
 //            ierr = VecGetValues(slvr->Res,NA,index,after); CHKERRQ(ierr);
-//        }
-//        if(iter ==1) {
-//            for (int i = 0; i < NA; i++) {
-//                if (before[i] == 0) {
-//                    printf("Before: %f, After: %f, Change: %f\n", before[i]*1e10, after[i]*1e10, (after[i] - before[i]));
-//                } else {
-//                    printf("Before: %f, After: %f, Change: %f\n", before[i], after[i],
-//                           (after[i] - before[i]) / before[i]);
-//                }
-//            }
+//            compare_res(after,iter);
 //        }
 
         ierr = VecNorm(slvr->Res,NORM_MAX,&rsd);CHKERRQ(ierr);
-        PetscScalar rsd2;
+        PetscReal rsd2;
         ierr = VecNorm(slvr->Res,NORM_2,&rsd2);CHKERRQ(ierr);
-        printf("Rsd: %f,%f\n",rsd,rsd2);
+//        printf("Rsd: %.10e,%.10e\n",rsd,rsd2);
         if(rsd<tol)
         {
+            if(details)
+            {
+                printf("Iteration: %d, Residual: %.10e\n",iter,rsd);
+            }
             return ierr;
         }
-        ierr = calc_jacobian(slvr->A,state_vars_past,state_vars,dt,Dcs,Dcb,flux,con_vars);CHKERRQ(ierr);
+        ierr = calc_jacobian(slvr->A, state_vars_past, state_vars, dt, Dcs, Dcb, flux, con_vars, iter);CHKERRQ(ierr);
         //Set the new operator
         // ierr = KSPSetOperators(slvr->ksp,NULL,NULL);CHKERRQ(ierr);
         ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
@@ -100,8 +97,8 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
 //            VecView(slvr->Q, PETSC_VIEWER_STDOUT_SELF);
 //        }
         printf("Number of KSP Iterations: %d\n",num_iter);
-        // fprintf(stderr, "Performed first solve....\n");
-        // exit(EXIT_FAILURE); /* indicate failure.*/
+//         fprintf(stderr, "Performed first solve....\n");
+//         exit(EXIT_FAILURE); /* indicate failure.*/
         ierr = VecGetArray(slvr->Q,&temp);CHKERRQ(ierr);
         for(x=0;x<Nx;x++)
         {
@@ -129,7 +126,7 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
 
         if(details)
         {
-            printf("Iteration: %d, Residual: %f\n",iter,rsd);
+            printf("Iteration: %d, Residual: %.10e\n",iter,rsd);
         }
     }
 
@@ -142,18 +139,18 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
 }
 
 
-PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct SimState *state_vars,double dt,double *Dcs,double *Dcb,struct FluxData *flux,struct ConstVars *con_vars)
+PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct SimState *state_vars,PetscReal dt,PetscReal *Dcs,PetscReal *Dcb,struct FluxData *flux,struct ConstVars *con_vars)
 {
-    double *c = state_vars->c;
-    double *phi = state_vars->phi;
-    double *al = state_vars->alpha;
-    double *cp = state_vars_past->c;
-    double *alp = state_vars_past->alpha; 
+    PetscReal *c = state_vars->c;
+    PetscReal *phi = state_vars->phi;
+    PetscReal *al = state_vars->alpha;
+    PetscReal *cp = state_vars_past->c;
+    PetscReal *alp = state_vars_past->alpha; 
     //Residual for concentration equations
-    double Rcvx,Rcvy,Resc;
-    double RcvxRight,RcvyUp;
+    PetscReal Rcvx,Rcvy,Resc;
+    PetscReal RcvxRight,RcvyUp;
 
-    double alNc,alpNc;
+    PetscReal alNc,alpNc;
     PetscInt ion,comp,x,y;
 
     PetscErrorCode ierr;
@@ -194,7 +191,7 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
                         RcvyUp = Dcs[c_index(x,y,comp,ion)*2+1]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x,y+1,comp,ion)])/2;
                         RcvyUp = RcvyUp*(log(c[c_index(x,y+1,comp,ion)])-log(c[c_index(x,y,comp,ion)])+z[ion]*(phi[phi_index(x,y+1,comp)]-phi[phi_index(x,y,comp)]))/dy*dt/dy;
                     }
-                    Resc = al[al_index(x,y,comp)]*c[c_index(x,y,comp,ion)]-alp[al_index(x,y,comp)]*c[c_index(x,y,comp,ion)];
+                    Resc = al[al_index(x,y,comp)]*c[c_index(x,y,comp,ion)]-alp[al_index(x,y,comp)]*cp[c_index(x,y,comp,ion)];
                     Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x,y,comp,ion)]*dt;
 
                     ierr = VecSetValue(Res,Ind_1(x,y,ion,comp),Resc,INSERT_VALUES);CHKERRQ(ierr);
@@ -202,7 +199,7 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
                 }
                 //Set Extracellular values
                 alNc = 1 - al[al_index(x,y,0)] - al[al_index(x,y,1)];
-                alpNc = 1 - al[al_index(x,y,0)] - al[al_index(x,y,1)];
+                alpNc = 1 - alp[al_index(x,y,0)] - alp[al_index(x,y,1)];
                 comp = Nc-1;
                 Rcvx = 0;
                 RcvxRight = 0;
@@ -232,11 +229,11 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
                     RcvyUp = Dcs[c_index(x,y,comp,ion)*2+1]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x,y+1,comp,ion)])/2;
                     RcvyUp = RcvyUp*(log(c[c_index(x,y+1,comp,ion)])-log(c[c_index(x,y,comp,ion)])+z[ion]*(phi[phi_index(x,y+1,comp)]-phi[phi_index(x,y,comp)]))/dy*dt/dy;
                 }
-                Resc = alNc*c[c_index(x,y,comp,ion)]-alpNc*c[c_index(x,y,comp,ion)];
+                Resc = alNc*c[c_index(x,y,comp,ion)]-alpNc*cp[c_index(x,y,comp,ion)];
                 Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x,y,comp,ion)]*dt;
                 //Add bath variables
 
-                Resc += sqrt(pow(Dcb[c_index(x,y,comp,ion)*2],2)+pow(Dcb[c_index(x,y,comp,ion)*2+1],2))*(cp[c_index(x,y,comp,ion)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp)]-z[ion]*phibath)*dt;
+                Resc -= sqrt(pow(Dcb[c_index(x,y,comp,ion)*2],2)+pow(Dcb[c_index(x,y,comp,ion)*2+1],2))*(cp[c_index(x,y,comp,ion)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp)]-z[ion]*phibath)*dt;
                 ierr = VecSetValue(Res,Ind_1(x,y,ion,comp),Resc,INSERT_VALUES);CHKERRQ(ierr);
             }
         }
@@ -302,19 +299,20 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
     return ierr;
 }
 
-PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct SimState *state_vars,double dt,double *Dcs,double *Dcb,struct FluxData *flux,struct ConstVars *con_vars)
-{ 
-    printf("Calculating jacobian!\n");
+PetscErrorCode
+calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_vars, PetscReal dt, PetscReal *Dcs,
+              PetscReal *Dcb, struct FluxData *flux, struct ConstVars *con_vars, int iter)
+{
     PetscErrorCode ierr;
-    double *c = state_vars->c;
-    double *al = state_vars->alpha;
-    double *cp = state_vars_past->c;
+    PetscReal *c = state_vars->c;
+    PetscReal *al = state_vars->alpha;
+    PetscReal *cp = state_vars_past->c;
     PetscInt ind = 0;
     PetscInt x,y,ion,comp;
 
-    double Ftmpx,Fc0x,Fc1x,Fph0x,Fph1x;
-    double Ftmpy,Fc0y,Fc1y,Fph0y,Fph1y;
-    double Ac,Aphi;
+    PetscReal Ftmpx,Fc0x,Fc1x,Fph0x,Fph1x;
+    PetscReal Ftmpy,Fc0y,Fc1y,Fph0y,Fph1y;
+    PetscReal Ac,Aphi;
 
     //Ionic concentration equations
     for(x=0;x<Nx;x++)
@@ -344,9 +342,11 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
                         // Right c with left c (-Fc0x)
 
                         ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp),Ind_1(x,y,ion,comp),-Fc0x,INSERT_VALUES);CHKERRQ(ierr);
+                        find_print(Ind_1(x + 1, y, ion, comp), Ind_1(x, y, ion, comp), -Fc0x, iter);
                         ind++;
                         //Right c with left phi (-Fph0x)
                         ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp),Ind_1(x,y,Ni,comp),-Fph0x,INSERT_VALUES);CHKERRQ(ierr);
+                        find_print(Ind_1(x + 1, y, ion, comp), Ind_1(x, y, Ni, comp), -Fph0x, iter);
                         ind++;
                     }
                     if(x>0)
@@ -356,9 +356,11 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
                         Fph1x = z[ion]*Ftmpx;
                         //left c with right c (-Fc1x)
                         ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp),Ind_1(x,y,ion,comp),-Fc1x,INSERT_VALUES);CHKERRQ(ierr);
+                        find_print(Ind_1(x - 1, y, ion, comp), Ind_1(x, y, ion, comp), -Fc1x, iter);
                         ind++;
                         //Left c with right phi (-Fph1x)
                         ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp),Ind_1(x,y,Ni,comp),-Fph1x,INSERT_VALUES);CHKERRQ(ierr);
+                        find_print(Ind_1(x - 1, y, ion, comp), Ind_1(x, y, Ni, comp), -Fph1x, iter);
                         ind++;
                     }
                     if(y<Ny-1)
@@ -368,9 +370,11 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
                         Fph0y = z[ion]*Ftmpy;
                         // Upper c with lower c (-Fc0y)
                         ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp),Ind_1(x,y,ion,comp),-Fc0y,INSERT_VALUES);CHKERRQ(ierr);
+                        find_print(Ind_1(x, y + 1, ion, comp), Ind_1(x, y, ion, comp), -Fc0y, iter);
                         ind++;
                         //Upper c with lower phi (-Fph0y)
                         ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp),Ind_1(x,y,Ni,comp),-Fph0y,INSERT_VALUES);CHKERRQ(ierr);
+                        find_print(Ind_1(x, y + 1, ion, comp), Ind_1(x, y, Ni, comp), -Fph0y, iter);
                         ind++;
                     }
                     if(y>0)
@@ -380,9 +384,11 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
                         Fph1y = z[ion]*Ftmpy;
                         //Lower c with Upper c (-Fc1y)
                         ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp),Ind_1(x,y,ion,comp),-Fc1y,INSERT_VALUES);CHKERRQ(ierr);
+                        find_print(Ind_1(x, y - 1, ion, comp), Ind_1(x, y, ion, comp), -Fc1y, iter);
                         ind++;
                         //Lower c with Upper phi (-Fph1y)
                         ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp),Ind_1(x,y,Ni,comp),-Fph1y,INSERT_VALUES);CHKERRQ(ierr);
+                        find_print(Ind_1(x, y - 1, ion, comp), Ind_1(x, y, Ni, comp), -Fph1y, iter);
                         ind++;
                     }
                     //Diagonal term contribution
@@ -395,29 +401,41 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
                     // Different Compartment Terms
                     // C Extracellular with C Inside
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,ion,comp),-flux->dfdci[c_index(x,y,comp,ion)]*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y, ion, Nc - 1), Ind_1(x, y, ion, comp),
+                               -flux->dfdci[c_index(x, y, comp, ion)] * dt, iter);
                     ind++;
                     // C Intra with C Extra
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp),Ind_1(x,y,ion,Nc-1),flux->dfdce[c_index(x,y,comp,ion)]*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y, ion, comp), Ind_1(x, y, ion, Nc - 1),
+                               flux->dfdce[c_index(x, y, comp, ion)] * dt, iter);
                     ind++;
                     // C Extracellular with Phi Inside
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,Ni,comp),-flux->dfdphim[c_index(x,y,comp,ion)]*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y, ion, Nc - 1), Ind_1(x, y, Ni, comp),
+                               -flux->dfdphim[c_index(x, y, comp, ion)] * dt, iter);
                     ind++;
                     // C Intra with Phi Extra
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp),Ind_1(x,y,Ni,Nc-1),-flux->dfdphim[c_index(x,y,comp,ion)]*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y, ion, comp), Ind_1(x, y, Ni, Nc - 1),
+                               -flux->dfdphim[c_index(x, y, comp, ion)] * dt, iter);
                     ind++;
                     //Volume terms
                     //C extra with intra alpha
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,Ni+1,comp),-c[c_index(x,y,Nc-1,ion)],INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y, ion, Nc - 1), Ind_1(x, y, Ni + 1, comp), -c[c_index(x, y, Nc - 1, ion)], iter);
                     ind++;
                     //C intra with intra alpha
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp),Ind_1(x,y,Ni+1,comp),c[c_index(x,y,comp,ion)],INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y, ion, comp), Ind_1(x, y, Ni + 1, comp), c[c_index(x, y, comp, ion)], iter);
                     ind++;
                     //Same compartment terms
                     // c with c
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp),Ind_1(x,y,ion,comp),Ac,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y, ion, comp), Ind_1(x, y, ion, comp), Ac, iter);
                     ind++;
                      // c with phi
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp),Ind_1(x,y,Ni,comp),Aphi,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y, ion, comp), Ind_1(x, y, Ni, comp), Aphi, iter);
                     ind++;
 
                 }
@@ -441,9 +459,11 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
                     Fph0x = z[ion]*Ftmpx;
                     // Right c with left c (-Fc0x)
                     ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp),Ind_1(x,y,ion,comp),-Fc0x,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x + 1, y, ion, comp), Ind_1(x, y, ion, comp), -Fc0x, iter);
                     ind++;
                     //Right c with left phi (-Fph0x)
                     ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp),Ind_1(x,y,Ni,comp),-Fph0x,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x + 1, y, ion, comp), Ind_1(x, y, Ni, comp), -Fph0x, iter);
                     ind++;
                 }
                 if(x>0)
@@ -453,9 +473,11 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
                     Fph1x = z[ion]*Ftmpx;
                     //left c with right c (-Fc1x)
                     ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp),Ind_1(x,y,ion,comp),-Fc1x,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x - 1, y, ion, comp), Ind_1(x, y, ion, comp), -Fc1x, iter);
                     ind++;
                     //Left c with right phi (-Fph1x)
                     ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp),Ind_1(x,y,Ni,comp),-Fph1x,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x - 1, y, ion, comp), Ind_1(x, y, Ni, comp), -Fph1x, iter);
                     ind++;
                 }
                 if(y<Ny-1)
@@ -465,9 +487,11 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
                     Fph0y = z[ion]*Ftmpy;
                     // Upper c with lower c (-Fc0y)
                     ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp),Ind_1(x,y,ion,comp),-Fc0y,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y + 1, ion, comp), Ind_1(x, y, ion, comp), -Fc0y, iter);
                     ind++;
                     //Upper c with lower phi (-Fph0y)
                     ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp),Ind_1(x,y,Ni,comp),-Fph0y,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y + 1, ion, comp), Ind_1(x, y, Ni, comp), -Fph0y, iter);
                     ind++;
                 }
                 if(y>0)
@@ -477,9 +501,11 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
                     Fph1y = z[ion]*Ftmpy;
                     //Lower c with Upper c (-Fc1y)
                     ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp),Ind_1(x,y,ion,comp),-Fc1y,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y - 1, ion, comp), Ind_1(x, y, ion, comp), -Fc1y, iter);
                     ind++;
                     //Lower c with Upper phi (-Fph1y)
                     ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp),Ind_1(x,y,Ni,comp),-Fph1y,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y - 1, ion, comp), Ind_1(x, y, Ni, comp), -Fph1y, iter);
                     ind++;
                 }
 
@@ -501,9 +527,11 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
                 //Insert extracell to extracell parts
                 // c with c
                 ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,ion,Nc-1),Ac,INSERT_VALUES);CHKERRQ(ierr);
+                find_print(Ind_1(x, y, ion, Nc - 1), Ind_1(x, y, ion, Nc - 1), Ac, iter);
                 ind++;
                  // c with phi
                 ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,Ni,Nc-1),Aphi,INSERT_VALUES);CHKERRQ(ierr);
+                find_print(Ind_1(x, y, ion, Nc - 1), Ind_1(x, y, Ni, Nc - 1), Aphi, iter);
                 ind++;
             }
         }
@@ -521,11 +549,14 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
                 {
                     //Phi with C entries
                     ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,ion,comp),z[ion]*al[al_index(x,y,comp)],INSERT_VALUES); CHKERRQ(ierr);
+                    find_print(Ind_1(x, y, Ni, comp), Ind_1(x, y, ion, comp), z[ion] * al[al_index(x, y, comp)], iter);
                     ind++;
                 }
                 //Phi with C extracellular one
                 comp = Nc-1;
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,ion,comp),z[ion]*(1-al[al_index(x,y,0)]-al[al_index(x,y,1)]),INSERT_VALUES); CHKERRQ(ierr);
+                find_print(Ind_1(x, y, Ni, comp), Ind_1(x, y, ion, comp),
+                           z[ion] * (1 - al[al_index(x, y, 0)] - al[al_index(x, y, 1)]), iter);
                 ind++;
 
             }
@@ -537,23 +568,29 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
             }
             //extraphi with extra phi
             ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1),Ind_1(x,y,Ni,Nc-1),Aphi,INSERT_VALUES);CHKERRQ(ierr);
+            find_print(Ind_1(x, y, Ni, Nc - 1), Ind_1(x, y, Ni, Nc - 1), Aphi, iter);
             ind++;
             for(comp=0;comp<Nc-1;comp++)
             {
                 //Extra phi with intra phi
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1),Ind_1(x,y,Ni,comp),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
+                find_print(Ind_1(x, y, Ni, Nc - 1), Ind_1(x, y, Ni, comp), cm[comp], iter);
                 ind++;
                 // Intra phi with Extraphi
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni,Nc-1),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
+                find_print(Ind_1(x, y, Ni, comp), Ind_1(x, y, Ni, Nc - 1), cm[comp], iter);
                 ind++;
                 //Intra phi with Intra phi
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni,comp),-cm[comp],INSERT_VALUES);CHKERRQ(ierr);
+                find_print(Ind_1(x, y, Ni, comp), Ind_1(x, y, Ni, comp), -cm[comp], iter);
                 ind++;
                 //Extra phi with intra-Volume
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1),Ind_1(x,y,Ni+1,comp),-cz(c,z,x,y,Nc-1),INSERT_VALUES);CHKERRQ(ierr);
+                find_print(Ind_1(x, y, Ni, Nc - 1), Ind_1(x, y, Ni + 1, comp), -cz(c, z, x, y, Nc - 1), iter);
                 ind++;
                 //Intra phi with Intra Vol
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni+1,comp),cz(c,z,x,y,comp),INSERT_VALUES);CHKERRQ(ierr);
+                find_print(Ind_1(x, y, Ni, comp), Ind_1(x, y, Ni + 1, comp), cz(c, z, x, y, comp), iter);
                 ind++;
             }
         }
@@ -569,25 +606,37 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
                 //Volume to Volume
                 Ac=1+(flux->dwdpi[al_index(x,y,comp)]*(con_vars->ao[phi_index(0,0,Nc-1)]/(pow(1-al[al_index(x,y,0)]-al[al_index(x,y,1)],2))+con_vars->ao[phi_index(0,0,comp)]/pow(al[al_index(x,y,comp)],2))+flux->dwdal[al_index(x,y,comp)])*dt;
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,Ni+1,comp),Ac,INSERT_VALUES);CHKERRQ(ierr);
+                find_print(Ind_1(x, y, Ni + 1, comp), Ind_1(x, y, Ni + 1, comp), Ac, iter);
                 ind++;
                 //Off diagonal (from aNc=1-sum(ak))
                 for (PetscInt l=0; l<comp; l++)
                 {
                     ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,Ni+1,l),flux->dwdpi[al_index(x,y,comp)]*con_vars->ao[phi_index(0,0,Nc-1)]/pow(1-al[al_index(x,y,0)]-al[al_index(x,y,1)],2)*dt,INSERT_VALUES);CHKERRQ(ierr);
-                    ind++; 
+                    find_print(Ind_1(x, y, Ni + 1, comp), Ind_1(x, y, Ni + 1, l),
+                               flux->dwdpi[al_index(x, y, comp)] * con_vars->ao[phi_index(0, 0, Nc - 1)] /
+                               pow(1 - al[al_index(x, y, 0)] - al[al_index(x, y, 1)], 2) * dt, iter);
+                    ind++;
                 }
                 for (PetscInt l=comp+1; l<Nc-1; l++)
                 {
-                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,Ni+1,l),flux->dwdpi[al_index(x,y,comp)]*con_vars->ao[phi_index(0,0,Nc-1)]/pow(1-al[al_index(x,y,0)]-al[al_index(x,y,1)],2)*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,Ni+1,l),flux->dwdpi[al_index(x,y,comp)]*con_vars->ao[phi_index(0,0,Nc-1)]/((1-al[al_index(x,y,0)]-al[al_index(x,y,1)])*(1-al[al_index(x,y,0)]-al[al_index(x,y,1)]))*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y, Ni + 1, comp), Ind_1(x, y, Ni + 1, l),
+                               flux->dwdpi[al_index(x, y, comp)] * con_vars->ao[phi_index(0, 0, Nc - 1)] /
+                               ((1 - al[al_index(x, y, 0)] - al[al_index(x, y, 1)]) *
+                                (1 - al[al_index(x, y, 0)] - al[al_index(x, y, 1)])) * dt, iter);
                     ind++;
                 }
                 for (ion=0; ion<Ni; ion++)
                 {
                   //Volume to extra c
                     ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,ion,Nc-1),flux->dwdpi[al_index(x,y,comp)]*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y, Ni + 1, comp), Ind_1(x, y, ion, Nc - 1),
+                               flux->dwdpi[al_index(x, y, comp)] * dt, iter);
                     ind++;
                   //Volume to intra c
                     ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,ion,comp),-flux->dwdpi[al_index(x,y,comp)]*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    find_print(Ind_1(x, y, Ni + 1, comp), Ind_1(x, y, ion, comp),
+                               -flux->dwdpi[al_index(x, y, comp)] * dt, iter);
                     ind++;
                 }
             }
@@ -603,13 +652,13 @@ PetscErrorCode calc_jacobian(Mat Jac,struct SimState *state_vars_past,struct Sim
 
     ierr = MatAssemblyBegin(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-    printf("Nz: %d, Ind: %d\n",Nz,ind);
+//    printf("Nz: %d, Ind: %d\n",Nz,ind);
     // MatView(Jac,PETSC_VIEWER_STDOUT_SELF);
-    PetscViewer viewer;
-    PetscViewerASCIIOpen(PETSC_COMM_WORLD,"mat.output",&viewer);
-    MatView(Jac,viewer);
+//    PetscViewer viewer;
+//    PetscViewerASCIIOpen(PETSC_COMM_WORLD,"mat.output",&viewer);
+//    MatView(Jac,viewer);
     // MatView(Jac,PETSC_VIEWER_DRAW_WORLD);
-    PetscViewerDestroy(&viewer); /* indicate failure.*/
+//    PetscViewerDestroy(&viewer); /* indicate failure.*/
 //     while(1){};
     return ierr;
 }

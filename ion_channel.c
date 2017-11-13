@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <math.h>
 
-void mclin(struct FluxData *flux,PetscInt index,double pc,PetscInt zi,double ci,double ce,double phim,PetscInt ADD)
+void mclin(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,PetscReal ci,PetscReal ce,PetscReal phim,PetscInt ADD)
 {
 	//Returns the flux value by ref.
 	// pc is the permeativity, zi is valence, ci/e intra/extra concentration
@@ -30,19 +30,19 @@ void mclin(struct FluxData *flux,PetscInt index,double pc,PetscInt zi,double ci,
 
   	return;
 }
-void mcGoldman(struct FluxData *flux,PetscInt index,double pc,PetscInt zi,double ci,double ce,double phim,PetscInt ADD)
+void mcGoldman(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,PetscReal ci,PetscReal ce,PetscReal phim,PetscInt ADD)
 {
     //compute value and derivatives of the function:
     //mflux=p.*(z*phim).*(ci.*exp(z*phim)-ce)./(exp(z*phim)-1)
     //for trans-membrane flux of an ion obeying the GHK equations
-    double xi = zi*phim/2;
-    double r = exp(xi);
+    PetscReal xi = zi*phim/2;
+    PetscReal r = exp(xi);
 
 
 
     //compute s=x/sinh(x)
     //Watch out for division by zero
-    double s;
+    PetscReal s;
     if(xi!=0)
     {
     	s = xi/sinh(xi);
@@ -52,17 +52,17 @@ void mcGoldman(struct FluxData *flux,PetscInt index,double pc,PetscInt zi,double
     	s = 1;
     }
     //compute dfdci,dfdce,mflux
-    double dfdci = pc*s*r;
-    double dfdce = -pc*s/r;
-    double mi = ci*dfdci;
-    double me = ce*dfdce;
-    double mflux = mi+me;
+    PetscReal dfdci = pc*s*r;
+    PetscReal dfdce = -pc*s/r;
+    PetscReal mi = ci*dfdci;
+    PetscReal me = ce*dfdce;
+    PetscReal mflux = mi+me;
     //compute w=(sinh(x)/x-cosh(x))/x
     //p0 = abs.(xi).<0.2 #treat differently if small
     //p1 = !p0
     //x0 = xi[p0] #use Taylor expansion for small values
     //x1 = xi[p1] #use formula for larger values
-    double w;
+    PetscReal w;
     if(fabs(xi)<0.2) //use Taylor expan. for small values
     {
     	//w0 = -x0.^9/3991680-x0.^7/45360-x0.^5/840-x0.^3/30-x0/3
@@ -73,7 +73,7 @@ void mcGoldman(struct FluxData *flux,PetscInt index,double pc,PetscInt zi,double
     	w = (sinh(xi)/xi-cosh(xi))/xi;
     }
     //compute dfdphim
-    double dfdphim = (double)zi/2*(mflux*s*w+mi-me);
+    PetscReal dfdphim = (PetscReal)zi/2*(mflux*s*w+mi-me);
     if(ADD) //If ADD, we accumulate this result
     {
     	flux->mflux[index] += mflux;
@@ -90,7 +90,7 @@ void mcGoldman(struct FluxData *flux,PetscInt index,double pc,PetscInt zi,double
     }
     return;
 }
-double xoverexpminusone(double v,double aa,double bb,double cc,PetscInt dd)
+PetscReal xoverexpminusone(PetscReal v,PetscReal aa,PetscReal bb,PetscReal cc,PetscInt dd)
 {
 	//computes aa*(v+bb)/(exp(cc*(v+bb))-1) if dd==0
  	//computes aa*(v+bb)/(1-exp(-cc*(v+bb)) otherwise
@@ -109,30 +109,30 @@ double xoverexpminusone(double v,double aa,double bb,double cc,PetscInt dd)
   		return aa*v/(2*sinh(cc/2*v))*exp(cc/2*v);
   	}
 }
-double inwardrect(double ci,double ce,double phim)
+PetscReal inwardrect(PetscReal ci,PetscReal ce,PetscReal phim)
 {
 	//inwardrect determines the effective conductance for the inward-rectifying
   	//potassium channel - formula and constants from Steinberg et al 2005
-  	double Enernst = RTFC*log(ce/ci);
-  	double EKdef = -85.2; //#-85.2 mV is base reversal potential
-  	double cKo = .003; //#3 mM is base extracellular potassium concentration
+  	PetscReal Enernst = RTFC*log(ce/ci);
+  	PetscReal EKdef = -85.2; //#-85.2 mV is base reversal potential
+  	PetscReal cKo = .003; //#3 mM is base extracellular potassium concentration
   	return sqrt(ce/cKo)*(1+exp(18.5/42.5))/(1+exp((RTFC*phim-Enernst+18.5)/42.5))*(1+exp((-118.6+EKdef)/44.1))/(1+exp((-118.6+RTFC*phim)/44.1));
 }
-double cz(const double *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt comp)
+PetscReal cz(const PetscReal *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt comp)
 {
 	//function to compute sum over i of c_i*z_i
-	double accumulate=0;
+	PetscReal accumulate=0;
 	for(PetscInt ion=0;ion<Ni;ion++)
 	{
 		accumulate += zvals[ion]*cmat[c_index(x,y,comp,ion)];
 	}
 	return accumulate;
 }
-void diff_coef(double *Dc,const double *alp,double scale)
+void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale)
 {
   //diffusion coefficients at all points, for all ions, in all compartments, in both x and y directions
-	double tortuosity=1.6;
-	double alNcL,alNcR,alNcU;
+	PetscReal tortuosity=1.6;
+	PetscReal alNcL,alNcR,alNcU;
   	for(PetscInt x=0;x<Nx;x++)
   	{
 	  	for(PetscInt y=0;y<Ny;y++)
@@ -160,7 +160,7 @@ void diff_coef(double *Dc,const double *alp,double scale)
 			    else
 			    {
 					//diffusion coefficients in the extracellular space proportional to volume fraction
-			    	Dc[c_index(x,y,Nc-1,ion)*2] = scale*D[ion]/2*(alNcL+alNcR)/(pow(tortuosity,2));
+			    	Dc[c_index(x,y,Nc-1,ion)*2] = scale*D[ion]/2*(alNcL+alNcR)/(tortuosity*tortuosity);
 			    }
 			    //diffusion coefficients in neuronal compartment equal to 0
 			    Dc[c_index(x,y,0,ion)*2] = 0.0 ;
@@ -188,15 +188,15 @@ void diff_coef(double *Dc,const double *alp,double scale)
 	}
 }
 
-void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,double dtms,PetscInt firstpass)
+void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,PetscReal dtms,PetscInt firstpass)
 {
 	if(firstpass)
 	{
 		//membrane potential in mV
-		double v = (state_vars->phi[phi_index(0,0,0)]-state_vars->phi[phi_index(0,0,Nc-1)])*RTFC;
+		PetscReal v = (state_vars->phi[phi_index(0,0,0)]-state_vars->phi[phi_index(0,0,Nc-1)])*RTFC;
 		//Iniitialize the poPetscInt gating variables
 		//Cause we assume a uniform start
-		double alpha,beta;
+		PetscReal alpha,beta;
 
 		//compute current NaT
   		//gating variables mNaT
@@ -266,7 +266,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,doub
   		}
     } else //if it's not the firstpass, then we actually have values in v.
 	{
-		double v, alpha,beta;
+		PetscReal v, alpha,beta;
 		for(PetscInt x=0;x<Nx;x++)
 		{
 			for(PetscInt y=0;y<Ny;y++)
@@ -325,13 +325,13 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,doub
   	}
 }
 
-void excitation(struct ExctType *exct,double t)
+void excitation(struct ExctType *exct,PetscReal t)
 {
   //compute excitation conductance to trigger csd
   //Leak conductances in mS/cm^2
   //all units converted to mmol/cm^2/sec
-  	double pexct,pany;
-  	double xexct;
+  	PetscReal pexct,pany;
+  	PetscReal xexct;
   	for(PetscInt i=0;i<Nx;i++)
   	{
 	  	for(PetscInt j=0;j<Ny;j++)
@@ -368,13 +368,13 @@ void excitation(struct ExctType *exct,double t)
 void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState *state_vars_past,struct GateType *gvars, struct ExctType *gexct,struct ConstVars *con_vars)
 {
     //Variables to save to for ease of notation
-    double vm,vmg,vmgp;
-    double ci,cg,ce,cgp,cep;
-    double Na,K;//Variables for pump (so it's clear)
+    PetscReal vm,vmg,vmgp;
+    PetscReal ci,cg,ce,cgp,cep;
+    PetscReal Na,K;//Variables for pump (so it's clear)
 
     //For calculationg permeabilities
-    double pGHK,pLin;
-    double Ipump,NaKCl;
+    PetscReal pGHK,pLin;
+    PetscReal Ipump,NaKCl;
     for(PetscInt x=0;x<Nx;x++)
     {
         for(PetscInt y=0;y<Ny;y++)
@@ -489,7 +489,7 @@ void wflowm(struct FluxData *flux,struct SimState *state_vars,struct ConstVars *
   // piw is the total number of ions in a compartment
   //outward transmembrane water flow seen as a function of
   //osmotic pressure and volume fraction or pressure.
-    double dwdpi,dwdal,piw,piwNc;
+    PetscReal dwdpi,dwdal,piw,piwNc;
     for(PetscInt x=0;x<Nx;x++)
     {
         for(PetscInt y=0;y<Ny;y++)
