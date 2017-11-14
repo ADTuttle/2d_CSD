@@ -4,28 +4,264 @@
 		"selected_items":
 		[
 			[
-				"al",
-				"alpha"
+				"MAt",
+				"MatAssemblyEnd"
 			],
 			[
-				"Imax",
-				"Imaxg"
+				"VecSet",
+				"VecSetValue"
 			],
 			[
-				"pNa",
-				"pNaLeak"
+				"g",
+				"g"
+			],
+			[
+				"Vec",
+				"VecDuplicate"
+			],
+			[
+				"PETSC",
+				"PETSC_DECIDE"
+			],
+			[
+				"Petsc",
+				"PetscScalar"
+			],
+			[
+				"sta",
+				"state_vars"
+			],
+			[
+				"stat",
+				"state_vars_past"
+			],
+			[
+				"Non",
+				"Get_Nonzero_in_Rows"
+			],
+			[
+				"C",
+				"CHKERRQ"
+			],
+			[
+				"A",
+				"A"
 			],
 			[
 				"PET",
 				"PETSC_COMM_WORLD"
 			],
 			[
-				"Ch",
-				"CHKERRQ"
+				"STD",
+				"PETSC_VIEWER_STDOUT_SELF"
 			],
 			[
-				"PETSC",
-				"PETSC_TRUE"
+				"PEtsc",
+				"PetscErrorCode"
+			],
+			[
+				"FT",
+				"Ftmpx"
+			],
+			[
+				"c",
+				"col"
+			],
+			[
+				"r",
+				"row"
+			],
+			[
+				"va",
+				"val"
+			],
+			[
+				"val_",
+				"val_j"
+			],
+			[
+				"ten",
+				"ten_j"
+			],
+			[
+				"val",
+				"val_j"
+			],
+			[
+				"dig",
+				"digits_j"
+			],
+			[
+				"row_j",
+				"row_j"
+			],
+			[
+				"Rx",
+				"RcvxRight"
+			],
+			[
+				"fl",
+				"flux"
+			],
+			[
+				"al",
+				"al_index"
+			],
+			[
+				"comp",
+				"comp"
+			],
+			[
+				"Aph",
+				"Aphi"
+			],
+			[
+				"Ap",
+				"Aphi"
+			],
+			[
+				"df",
+				"dfdphim"
+			],
+			[
+				"Mat",
+				"MatSetValue"
+			],
+			[
+				"dfd",
+				"dfdphim"
+			],
+			[
+				"pN",
+				"pNaKCl"
+			],
+			[
+				"ze",
+				"zetaalpha"
+			],
+			[
+				"zet",
+				"zeta1"
+			],
+			[
+				"pNa",
+				"pNaLeakg"
+			],
+			[
+				"Ima",
+				"Imaxg"
+			],
+			[
+				"Im",
+				"Imaxg"
+			],
+			[
+				"w",
+				"wflow"
+			],
+			[
+				"alp",
+				"alp"
+			],
+			[
+				"Rc",
+				"RcvyUp"
+			],
+			[
+				"Rcv",
+				"RcvxRight"
+			],
+			[
+				"cal",
+				"calc_residual"
+			],
+			[
+				"sat",
+				"state_vars_past"
+			],
+			[
+				"alph",
+				"alphao"
+			],
+			[
+				"piw",
+				"piwNc"
+			],
+			[
+				"Na",
+				"NaKCl"
+			],
+			[
+				"m",
+				"mflux"
+			],
+			[
+				"Flux",
+				"FluxData"
+			],
+			[
+				"Flu",
+				"FluxData"
+			],
+			[
+				"Imax",
+				"Imax"
+			],
+			[
+				"pK",
+				"pKGHK"
+			],
+			[
+				"pNaLe",
+				"pNaLeakg"
+			],
+			[
+				"state_Vars",
+				"state_vars_past"
+			],
+			[
+				"st",
+				"state_vars"
+			],
+			[
+				"S",
+				"Solver"
+			],
+			[
+				"Ga",
+				"GateType"
+			],
+			[
+				"initial",
+				"initialdata"
+			],
+			[
+				"con",
+				"con_vars"
+			],
+			[
+				"mc",
+				"mcGoldman"
+			],
+			[
+				"gate",
+				"gate_vars"
+			],
+			[
+				"i",
+				"i"
+			],
+			[
+				"int",
+				"int"
+			],
+			[
+				"gat",
+				"gate_vars"
+			],
+			[
+				"Ch",
+				"CHKERRQ"
 			],
 			[
 				"b",
@@ -46,10 +282,6 @@
 			[
 				"Matr",
 				"Read_Matrix"
-			],
-			[
-				"Petsc",
-				"PetscScalar"
 			],
 			[
 				"N",
@@ -88,10 +320,10 @@
 	"buffers":
 	[
 		{
-			"file": "makefile",
+			"file": "functions.h",
 			"settings":
 			{
-				"buffer_size": 836,
+				"buffer_size": 2747,
 				"line_ending": "Unix"
 			}
 		},
@@ -99,15 +331,7 @@
 			"file": "constants.h",
 			"settings":
 			{
-				"buffer_size": 6542,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "functions.h",
-			"settings":
-			{
-				"buffer_size": 108,
+				"buffer_size": 8090,
 				"line_ending": "Unix"
 			}
 		},
@@ -115,7 +339,7 @@
 			"file": "csd_main.c",
 			"settings":
 			{
-				"buffer_size": 3862,
+				"buffer_size": 2200,
 				"line_ending": "Unix"
 			}
 		},
@@ -123,7 +347,31 @@
 			"file": "initialize.c",
 			"settings":
 			{
-				"buffer_size": 9384,
+				"buffer_size": 30642,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "update_solution.c",
+			"settings":
+			{
+				"buffer_size": 32840,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/Austin/Documents/C_Progs/Tests/mem_error_search/read_mat.c",
+			"settings":
+			{
+				"buffer_size": 1843,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "ion_channel.c",
+			"settings":
+			{
+				"buffer_size": 19200,
 				"line_ending": "Unix"
 			}
 		}
@@ -131,11 +379,15 @@
 	"build_system": "",
 	"command_palette":
 	{
-		"height": 0.0,
+		"height": 392.0,
 		"selected_items":
 		[
+			[
+				"",
+				"About"
+			]
 		],
-		"width": 0.0
+		"width": 392.0
 	},
 	"console":
 	{
@@ -152,8 +404,21 @@
 	},
 	"file_history":
 	[
-		"/Users/Austin/Documents/C_Progs/Tests/test_mat.c",
 		"/Users/Austin/Documents/C_Progs/2d_CSD/makefile",
+		"/Users/Austin/Documents/C_Progs/2d_CSD/ma",
+		"/Users/Austin/Documents/C_Progs/Tests/test_mat.c",
+		"/Users/Austin/Documents/C_Progs/Tests/julia_c_compare_mat.py",
+		"/Users/Austin/Documents/C_Progs/2d_CSD/array_functions.c",
+		"/Users/Austin/Documents/C_Progs/2d_CSD/array_function.c",
+		"/Users/Austin/Documents/C_Progs/2d_CSD/array_function.o",
+		"/Users/Austin/Documents/C_Progs/2d_CSD/array_function",
+		"/Users/Austin/Documents/C_Progs/2d_CSD/ion_channel.c",
+		"/Users/Austin/Documents/C_Progs/2d_CSD/mat.output",
+		"/Users/Austin/Documents/C_Progs/2d_CSD/initialize.c",
+		"/Users/Austin/Documents/C_Progs/2d_CSD/update_solution.s",
+		"/Users/Austin/Library/Application Support/Sublime Text 2/Packages/Default/Preferences.sublime-settings",
+		"/Users/Austin/Documents/C_Progs/2d_CSD/csd_main.c",
+		"/Users/Austin/Documents/C_Progs/2d_CSD/Readme.md",
 		"/Users/Austin/Documents/C_Progs/Tests/makefile",
 		"/Users/Austin/Documents/C_Progs/Tests/read_matrix.c",
 		"/Users/Austin/Documents/C_Progs/Tests/test_mat.txt",
@@ -181,7 +446,7 @@
 	},
 	"find_in_files":
 	{
-		"height": 93.0,
+		"height": 0.0,
 		"where_history":
 		[
 			""
@@ -189,9 +454,28 @@
 	},
 	"find_state":
 	{
-		"case_sensitive": false,
+		"case_sensitive": true,
 		"find_history":
 		[
+			"Jac",
+			"int ",
+			"int",
+			"))",
+			"ADD_VALUES",
+			"ADD_V",
+			"0,0",
+			"(0,0)",
+			"c_index(0,0",
+			"c_index(x,y,1,0)",
+			"ao",
+			"help",
+			"ion",
+			"j",
+			"NA",
+			"cm",
+			"alpha",
+			"Imax",
+			"gate_pt",
 			"const",
 			"#",
 			"ksp",
@@ -204,6 +488,14 @@
 		"regex": false,
 		"replace_history":
 		[
+			"slvr->A",
+			"slvr->A ",
+			"PetscInt ",
+			"PetscInt",
+			"ion",
+			"gate_vars",
+			"ion",
+			"gate_vars",
 			"static const",
 			"//",
 			"",
@@ -218,31 +510,31 @@
 	"groups":
 	[
 		{
-			"selected": 3,
+			"selected": 5,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "makefile",
+					"file": "functions.h",
 					"settings":
 					{
-						"buffer_size": 836,
+						"buffer_size": 2747,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								614,
-								599
+								0,
+								0
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/Makefile/Makefile.tmLanguage"
+							"syntax": "Packages/C++/C.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 221.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -252,101 +544,164 @@
 					"file": "constants.h",
 					"settings":
 					{
-						"buffer_size": 6542,
+						"buffer_size": 8090,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								6276,
-								6276
+								0,
+								0
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/C++/C.tmLanguage"
+							"syntax": "Packages/C++/C.tmLanguage",
+							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 1705.0,
+						"translation.y": 2426.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
 				},
 				{
 					"buffer": 2,
-					"file": "functions.h",
+					"file": "csd_main.c",
 					"settings":
 					{
-						"buffer_size": 108,
+						"buffer_size": 2200,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								94,
-								94
+								0,
+								0
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/C++/C++.tmLanguage"
+							"syntax": "Packages/C++/C.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 360.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
 				},
 				{
 					"buffer": 3,
-					"file": "csd_main.c",
+					"file": "initialize.c",
 					"settings":
 					{
-						"buffer_size": 3862,
+						"buffer_size": 30642,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								441,
-								441
+								0,
+								0
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/C++/C.tmLanguage"
+							"syntax": "Packages/C++/C.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
 						},
-						"translation.x": 0.0,
-						"translation.y": 40.0,
+						"translation.x": 18.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
 				},
 				{
 					"buffer": 4,
-					"file": "initialize.c",
+					"file": "update_solution.c",
 					"settings":
 					{
-						"buffer_size": 9384,
+						"buffer_size": 32840,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								9384,
-								9384
+								0,
+								0
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/C++/C.tmLanguage"
+							"syntax": "Packages/C++/C.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 2395.0,
+						"translation.y": 1527.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "/Users/Austin/Documents/C_Progs/Tests/mem_error_search/read_mat.c",
+					"settings":
+					{
+						"buffer_size": 1843,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1766,
+								1149
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 115.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "ion_channel.c",
+					"settings":
+					{
+						"buffer_size": 19200,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1760.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
