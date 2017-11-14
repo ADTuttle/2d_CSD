@@ -65,6 +65,7 @@ void print_all(PetscReal *, PetscReal *,struct ConstVars *,struct FluxData *, st
 const char* getfield(char* , int );
 void find_print(int, int, double, int iter);
 void compare_res(double *, int );
+void write_data(FILE *,struct SimState *,int );
 
 
 #endif

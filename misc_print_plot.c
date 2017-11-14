@@ -105,10 +105,13 @@ const char* getfield(char* line, int num)
 
 void find_print(int rowC, int colC, double valC, int iter)
 {
-    if(iter!=2){
+
+    if(iter!=-1){
         return;
     }
-    if(rowC>0){
+//    printf("%d,%d,%.10e\n",rowC,colC,valC);
+//    return;
+    if(rowC>70){
         return;
     }
 
@@ -169,7 +172,7 @@ void find_print(int rowC, int colC, double valC, int iter)
 
 void compare_res(double *Res, int iter)
 {
-    if(iter!=0){
+    if(iter!=-1){
         return;
     }
 
@@ -206,4 +209,49 @@ void compare_res(double *Res, int iter)
 
     fclose(fp);
     return;
+}
+
+void write_data(FILE *fp,struct SimState *state_vars,int start)
+{
+    if(start) {
+
+        fprintf(fp,"%d,%d,%d,%d,%d\n",Nx,Ny,(int)floor(numrecords),Nc,Ni);
+    }else {
+        int ion, comp, x, y;
+        for (ion = 0; ion < Ni; ion++) {
+            for (comp = 0; comp < Nc; comp++) {
+                for (y = 0; y < Ny; y++) {
+                    for (x = 0; x < Nx; x++) {
+                        if(x==Nx-1 & y==Ny-1){
+                            fprintf(fp, "%f\n", state_vars->c[c_index(x, y, comp, ion)]);
+                        }else {
+                            fprintf(fp, "%f,", state_vars->c[c_index(x, y, comp, ion)]);
+                        }
+                    }
+                }
+            }
+        }
+        for (comp = 0; comp < Nc; comp++) {
+            for (y = 0; y < Ny; y++) {
+                for (x = 0; x < Nx; x++) {
+                    if(x==Nx-1 & y==Ny-1){
+                        fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, comp)]);
+                    } else {
+                        fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, comp)]);
+                    }
+                }
+            }
+        }
+        for (comp = 0; comp < Nc - 1; comp++) {
+            for (y = 0; y < Ny; y++) {
+                for (x = 0; x < Nx; x++) {
+                    if(x==Nx-1 & y==Ny-1){
+                        fprintf(fp, "%f\n", state_vars->alpha[al_index(x, y, comp)]);
+                    } else {
+                        fprintf(fp, "%f,", state_vars->alpha[al_index(x, y, comp)]);
+                    }
+                }
+            }
+        }
+    }
 }

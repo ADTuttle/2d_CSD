@@ -222,7 +222,7 @@ void initialize_data(struct SimState *state_vars,struct SimState *state_vars_pas
     	newton_solve(state_vars,state_vars_past, dt_temp, gate_vars, gexct,con_vars,slvr,flux);
     	gatevars_update(gate_vars,state_vars,dt_temp*1e3,0);
     	rsd = array_diff_max(state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/dt_temp;
-        printf("Init_Data rsd: %f, Tol: %f\n",1e6*rsd,1e6*tol);
+        printf("Init_Data rsd: %.10e, Tol: %.10e\n",rsd,tol);
     	k++;
 	}
   	
@@ -291,18 +291,18 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
      also serves as the preconditioning matrix.
     */
 //    ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
-    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
-//     ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
+//    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
+     ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
 //     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
     // ILU Precond
     ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
 
     //LU Direct solve
-//    /*
+    /*
     ierr = PCSetType(slvr->pc,PCLU);CHKERRQ(ierr);
     ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
-//    */
-    /*
+    */
+//    /*
     ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
     ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
     ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
@@ -314,7 +314,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
     PetscReal rel_tol = 1e-15;
     ierr = KSPSetTolerances(slvr->ksp,rel_tol,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
     ierr = KSPSetNormType(slvr->ksp,KSP_NORM_UNPRECONDITIONED);CHKERRQ(ierr);
-    */
+//    */
 
     /*
         Set runtime options, e.g.,
