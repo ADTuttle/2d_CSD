@@ -1,17 +1,19 @@
-/* Hello World program */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "functions.h"
 
+
+
 int main(int argc, char **argv)
 {
     printf("\n\n\nGrid size: %dx%d, with %d ions, and %d compartments.\n",Nx,Ny,Ni,Nc);
-    
+    PetscLogDouble tic,toc;
     //Create state_variables struct
     struct SimState *state_vars;
     state_vars=(struct SimState*)malloc(sizeof(struct SimState));
-
+    struct SimState *state_vars_past;
+    state_vars_past=(struct SimState*)malloc(sizeof(struct SimState));
     //Initialize
     init(state_vars);
 
@@ -32,9 +34,6 @@ int main(int argc, char **argv)
     set_params(state_vars,con_vars,gate_vars,flux);
 
     printf("Initialization Routine\n");
-    // PetscPetscInt *row = malloc(Nz*sizeof(PetscInt));
-  	// PetscPetscInt *col = malloc(Nz*sizeof(PetscInt));
-  	// PetscScalar *vals =malloc(Nz*sizeof(PetscScalar));
 
   	struct Solver *slvr;
   	slvr = (struct Solver*)malloc(sizeof(struct Solver));
@@ -42,31 +41,44 @@ int main(int argc, char **argv)
   	ierr = initialize_petsc(slvr,argc,argv);CHKERRQ(ierr);
 
 	//Run Initialization routine to get to steady state
-	initialize_data(state_vars,gate_vars,con_vars,slvr,flux);
+	initialize_data(state_vars,state_vars_past,gate_vars,con_vars,slvr,flux);
 
     printf("Beginning Main Routine \n");
     printf("\n\n\n");
+    //Open file to write to
+    FILE *fp;
+    fp = fopen("data_csd.txt","w");
+    write_data(fp,state_vars,1);
     //Create the excitation
     struct ExctType *gexct;
     gexct = (struct ExctType*)malloc(sizeof(struct ExctType));
     excitation(gexct,0);
-
-    for(double t=dt;t<=Time;t+=dt)
+    int count = 0;
+    for(PetscReal t=dt;t<=Time;t+=dt)
     {
-        printf("Netwon Solve\n");
-        newton_solve(state_vars, dt, gate_vars, gexct,con_vars,slvr,flux);
+        PetscTime(&tic);
+        newton_solve(state_vars,state_vars_past,dt,gate_vars,gexct,con_vars,slvr,flux);
+        PetscTime(&toc);
+        printf("Newton time: %f\n",toc-tic);
         //Update gating variables
         gatevars_update(gate_vars,state_vars,dt*1e3,0);
         //Update Excitation
         excitation(gexct,t);
-
+        count++;
+        if(count%krecordfreq==0) {
+            printf("Time: %f, Netwon Solve\n",t);
+            write_data(fp, state_vars, 0);
+        }
 
     }
 
+    //Close
+    fclose(fp);
+    printf("Finished Running.\n");
     //Free memory
     free(state_vars);free(con_vars);free(gate_vars);
     VecDestroy(&slvr->Q); VecDestroy(&slvr->Res); MatDestroy(&slvr->A);
-    KSPDestroy(&slvr->ksp); PCDestroy(&slvr->pc);
+    KSPDestroy(&slvr->ksp);
     free(slvr);
     return 0;
 }
