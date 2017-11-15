@@ -8,7 +8,7 @@
 int main(int argc, char **argv)
 {
     printf("\n\n\nGrid size: %dx%d, with %d ions, and %d compartments.\n",Nx,Ny,Ni,Nc);
-    PetscLogDouble tic,toc;
+    PetscLogDouble tic,toc,full_tic,full_toc;
     //Create state_variables struct
     struct SimState *state_vars;
     state_vars=(struct SimState*)malloc(sizeof(struct SimState));
@@ -54,6 +54,7 @@ int main(int argc, char **argv)
     gexct = (struct ExctType*)malloc(sizeof(struct ExctType));
     excitation(gexct,0);
     int count = 0;
+    PetscTime(&full_tic);
     for(PetscReal t=dt;t<=Time;t+=dt)
     {
         PetscTime(&tic);
@@ -71,10 +72,10 @@ int main(int argc, char **argv)
         }
 
     }
-
+    PetscTime(&full_toc);
     //Close
     fclose(fp);
-    printf("Finished Running.\n");
+    printf("Finished Running. Full solve time: %.10e\n",full_toc-full_tic);
     //Free memory
     free(state_vars);free(con_vars);free(gate_vars);
     VecDestroy(&slvr->Q); VecDestroy(&slvr->Res); MatDestroy(&slvr->A);

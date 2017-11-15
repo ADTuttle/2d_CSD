@@ -310,8 +310,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
 
     // ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     PetscReal div_tol = 1e12;
-    PetscReal abs_tol = 1e-25;
-    PetscReal rel_tol = 1e-15;
+    PetscReal abs_tol = 1e-13;
+    PetscReal rel_tol = 1e-10;
     ierr = KSPSetTolerances(slvr->ksp,rel_tol,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
     ierr = KSPSetNormType(slvr->ksp,KSP_NORM_UNPRECONDITIONED);CHKERRQ(ierr);
 //    */

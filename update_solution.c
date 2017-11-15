@@ -9,6 +9,10 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
     PetscErrorCode ierr = 0;
     PetscReal *temp;
     PetscInt num_iter;
+    PetscReal rnorm;
+
+
+    PetscLogDouble tic,toc;
 
     //Save the "current" aka past state
     memcpy(state_vars_past,state_vars,sizeof(struct SimState));
@@ -18,8 +22,11 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
     //x will be saved at even positions (0,2,4,...)
     //y at odd (1,3,5,...)
     //still use c_index(x,y,comp,ion), but with ind*2 or ind*2+1
+//    PetscTime(&tic);
    	PetscReal Dcs[Nx*Ny*Ni*Nc*2];
    	PetscReal Dcb[Nx*Ny*Ni*Nc*2];
+//    PetscTime(&toc);
+//    printf("Calc Diffusion :%.10e\n",toc-tic);
    	//compute diffusion coefficients
    	diff_coef(Dcs,state_vars->alpha,1);
    	//Bath diffusion
@@ -33,12 +40,21 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
     {
 
         //Compute membrane ionic flux relation quantitites
+//        PetscTime(&tic);
         ionmflux(flux,state_vars,state_vars_past,gvars,gexct,con_vars);
+//        PetscTime(&toc);
+//        printf("Calc ion flux time: %.10e\n",toc-tic);
 
         //Compute membrane water flow related quantities
+//        PetscTime(&tic);
         wflowm(flux,state_vars,con_vars);
+//        PetscTime(&toc);
+//        printf("Calc wflow: %.10e\n",toc-tic);
 
+//        PetscTime(&tic);
         ierr = calc_residual(slvr->Res,state_vars_past,state_vars,dt,Dcs,Dcb,flux,con_vars);CHKERRQ(ierr);
+//        PetscTime(&toc);
+//        printf("Calc Residual time: %.10e\n",toc-tic);
 
         ierr = VecNorm(slvr->Res,NORM_MAX,&rsd);CHKERRQ(ierr);
         if(rsd<tol)
@@ -49,20 +65,23 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
             }
             return ierr;
         }
+//        PetscTime(&tic);
         ierr = calc_jacobian(slvr->A, state_vars_past, state_vars, dt, Dcs, Dcb, flux, con_vars, iter);CHKERRQ(ierr);
+//        PetscTime(&toc);
+//        printf("Calculate Jacobian time: %.10e\n",toc-tic);
         //Set the new operator
         ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
 //        ierr = PCSetOperators(slvr->pc,slvr->A,slvr->A);CHKERRQ(ierr);
 //        ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
 
         //Solve
-        PetscLogDouble tic,toc;
-        PetscTime(&tic);
+//        PetscTime(&tic);
         ierr = KSPSolve(slvr->ksp,slvr->Res,slvr->Q);CHKERRQ(ierr);
-        PetscTime(&toc);
+//        PetscTime(&toc);
 
         ierr = KSPGetIterationNumber(slvr->ksp,&num_iter); CHKERRQ(ierr);
-        printf("KSP Solve time: %f, iter num:%d\n",toc-tic,num_iter);
+        ierr =  KSPGetResidualNorm(slvr->ksp,&rnorm); CHKERRQ(ierr);
+//        printf("KSP Solve time: %f, iter num:%d, norm: %.10e\n",toc-tic,num_iter,rnorm);
 //        ierr = KSPView(slvr->ksp,PETSC_VIEWER_STDOUT_SELF);CHKERRQ(ierr);
 
 
@@ -70,6 +89,7 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
             printf("Number of KSP Iterations: %d\n", num_iter);
         }
 
+//        PetscTime(&tic);
         ierr = VecGetArray(slvr->Q,&temp);CHKERRQ(ierr);
         for(x=0;x<Nx;x++)
         {
@@ -90,6 +110,8 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
             }
         }
         ierr = VecRestoreArray(slvr->Q,&temp);CHKERRQ(ierr);
+//        PetscTime(&toc);
+//        printf("Add update: %.10e\n",toc-tic);
 
 
         if(details)
