@@ -286,15 +286,12 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
   	//Create Solver Contexts
     
     ierr = KSPCreate(PETSC_COMM_WORLD,&slvr->ksp);CHKERRQ(ierr);
-    /*
-     Set operators. Here the matrix that defines the linear system
-     also serves as the preconditioning matrix.
-    */
-//    ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
+
+    //Iterative Solver Types
 //    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
      ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
 //     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
-    // ILU Precond
+
     ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
 
     //LU Direct solve
@@ -303,15 +300,20 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
     ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
     */
 //    /*
+    // ILU Precond
     ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
     ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
     ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
     ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
+    ierr = PCFactorSetMatOrderingType(slvr->pc,MATORDERINGRCM); CHKERRQ(ierr);
+    ierr = PCFactorSetReuseOrdering(slvr->pc,PETSC_TRUE); CHKERRQ(ierr);
 
     // ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     PetscReal div_tol = 1e12;
-    PetscReal abs_tol = 1e-13;
-    PetscReal rel_tol = 1e-10;
+    // PetscReal abs_tol = 1e-13;
+    // PetscReal rel_tol = 1e-10;
+    PetscReal abs_tol = 1e-12;
+    PetscReal rel_tol = 1e-8;
     ierr = KSPSetTolerances(slvr->ksp,rel_tol,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
     ierr = KSPSetNormType(slvr->ksp,KSP_NORM_UNPRECONDITIONED);CHKERRQ(ierr);
 //    */

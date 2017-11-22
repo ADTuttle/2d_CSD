@@ -75,18 +75,18 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
 //        ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
 
         //Solve
-//        PetscTime(&tic);
+        PetscTime(&tic);
         ierr = KSPSolve(slvr->ksp,slvr->Res,slvr->Q);CHKERRQ(ierr);
-//        PetscTime(&toc);
+        PetscTime(&toc);
 
         ierr = KSPGetIterationNumber(slvr->ksp,&num_iter); CHKERRQ(ierr);
         ierr =  KSPGetResidualNorm(slvr->ksp,&rnorm); CHKERRQ(ierr);
-//        printf("KSP Solve time: %f, iter num:%d, norm: %.10e\n",toc-tic,num_iter,rnorm);
+        // printf("KSP Solve time: %f, iter num:%d, norm: %.10e\n",toc-tic,num_iter,rnorm);
 //        ierr = KSPView(slvr->ksp,PETSC_VIEWER_STDOUT_SELF);CHKERRQ(ierr);
 
 
         if(details) {
-            printf("Number of KSP Iterations: %d\n", num_iter);
+            printf("KSP Solve time: %f, iter num:%d, norm: %.10e\n",toc-tic,num_iter,rnorm);
         }
 
 //        PetscTime(&tic);
