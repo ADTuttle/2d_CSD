@@ -1,6 +1,6 @@
 
-# PETSC_DIR=/Users/Austin/Documents/C_Progs/petsc-3.7.7/arch-darwin-c-debug
-PETSC_DIR=/Users/Austin/Documents/C_Progs/petsc-3.7.7/arch-darwin-c-opt
+PETSC_DIR=/Users/Austin/Documents/C_Progs/petsc-3.8.2/arch-darwin-c-debug
+# PETSC_DIR=/Users/Austin/Documents/C_Progs/petsc-3.8.2/arch-darwin-c-opt
 
 # include ${PETSC_DIR}/lib/petsc/conf/variables
 # include ${PETSC_DIR}/lib/petsc/conf/rules

@@ -40,12 +40,15 @@ PetscInt phi_index(int,int,int);
 PetscInt al_index(int,int,int);
 PetscInt xy_index(int,int);
 PetscInt Ind_1(int,int,int,int);
-
+PetscInt Ind_nx(int,int,int,int,int);
 
 //Create Petsc Structures
 PetscErrorCode initialize_petsc(struct Solver *,int, char **);
 void Get_Nonzero_in_Rows(int *);
 PetscErrorCode initialize_jacobian(Mat);
+PetscErrorCode Create_Restriction(Mat ,PetscInt, PetscInt );
+PetscErrorCode Create_Interpolation(Mat ,PetscInt, PetscInt );
+PetscErrorCode Initialize_PCMG(PC,Mat);
 
 //Newton Solver
 PetscErrorCode newton_solve(struct SimState *,struct SimState *, PetscReal, struct GateType *, struct ExctType *, struct ConstVars *,struct Solver *,struct FluxData*);

@@ -71,6 +71,7 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
 //        printf("Calculate Jacobian time: %.10e\n",toc-tic);
         //Set the new operator
         ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
+//        ierr = Initialize_PCMG(slvr->pc,slvr->A); CHKERRQ(ierr);
 //        ierr = PCSetOperators(slvr->pc,slvr->A,slvr->A);CHKERRQ(ierr);
 //        ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
 
@@ -88,7 +89,9 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
         if(details) {
             printf("Number of KSP Iterations: %d\n", num_iter);
         }
-
+        PetscViewer viewer;
+        PetscViewerASCIIOpen(PETSC_COMM_WORLD,"vec.output",&viewer);
+        VecView(slvr->Q,viewer);
 //        PetscTime(&tic);
         ierr = VecGetArray(slvr->Q,&temp);CHKERRQ(ierr);
         for(x=0;x<Nx;x++)

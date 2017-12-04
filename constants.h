@@ -8,7 +8,7 @@
 
 static const int use_en_deriv = 0; //if true, will use the derivative of the electroneutrality condition for the system of equations
 static const int use_direct_solve = 0; //if true, will use gmres instead of direct solve
-static const int details = 0; //if true, will show how many iterations were necessary for each newton solve, and the residual
+static const int details = 1; //if true, will show how many iterations were necessary for each newton solve, and the residual
 static const int krecordfreq = 10; //determines how many time steps to run before recording the state variables
 static const int two_points_exct = 0;   //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 static const int savefreq = 500;
@@ -27,8 +27,8 @@ static const   PetscReal Time = 3e-2;
 //static const    Time = 60//2e-2        //total simulated time in seconds
 // static const    Time=2e-2
 static const  PetscInt  Nc = 3;            //number of compartments
-  static const PetscInt  Nx = 100;         //number of grid points in the x direction
-  static const PetscInt   Ny = 100;      //number of grid points in the y direction
+  static const PetscInt  Nx = 16;         //number of grid points in the x direction
+  static const PetscInt   Ny = 16;      //number of grid points in the y direction
 // static const  PetscInt  Nx = 50;
 // static const  PetscInt  Ny = 50;
 //static const PetscInt   Nx = 9;
