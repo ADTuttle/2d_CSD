@@ -73,7 +73,7 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
         ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
 //        ierr = Initialize_PCMG(slvr->pc,slvr->A); CHKERRQ(ierr);
 //        ierr = PCSetOperators(slvr->pc,slvr->A,slvr->A);CHKERRQ(ierr);
-//        ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
+        ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
 
         //Solve
 //        PetscTime(&tic);
@@ -89,9 +89,20 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
         if(details) {
             printf("Number of KSP Iterations: %d\n", num_iter);
         }
+//        /*
         PetscViewer viewer;
-        PetscViewerASCIIOpen(PETSC_COMM_WORLD,"vec.output",&viewer);
+        PetscViewerASCIIOpen(PETSC_COMM_WORLD,"vec.txt",&viewer);
         VecView(slvr->Q,viewer);
+
+        PetscViewerDestroy(&viewer);
+//        PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Res.txt",&viewer);
+//        VecView(slvr->Res,viewer);
+//
+//        PetscViewerASCIIOpen(PETSC_COMM_WORLD,"mat.txt",&viewer);
+//        MatView(slvr->A,viewer);
+
+//         */
+//        VecView(slvr->Q,PETSC_VIEWER_STDOUT_SELF);
 //        PetscTime(&tic);
         ierr = VecGetArray(slvr->Q,&temp);CHKERRQ(ierr);
         for(x=0;x<Nx;x++)

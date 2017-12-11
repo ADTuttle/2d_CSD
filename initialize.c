@@ -275,30 +275,43 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
     ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
 
   	//Create Solver Contexts
-    
+
     ierr = KSPCreate(PETSC_COMM_WORLD,&slvr->ksp);CHKERRQ(ierr);
-    /*
-     Set operators. Here the matrix that defines the linear system
-     also serves as the preconditioning matrix.
-    */
-//    ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
-    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
-      ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
-//     ierr = KSPSetType(slvr->ksp,KSPRICHARDSON);CHKERRQ(ierr);
-//     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
-    // Multigrid Precond
+
+    //Iterative Solver Types
+//    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
+//    ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
+//    ierr = KSPSetType(slvr->ksp,KSPRICHARDSON);CHKERRQ(ierr);
+     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
+
     ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
 
-//    ierr = Initialize_PCMG(slvr->pc,slvr->A); CHKERRQ(ierr);
-    ierr = PCSetType(slvr->pc,PCLU); CHKERRQ(ierr);
+
+//    /*
+    // Multigrid Precond
+
+    ierr = Initialize_PCMG(slvr->pc,slvr->A); CHKERRQ(ierr);
+//    /*
+//    ierr = PCSetType(slvr->pc,PCLU);CHKERRQ(ierr);
+//    ierr = PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
 //     */
+    // ILU Precond
+    /*
+    ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
+    ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
+    ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
+    ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
+    ierr = PCFactorSetMatOrderingType(slvr->pc,MATORDERINGRCM); CHKERRQ(ierr);
+    ierr = PCFactorSetReuseOrdering(slvr->pc,PETSC_TRUE); CHKERRQ(ierr);
+    */
 
     PetscReal div_tol = 1e12;
-    PetscReal abs_tol = 1e-13;
-    PetscReal rel_tol = 1e-10;
+    // PetscReal abs_tol = 1e-13;
+    // PetscReal rel_tol = 1e-10;
+    PetscReal abs_tol = 1e-12;
+    PetscReal rel_tol = 1e-8;
     ierr = KSPSetTolerances(slvr->ksp,rel_tol,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
     ierr = KSPSetNormType(slvr->ksp,KSP_NORM_UNPRECONDITIONED);CHKERRQ(ierr);
-//    */
 
     /*
         Set runtime options, e.g.,
@@ -1462,12 +1475,12 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A)
     PetscErrorCode  ierr;
 
     KSP coarse_ksp,sksp;
-    PC coarse_pc;
+    PC coarse_pc,spc;
 
     PetscInt nlevels = 3;
     PetscInt nx = Nx;
     PetscInt ny = Ny;
-    Mat R,P,Ai;
+    Mat R,P;
     ierr = PCSetType(pc,PCMG); CHKERRQ(ierr);
     ierr = PCSetOperators(pc,A,A);CHKERRQ(ierr);
     ierr = PCMGSetType(pc,PC_MG_MULTIPLICATIVE); CHKERRQ(ierr);
@@ -1480,10 +1493,16 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A)
     ierr = KSPSetType(coarse_ksp,KSPPREONLY);CHKERRQ(ierr);
     ierr = KSPGetPC(coarse_ksp,&coarse_pc);CHKERRQ(ierr);
     ierr = PCSetType(coarse_pc,PCLU); CHKERRQ(ierr);
+    ierr = PCFactorSetMatSolverPackage(coarse_pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
 
 
 /*
     //Make Multigrid operators at each level
+    ierr = PCMGGetSmoother(pc,0,&sksp); CHKERRQ(ierr);
+    ierr = KSPSetOperators(sksp,A,A); CHKERRQ(ierr);
+
+    ierr = MatCreate(PETSC_COMM_WORLD,&Aprev); CHKERRQ(ierr);
+    ierr = MatDuplicate(A,MAT_COPY_VALUES,&Aprev); CHKERRQ(ierr);
     for (int i=1; i<nlevels; i++) {
 
         //Make restriction operator
@@ -1502,8 +1521,8 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A)
         ierr = MatCreate(PETSC_COMM_WORLD,&P);CHKERRQ(ierr);
         ierr = MatSetType(P,MATSEQAIJ);CHKERRQ(ierr);
         ierr = MatSetSizes(P,PETSC_DECIDE,PETSC_DECIDE,nx*ny*Nv,nx/2*ny/2*Nv);CHKERRQ(ierr);
-        ierr = MatSeqAIJSetPreallocation(R,4,NULL);CHKERRQ(ierr);
-        ierr = MatSetOption(R,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
+        ierr = MatSeqAIJSetPreallocation(P,4,NULL);CHKERRQ(ierr);
+        ierr = MatSetOption(P,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
 
         ierr = Create_Interpolation(P,nx/2,ny/2); CHKERRQ(ierr);
 
@@ -1516,10 +1535,11 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A)
         ierr = MatSetSizes(Ai,PETSC_DECIDE,PETSC_DECIDE,nx/2*ny/2*Nv,nx/2*ny/2*Nv);CHKERRQ(ierr);
         ierr = MatSetUp(Ai); CHKERRQ(ierr);
 
-        ierr = MatMatMatMult(R,A,P,MAT_INITIAL_MATRIX,PETSC_DEFAULT,&Ai); CHKERRQ(ierr);
+        ierr = MatMatMatMult(R,Aprev,P,MAT_INITIAL_MATRIX,PETSC_DEFAULT,&Ai); CHKERRQ(ierr);
         ierr = KSPSetOperators(sksp,Ai,Ai); CHKERRQ(ierr);
+        ierr = MatDuplicate(Ai,MAT_COPY_VALUES,&Aprev); CHKERRQ(ierr);
 
-        ierr = MatDestroy(&Ai);
+        ierr = MatDestroy(&Ai);CHKERRQ(ierr);
         ierr = MatDestroy(&R); CHKERRQ(ierr);
         ierr = MatDestroy(&P); CHKERRQ(ierr);
 
@@ -1565,6 +1585,40 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A)
 
         nx = nx*2;
         ny = ny*2;
+    }
+
+
+    //Modify the smoother (default KSP is chebyshev with SOR)
+    for(int i=1;i<nlevels;i++){
+        ierr = PCMGGetSmoother(pc,i,&sksp); CHKERRQ(ierr);
+        ierr = KSPGetPC(sksp,&spc); CHKERRQ(ierr);
+
+
+        //Smoother KSP
+//        ierr = KSPSetType(sksp,KSPRICHARDSON); CHKERRQ(ierr);
+//        ierr = KSPRichardsonSetScale(sksp,0.5); CHKERRQ(ierr);
+        ierr = KSPSetType(sksp,KSPBCGS); CHKERRQ(ierr);
+//        ierr = KSPSetType(sksp,KSPPREONLY); CHKERRQ(ierr);
+        //Smoother Precond
+        /*
+        ierr = PCSetType(spc,PCSOR); CHKERRQ(ierr);
+        ierr = PCSORSetSymmetric(spc,SOR_LOCAL_BACKWARD_SWEEP); CHKERRQ(ierr);
+        ierr = PCSORSetIterations(spc,10,10); CHKERRQ(ierr);
+        ierr = PCSORSetOmega(spc,1.999);
+         */
+//        ierr = PCSetType(spc, PCJACOBI);CHKERRQ(ierr);
+//        ierr = PCJacobiSetType(spc,PC_JACOBI_ROWMAX); CHKERRQ(ierr);
+
+//        ierr = PCSetType(spc, PCASM); CHKERRQ(ierr);
+
+//        /*
+        ierr = PCSetType(spc,PCILU);CHKERRQ(ierr);
+        ierr = PCFactorSetFill(spc,3.0);CHKERRQ(ierr);
+        ierr = PCFactorSetLevels(spc,1);CHKERRQ(ierr);
+        ierr = PCFactorSetAllowDiagonalFill(spc,PETSC_TRUE);CHKERRQ(ierr);
+        ierr = PCFactorSetMatOrderingType(spc,MATORDERINGRCM); CHKERRQ(ierr);
+        ierr = PCFactorSetReuseOrdering(spc,PETSC_TRUE); CHKERRQ(ierr);
+//        */
     }
 
     return ierr;

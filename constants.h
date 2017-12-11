@@ -27,12 +27,12 @@ static const   PetscReal Time = 3e-2;
 //static const    Time = 60//2e-2        //total simulated time in seconds
 // static const    Time=2e-2
 static const  PetscInt  Nc = 3;            //number of compartments
-  static const PetscInt  Nx = 16;         //number of grid points in the x direction
-  static const PetscInt   Ny = 16;      //number of grid points in the y direction
+  static const PetscInt  Nx = 64;         //number of grid points in the x direction
+  static const PetscInt   Ny = 64;      //number of grid points in the y direction
 // static const  PetscInt  Nx = 50;
 // static const  PetscInt  Ny = 50;
 //static const PetscInt   Nx = 9;
-//static const PetscInt  Ny = 8;
+//static const PetscInt  Ny = 16;
 static const PetscReal  dx = 0.01;        //grid size in x direction (in cm)
 static const PetscReal   dy = 0.01;        //grid size in y direction (in cm)
 static const PetscReal  Lx = Nx*dx;          //width of domain in cm (x)
@@ -49,6 +49,7 @@ static const PetscInt Nz = Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*N
 // static const PetscInt  itermax = 10;      //maximum Newton iterations allowed
 static const PetscInt itermax = 4;
 static const PetscReal  reltol = 1e-11;    //relative tolerance
+//static const PetscReal  reltol = 1e-9;
 
 
 //physical static constants
