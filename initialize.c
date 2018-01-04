@@ -24,7 +24,7 @@ PetscInt xy_index(PetscInt x,PetscInt y)
 }
 PetscInt Ind_1(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp)
 {
-  return Nv*(Nx*y+x)+ion*Nc+comp;
+    return Nv*(Nx*y+x)+ion*Nc+comp;
 }
 
 
@@ -291,18 +291,18 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
      also serves as the preconditioning matrix.
     */
 //    ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
-//    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
-     ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
+    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
+//     ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
 //     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
     // ILU Precond
     ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
 
     //LU Direct solve
-    /*
+//    /*
     ierr = PCSetType(slvr->pc,PCLU);CHKERRQ(ierr);
     ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
-    */
-//    /*
+//    */
+    /*
     ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
     ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
     ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
@@ -314,7 +314,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
     PetscReal rel_tol = 1e-10;
     ierr = KSPSetTolerances(slvr->ksp,rel_tol,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
     ierr = KSPSetNormType(slvr->ksp,KSP_NORM_UNPRECONDITIONED);CHKERRQ(ierr);
-//    */
+    */
 
     /*
         Set runtime options, e.g.,
@@ -355,6 +355,8 @@ void Get_Nonzero_in_Rows(int *nnz)
                         //Right c with left phi (-Fph0x)
                         nnz[Ind_1(x+1,y,ion,comp)]++;//Ind_1(x,y,Ni,comp)
                         ind++;
+                        nnz[Ind_1(x+1,y,Ni,comp)]++;
+                        ind++;
                     }
                     if(x>0)
                     {
@@ -363,6 +365,8 @@ void Get_Nonzero_in_Rows(int *nnz)
                         ind++;
                         //Left c with right phi (-Fph1x)
                         nnz[Ind_1(x-1,y,ion,comp)]++;//Ind_1(x,y,Ni,comp)
+                        ind++;
+                        nnz[Ind_1(x-1,y,Ni,comp)]++;
                         ind++;
                     }
                     if(y<Ny-1)
@@ -373,6 +377,8 @@ void Get_Nonzero_in_Rows(int *nnz)
                         //Upper c with lower phi (-Fph0y)
                         nnz[Ind_1(x,y+1,ion,comp)]++;//Ind_1(x,y,Ni,comp)
                         ind++;
+                        nnz[Ind_1(x,y+1,Ni,comp)]++;
+                        ind++;
                     }
                     if(y>0)
                     {
@@ -381,6 +387,8 @@ void Get_Nonzero_in_Rows(int *nnz)
                         ind++;
                         //Lower c with Upper phi (-Fph1y)
                         nnz[Ind_1(x,y-1,ion,comp)]++;//Ind_1(x,y,Ni,comp)
+                        ind++;
+                        nnz[Ind_1(x,y-1,Ni,comp)]++;
                         ind++;
                     }
       
@@ -413,6 +421,15 @@ void Get_Nonzero_in_Rows(int *nnz)
                     nnz[Ind_1(x,y,ion,comp)]++;//Ind_1(x,y,Ni,comp)
                     ind++;
 
+                    //Intra-Phi with c (voltage eqn)
+                    nnz[Ind_1(x,y,Ni,comp)]++;//Ind_1(x,y,ion,comp)
+                    //IntraPhi with c extra(volt eqn)
+                    nnz[Ind_1(x,y,Ni,comp)]++;//Ind_1(x,y,ion,Nc-1)
+
+                    //Extra-Phi with intra-c (voltage eqn)
+                    nnz[Ind_1(x,y,Ni,Nc-1)]++;//Ind_1(x,y,ion,comp)
+
+
                 }
                 //Extracellular terms
                 comp = Nc-1;
@@ -425,6 +442,8 @@ void Get_Nonzero_in_Rows(int *nnz)
                     //Right c with left phi (-Fph0x)
                     nnz[Ind_1(x+1,y,ion,comp)]++;//Ind_1(x,y,Ni,comp)
                     ind++;
+                    nnz[Ind_1(x+1,y,Ni,comp)]++;
+                    ind++;
                 }
                 if(x>0)
                 {
@@ -433,6 +452,8 @@ void Get_Nonzero_in_Rows(int *nnz)
                     ind++;
                     //Left c with right phi (-Fph1x)
                     nnz[Ind_1(x-1,y,ion,comp)]++;//Ind_1(x,y,Ni,comp)
+                    ind++;
+                    nnz[Ind_1(x-1,y,Ni,comp)]++;
                     ind++;
                 }
                 if(y<Ny-1)
@@ -443,6 +464,8 @@ void Get_Nonzero_in_Rows(int *nnz)
                     //Upper c with lower phi (-Fph0y)
                     nnz[Ind_1(x,y+1,ion,comp)]++;//Ind_1(x,y,Ni,comp)
                     ind++;
+                    nnz[Ind_1(x,y+1,Ni,comp)]++;
+                    ind++;
                 }
                 if(y>0)
                 {
@@ -451,6 +474,8 @@ void Get_Nonzero_in_Rows(int *nnz)
                     ind++;
                     //Lower c with Upper phi (-Fph1y)
                     nnz[Ind_1(x,y-1,ion,comp)]++;//Ind_1(x,y,Ni,comp)
+                    ind++;
+                    nnz[Ind_1(x,y-1,Ni,comp)]++;
                     ind++;
                 }
             
@@ -463,51 +488,78 @@ void Get_Nonzero_in_Rows(int *nnz)
                  // c with phi
                 nnz[Ind_1(x,y,ion,Nc-1)]++;//Ind_1(x,y,Ni,Nc-1)
                 ind++;
+                //Extra phi with c (volt eqn)
+                nnz[Ind_1(x,y,Ni,Nc-1)]++;
+                ind++;
             }
-        }
-    }
-    //Electroneutrality charge-capcitance condition
-    for(x=0;x<Nx;x++)
-    {
-        for(y=0;y<Ny;y++)
-        {
-            //electroneutral-concentration entries
-            for(ion=0;ion<Ni;ion++)
-            {
-                for(comp=0;comp<Nc-1;comp++)
+            //Derivative of charge-capacitance
+            for(comp=0;comp<Nc-1;comp++){
+                if(x<Nx-1)
                 {
-                    //Phi with C entries
-                    nnz[Ind_1(x,y,Ni,comp)]++;//Ind_1(x,y,ion,comp)
+                    //Right phi with left phi (-Fph0x)
+                    nnz[Ind_1(x+1,y,Ni,comp)]++;//Ind_1(x,y,Ni,comp)
                     ind++;
                 }
-                //Phi with C extracellular one
-                comp = Nc-1;
-                nnz[Ind_1(x,y,Ni,comp)]++;//Ind_1(x,y,ion,comp)
+                if(x>0)
+                {
+                    //Left phi with right phi (-Fph1x)
+                    nnz[Ind_1(x-1,y,Ni,comp)]++;//Ind_1(x,y,Ni,comp)
+                    ind++;
+                }
+                if(y<Ny-1)
+                {
+                    //Upper phi with lower phi (-Fph0y)
+                    nnz[Ind_1(x,y+1,Ni,comp)]++;//Ind_1(x,y,Ni,comp)
+                    ind++;
+                }
+                if(y>0)
+                {
+                    //Lower phi with upper phi (-Fph1y)
+                    nnz[Ind_1(x,y-1,Ni,comp)]++;//Ind_1(x,y,Ni,comp)
+                    ind++;
+                }
+                //Intra-phi with Intra-phi
+                nnz[Ind_1(x,y,Ni,comp)]++;
                 ind++;
-
-            }
-            //electroneutrality-voltage entries
-            //extraphi with extra phi
-            nnz[Ind_1(x,y,Ni,Nc-1)]++;//Ind_1(x,y,Ni,Nc-1)
-            ind++;
-            for(comp=0;comp<Nc-1;comp++)
-            {
-                //Extra phi with intra phi
-                nnz[Ind_1(x,y,Ni,Nc-1)]++;//Ind_1(x,y,Ni,comp)
-                ind++;
-                // Intra phi with Extraphi
+                //Intra-phi with extra-phi
                 nnz[Ind_1(x,y,Ni,comp)]++;//Ind_1(x,y,Ni,Nc-1)
                 ind++;
-                //Intra phi with Intra phi
-                nnz[Ind_1(x,y,Ni,comp)]++;//Ind_1(x,y,Ni,comp)
-                ind++;
-                //Extra phi with intra-Volume
-                nnz[Ind_1(x,y,Ni,Nc-1)]++;//Ind_1(x,y,Ni+1,comp)
-                ind++;
-                //Intra phi with Intra Vol
-                nnz[Ind_1(x,y,Ni,comp)]++;//Ind_1(x,y,Ni+1,comp)
+            }
+            //Extracellular terms
+            comp = Nc-1;
+            if(x<Nx-1)
+            {
+                //Right phi with left phi (-Fph0x)
+                nnz[Ind_1(x+1,y,Ni,comp)]++;//Ind_1(x,y,Ni,comp)
                 ind++;
             }
+            if(x>0)
+            {
+                //Left phi with right phi (-Fph1x)
+                nnz[Ind_1(x-1,y,Ni,comp)]++;//Ind_1(x,y,Ni,comp)
+                ind++;
+            }
+            if(y<Ny-1)
+            {
+                //Upper phi with lower phi (-Fph0y)
+                nnz[Ind_1(x,y+1,Ni,comp)]++;//Ind_1(x,y,Ni,comp)
+                ind++;
+            }
+            if(y>0)
+            {
+                //Lower phi with upper phi (-Fph1y)
+                nnz[Ind_1(x,y-1,Ni,comp)]++;//Ind_1(x,y,Ni,comp)
+                ind++;
+            }
+            for(int k=0;k<Nc-1;k++){
+
+                //Extra-phi with Intra-phi
+                nnz[Ind_1(x,y,Ni,comp)]++;//Ind_1(x,y,Ni,k)
+                ind++;
+            }
+            //extra-phi with extra-phi
+            nnz[Ind_1(x,y,Ni,comp)]++;//Ind_1(x,y,Ni,comp)
+            ind++;
         }
     }
     //water flow
@@ -544,6 +596,7 @@ void Get_Nonzero_in_Rows(int *nnz)
             }
         }
     }
+    printf("Nz: %d, ind: %d\n",Nz,ind);
     return;
 }
 
@@ -555,23 +608,23 @@ PetscErrorCode initialize_jacobian(Mat Jac) {
     PetscInt x,y,ion,comp;
 
     //Ionic concentration equations
-    for(x=0;x<Nx;x++)
-    {
-        for(y=0;y<Ny;y++)
-        {
-            for(ion=0;ion<Ni;ion++)
-            {
-                for(comp=0;comp<Nc-1;comp++)
-                {
+    for(x=0;x<Nx;x++) {
+        for(y=0;y<Ny;y++) {
+            for(ion=0;ion<Ni;ion++) {
+                for(comp=0;comp<Nc-1;comp++) {
                     //Electrodiffusion contributions
+
                     if(x<Nx-1)
                     {
                         // Right c with left c (-Fc0x)
-
                         ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                         //Right c with left phi (-Fph0x)
                         ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+
+                        //Right phi with left c in voltage eqn
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,Ni,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                     }
                     if(x>0)
@@ -582,6 +635,10 @@ PetscErrorCode initialize_jacobian(Mat Jac) {
                         //Left c with right phi (-Fph1x)
                         ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
+
+                        //Left phi with right c in voltage eqn
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,Ni,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
                     }
                     if(y<Ny-1)
                     {
@@ -590,6 +647,10 @@ PetscErrorCode initialize_jacobian(Mat Jac) {
                         ind++;
                         //Upper c with lower phi (-Fph0y)
                         ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+
+                        //Upper phi with lower c in voltage eqn
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,Ni,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                     }
                     if(y>0)
@@ -600,9 +661,12 @@ PetscErrorCode initialize_jacobian(Mat Jac) {
                         //Lower c with Upper phi (-Fph1y)
                         ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
+
+                        //Lower phi with upper c in voltage eqn
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,Ni,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
                     }
-                    //Diagonal term contribution
-                    //membrane current contributions
+
                     // Different Compartment Terms
                     // C Extracellular with C Inside
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
@@ -631,6 +695,17 @@ PetscErrorCode initialize_jacobian(Mat Jac) {
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
 
+                    //Intra-Phi with c (voltage eqn)
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES); CHKERRQ(ierr);
+                    ind++;
+                    //IntraPhi with c extra(volt eqn)
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,ion,Nc-1),0,INSERT_VALUES); CHKERRQ(ierr);
+                    ind++;
+
+                    //Extra-Phi with intra-c (voltage eqn)
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1),Ind_1(x,y,ion,comp),0,INSERT_VALUES); CHKERRQ(ierr);
+                    ind++;
+
                 }
                 //Extracellular terms
                 comp = Nc-1;
@@ -643,6 +718,9 @@ PetscErrorCode initialize_jacobian(Mat Jac) {
                     //Right c with left phi (-Fph0x)
                     ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
+                    // left Phi with right c (voltage eqn)
+                    ierr = MatSetValue(Jac,Ind_1(x+1,y,Ni,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
                 }
                 if(x>0)
                 {
@@ -651,6 +729,10 @@ PetscErrorCode initialize_jacobian(Mat Jac) {
                     ind++;
                     //Left c with right phi (-Fph1x)
                     ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+
+                    // left Phi with right c (voltage eqn)
+                    ierr = MatSetValue(Jac,Ind_1(x-1,y,Ni,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
                 if(y<Ny-1)
@@ -661,6 +743,10 @@ PetscErrorCode initialize_jacobian(Mat Jac) {
                     //Upper c with lower phi (-Fph0y)
                     ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
+
+                    // Upper Phi with lower c (voltage eqn)
+                    ierr = MatSetValue(Jac,Ind_1(x,y+1,Ni,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
                 }
                 if(y>0)
                 {
@@ -670,12 +756,11 @@ PetscErrorCode initialize_jacobian(Mat Jac) {
                     //Lower c with Upper phi (-Fph1y)
                     ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
+
+                    // Lower Phi with upper c (voltage eqn)
+                    ierr = MatSetValue(Jac,Ind_1(x,y-1,Ni,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
                 }
-
-                //Diagonal term contribution
-
-                //Membrane current contribution
-                //Add bath contributions
                 //Insert extracell to extracell parts
                 // c with c
                 ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,ion,Nc-1),0,INSERT_VALUES);CHKERRQ(ierr);
@@ -683,54 +768,85 @@ PetscErrorCode initialize_jacobian(Mat Jac) {
                 // c with phi
                 ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,Ni,Nc-1),0,INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
-            }
-        }
-    }
 
-    //Electroneutrality charge-capcitance condition
-    for(x=0;x<Nx;x++)
-    {
-        for(y=0;y<Ny;y++)
-        {
-            //electroneutral-concentration entries
-            for(ion=0;ion<Ni;ion++)
-            {
-                for(comp=0;comp<Nc-1;comp++)
+                //phi with c (voltage eqn)
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1),Ind_1(x,y,ion,Nc-1),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+            }
+
+            //Derivative of charge-capacitance
+            for(comp=0;comp<Nc-1;comp++){
+                if(x<Nx-1)
                 {
-                    //Phi with C entries
-                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES); CHKERRQ(ierr);
+                    //Right phi with left phi (-Fph0x)
+                    ierr = MatSetValue(Jac,Ind_1(x+1,y,Ni,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
-                //Phi with C extracellular one
-                comp = Nc-1;
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,ion,comp),0,INSERT_VALUES); CHKERRQ(ierr);
-                ind++;
-
-            }
-            //electroneutrality-voltage entries
-            //extraphi with extra phi
-            ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1),Ind_1(x,y,Ni,Nc-1),0,INSERT_VALUES);CHKERRQ(ierr);
-            ind++;
-            for(comp=0;comp<Nc-1;comp++)
-            {
-                //Extra phi with intra phi
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
-                ind++;
-                // Intra phi with Extraphi
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni,Nc-1),0,INSERT_VALUES);CHKERRQ(ierr);
-                ind++;
-                //Intra phi with Intra phi
+                if(x>0)
+                {
+                    //Left phi with right phi (-Fph1x)
+                    ierr = MatSetValue(Jac,Ind_1(x-1,y,Ni,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                }
+                if(y<Ny-1)
+                {
+                    //Upper phi with lower phi (-Fph0y)
+                    ierr = MatSetValue(Jac,Ind_1(x,y+1,Ni,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                }
+                if(y>0)
+                {
+                    //Lower phi with upper phi (-Fph1y)
+                    ierr = MatSetValue(Jac,Ind_1(x,y-1,Ni,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                }
+                //Intra-phi with Intra-phi
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
-                //Extra phi with intra-Volume
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1),Ind_1(x,y,Ni+1,comp),0,INSERT_VALUES);CHKERRQ(ierr);
-                ind++;
-                //Intra phi with Intra Vol
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni+1,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                //Intra-phi with extra-phi
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni,Nc-1),0,INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
             }
+            //Extracellular terms
+            comp = Nc-1;
+            if(x<Nx-1)
+            {
+                //Right phi with left phi (-Fph0x)
+                ierr = MatSetValue(Jac,Ind_1(x+1,y,Ni,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+            }
+            if(x>0)
+            {
+                //Left phi with right phi (-Fph1x)
+                ierr = MatSetValue(Jac,Ind_1(x-1,y,Ni,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+            }
+            if(y<Ny-1)
+            {
+                //Upper phi with lower phi (-Fph0y)
+                ierr = MatSetValue(Jac,Ind_1(x,y+1,Ni,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+            }
+            if(y>0)
+            {
+                //Lower phi with upper phi (-Fph1y)
+                ierr = MatSetValue(Jac,Ind_1(x,y-1,Ni,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+            }
+
+            for(int k=0;k<Nc-1;k++){
+                //Extra-phi with Intra-phi
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni,k),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+            }
+            //extra-phi with extra-phi
+            ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni,comp),0,INSERT_VALUES);CHKERRQ(ierr);
+            ind++;
+
         }
     }
+
+
     //water flow
     for(x=0;x<Nx;x++)
     {
