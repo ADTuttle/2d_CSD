@@ -67,7 +67,7 @@ int main(int argc, char **argv)
         excitation(gexct,t);
         count++;
         if(count%krecordfreq==0) {
-            printf("Time: %f, Netwon Solve\n",t);
+            printf("Time: %f, Netwon SolveTime %f\n",t,toc-tic);
             write_data(fp, state_vars, 0);
         }
 
