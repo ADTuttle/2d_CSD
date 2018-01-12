@@ -13,9 +13,8 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
 
 
     PetscLogDouble tic,toc;
-
     //Save the "current" aka past state
-    memcpy(state_vars_past,state_vars,sizeof(struct SimState));
+    ierr = copy_simstate(state_vars,state_vars_past); CHKERRQ(ierr);
 
     //Diffusion in each compartment
     //Has x and y components
@@ -90,6 +89,10 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
         }
 
 //        PetscTime(&tic);
+        ierr = restore_subarray(state_vars); CHKERRQ(ierr);
+        ierr = VecAXPY(state_vars->v,-1.0,slvr->Q); CHKERRQ(ierr);
+        ierr = extract_subarray(state_vars); CHKERRQ(ierr);
+        /*
         ierr = VecGetArray(slvr->Q,&temp);CHKERRQ(ierr);
         for(x=0;x<Nx;x++)
         {
@@ -110,6 +113,7 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
             }
         }
         ierr = VecRestoreArray(slvr->Q,&temp);CHKERRQ(ierr);
+         */
 //        PetscTime(&toc);
 //        printf("Add update: %.10e\n",toc-tic);
 
@@ -750,7 +754,6 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
 
     ierr = MatAssemblyBegin(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-
     return ierr;
 }
 

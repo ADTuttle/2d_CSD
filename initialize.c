@@ -27,6 +27,87 @@ PetscInt Ind_1(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp)
     return Nv*(Nx*y+x)+ion*Nc+comp;
 }
 
+PetscErrorCode init_simstate(struct SimState *state_vars)
+{
+    PetscErrorCode ierr;
+    //Create Vectors
+    ierr = VecCreate(PETSC_COMM_WORLD,&state_vars->v);CHKERRQ(ierr);
+    ierr = VecSetType(state_vars->v,VECSEQ); CHKERRQ(ierr);
+    ierr = VecSetSizes(state_vars->v,PETSC_DECIDE,NA);CHKERRQ(ierr);
+
+    //Setup indices
+    int x,y,comp,ion;
+    PetscInt c_ind[Nx*Ny*Nc*Ni];
+    PetscInt al_ind[Nx*Ny*(Nc-1)];
+    PetscInt phi_ind[Nx*Ny*Nc];
+    for(x=0;x<Nx;x++){
+        for(y=0;y<Ny;y++){
+            for(comp=0;comp<Nc;comp++)
+            {
+                for(ion=0;ion<Ni;ion++)
+                {
+                    c_ind[c_index(x,y,comp,ion)] = Ind_1(x,y,ion,comp);
+                }
+                phi_ind[phi_index(x,y,comp)] = Ind_1(x,y,Ni,comp);
+                if(comp<Nc-1){
+                    al_ind[al_index(x,y,comp)] = Ind_1(x,y,Ni+1,comp);
+                }
+            }
+        }
+    }
+    ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*Ni*Nc,c_ind,PETSC_COPY_VALUES,&state_vars->c_ind); CHKERRQ(ierr);
+    ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*Nc,phi_ind,PETSC_COPY_VALUES,&state_vars->phi_ind); CHKERRQ(ierr);
+    ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*(Nc-1),al_ind,PETSC_COPY_VALUES,&state_vars->al_ind); CHKERRQ(ierr);
+
+    ierr = extract_subarray(state_vars); CHKERRQ(ierr);
+    return ierr;
+}
+PetscErrorCode extract_subarray(struct SimState *state_vars)
+{
+    PetscErrorCode ierr;
+    ierr = VecGetSubVector(state_vars->v,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
+    ierr = VecGetArray(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
+
+    ierr = VecGetSubVector(state_vars->v,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
+    ierr = VecGetArray(state_vars->phi_vec,&state_vars->phi); CHKERRQ(ierr);
+
+    ierr = VecGetSubVector(state_vars->v,state_vars->al_ind,&state_vars->al_vec); CHKERRQ(ierr);
+    ierr = VecGetArray(state_vars->al_vec,&state_vars->alpha); CHKERRQ(ierr);
+
+    return ierr;
+
+}
+
+PetscErrorCode restore_subarray(struct SimState *state_vars)
+{
+    PetscErrorCode ierr;
+
+    ierr = VecRestoreArray(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
+    ierr = VecRestoreSubVector(state_vars->v,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
+
+
+    ierr = VecRestoreArray(state_vars->phi_vec,&state_vars->phi); CHKERRQ(ierr);
+    ierr = VecRestoreSubVector(state_vars->v,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
+
+
+    ierr = VecRestoreArray(state_vars->al_vec,&state_vars->alpha); CHKERRQ(ierr);
+    ierr = VecRestoreSubVector(state_vars->v,state_vars->al_ind,&state_vars->al_vec); CHKERRQ(ierr);
+
+    state_vars->c = NULL;
+    state_vars->phi = NULL;
+    state_vars->alpha = NULL;
+
+    return ierr;
+
+}
+PetscErrorCode copy_simstate(struct SimState *state_vars,struct SimState *state_vars_past)
+{
+    PetscErrorCode ierr;
+    ierr = restore_subarray(state_vars_past); CHKERRQ(ierr);
+    ierr = VecCopy(state_vars->v,state_vars_past->v); CHKERRQ(ierr);
+    ierr = extract_subarray(state_vars_past); CHKERRQ(ierr);
+    return ierr;
+}
 
 void init(struct SimState *state_vars)
 {
@@ -54,6 +135,8 @@ void init(struct SimState *state_vars)
 
 		}
 	}
+    restore_subarray(state_vars);
+    extract_subarray(state_vars);
 }
 
 void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct GateType* gate_vars,struct FluxData *flux)
@@ -191,6 +274,8 @@ void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct Ga
 
     con_vars->S = 1;  //Indicates whether zetaalpha is the stiffness (true) or 1/stiffness (false)
 
+    restore_subarray(state_vars);
+    extract_subarray(state_vars);
 
 
     return;
@@ -203,7 +288,6 @@ void initialize_data(struct SimState *state_vars,struct SimState *state_vars_pas
   	PetscReal rsd = 1.0;
   	PetscReal *cp;
   	cp = (PetscReal *)malloc(sizeof(PetscReal)*Nx*Ny*Ni*Nc);
-  	
     //Compute Gating variables
     //compute gating variables
     gatevars_update(gate_vars,state_vars,0,1);

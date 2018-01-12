@@ -15,7 +15,20 @@ int main(int argc, char **argv)
     struct SimState *state_vars_past;
     state_vars_past=(struct SimState*)malloc(sizeof(struct SimState));
     //Initialize
+    printf("Initialize Data Routines\n");
+
+    //Petsc Initialize
+    struct Solver *slvr;
+    slvr = (struct Solver*)malloc(sizeof(struct Solver));
+    PetscErrorCode ierr=0;
+    ierr = initialize_petsc(slvr,argc,argv);CHKERRQ(ierr);
+
+    //Data struct creation
+    ierr = init_simstate(state_vars); CHKERRQ(ierr);
+    ierr = init_simstate(state_vars_past); CHKERRQ(ierr);
+    //Variable initiation
     init(state_vars);
+
 
     printf("Init Value: c: %f,ph: %f,al: %f\n",state_vars->c[0],state_vars->phi[10],state_vars->alpha[25]);
 
@@ -33,12 +46,7 @@ int main(int argc, char **argv)
     //Set the constant variables
     set_params(state_vars,con_vars,gate_vars,flux);
 
-    printf("Initialization Routine\n");
-
-  	struct Solver *slvr;
-  	slvr = (struct Solver*)malloc(sizeof(struct Solver));
-  	PetscErrorCode ierr=0;
-  	ierr = initialize_petsc(slvr,argc,argv);CHKERRQ(ierr);
+    printf("Steady State Routine\n");
 
 	//Run Initialization routine to get to steady state
 	initialize_data(state_vars,state_vars_past,gate_vars,con_vars,slvr,flux);
@@ -48,6 +56,9 @@ int main(int argc, char **argv)
     //Open file to write to
     FILE *fp;
     fp = fopen("data_csd.txt","w");
+
+    FILE *fptime;
+    fptime = fopen("timing.txt","a");
     write_data(fp,state_vars,1);
     //Create the excitation
     struct ExctType *gexct;
@@ -60,7 +71,7 @@ int main(int argc, char **argv)
         PetscTime(&tic);
         newton_solve(state_vars,state_vars_past,dt,gate_vars,gexct,con_vars,slvr,flux);
         PetscTime(&toc);
-        printf("Newton time: %f\n",toc-tic);
+//        printf("Newton time: %f\n",toc-tic);
         //Update gating variables
         gatevars_update(gate_vars,state_vars,dt*1e3,0);
         //Update Excitation
@@ -75,6 +86,8 @@ int main(int argc, char **argv)
     PetscTime(&full_toc);
     //Close
     fclose(fp);
+    fprintf(fptime,"%d,%f\n",count,full_toc-full_tic);
+    fclose(fptime);
     printf("Finished Running. Full solve time: %.10e\n",full_toc-full_tic);
     //Free memory
     free(state_vars);free(con_vars);free(gate_vars);

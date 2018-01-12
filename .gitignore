@@ -68,3 +68,5 @@ cmake-build-debug/CMakeFiles/TargetDirectories.txt
 .idea/2d_CSD.iml
 
 run_batch.sh
+
+timing.txt
