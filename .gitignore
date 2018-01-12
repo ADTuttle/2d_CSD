@@ -70,3 +70,9 @@ Res.txt
 vec.txt
 
 csd
+
+cmake-build-debug/timing.txt
+
+timing.txt
+
+run_batch.sh
