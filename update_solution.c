@@ -13,9 +13,8 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
 
 
     PetscLogDouble tic,toc;
-
     //Save the "current" aka past state
-    memcpy(state_vars_past,state_vars,sizeof(struct SimState));
+    ierr = copy_simstate(state_vars,state_vars_past); CHKERRQ(ierr);
 
     //Diffusion in each compartment
     //Has x and y components
@@ -76,18 +75,18 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
         ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
 
         //Solve
-//        PetscTime(&tic);
+        PetscTime(&tic);
         ierr = KSPSolve(slvr->ksp,slvr->Res,slvr->Q);CHKERRQ(ierr);
-//        PetscTime(&toc);
+        PetscTime(&toc);
 
         ierr = KSPGetIterationNumber(slvr->ksp,&num_iter); CHKERRQ(ierr);
         ierr =  KSPGetResidualNorm(slvr->ksp,&rnorm); CHKERRQ(ierr);
-//        printf("KSP Solve time: %f, iter num:%d, norm: %.10e\n",toc-tic,num_iter,rnorm);
+        // printf("KSP Solve time: %f, iter num:%d, norm: %.10e\n",toc-tic,num_iter,rnorm);
 //        ierr = KSPView(slvr->ksp,PETSC_VIEWER_STDOUT_SELF);CHKERRQ(ierr);
 
 
         if(details) {
-            printf("Number of KSP Iterations: %d\n", num_iter);
+            printf("KSP Solve time: %f, iter num:%d, norm: %.10e\n",toc-tic,num_iter,rnorm);
         }
 //        /*
         PetscViewer viewer;
@@ -104,6 +103,10 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
 //         */
 //        VecView(slvr->Q,PETSC_VIEWER_STDOUT_SELF);
 //        PetscTime(&tic);
+        ierr = restore_subarray(state_vars); CHKERRQ(ierr);
+        ierr = VecAXPY(state_vars->v,-1.0,slvr->Q); CHKERRQ(ierr);
+        ierr = extract_subarray(state_vars); CHKERRQ(ierr);
+        /*
         ierr = VecGetArray(slvr->Q,&temp);CHKERRQ(ierr);
         for(x=0;x<Nx;x++)
         {
@@ -124,6 +127,7 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
             }
         }
         ierr = VecRestoreArray(slvr->Q,&temp);CHKERRQ(ierr);
+         */
 //        PetscTime(&toc);
 //        printf("Add update: %.10e\n",toc-tic);
 
@@ -149,49 +153,55 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
     PetscReal *phi = state_vars->phi;
     PetscReal *al = state_vars->alpha;
     PetscReal *cp = state_vars_past->c;
-    PetscReal *alp = state_vars_past->alpha; 
+    PetscReal *alp = state_vars_past->alpha;
+    PetscReal *phip = state_vars_past->phi;
     //Residual for concentration equations
     PetscReal Rcvx,Rcvy,Resc;
     PetscReal RcvxRight,RcvyUp;
 
+    //Residual for fluxes in voltage differential equations
+    PetscReal Rphx[Nc], Rphy[Nc], RphxRight[Nc], RphyUp[Nc];
+    PetscReal Resph,ResphN;
+
     PetscReal alNc,alpNc;
     PetscInt ion,comp,x,y;
 
+
+
     PetscErrorCode ierr;
 
-    for(x=0;x<Nx;x++)
-    {
-        for(y=0;y<Ny;y++)
-        {
-            for(ion=0;ion<Ni;ion++)
-            {
-                for(comp=0;comp<Nc-1;comp++)
-                {
+    for(x=0;x<Nx;x++) {
+        for(y=0;y<Ny;y++) {
+            //Init voltage tracking to zero
+            for(comp=0;comp<Nc;comp++) {
+                Rphx[comp]=0;
+                Rphy[comp]=0;
+                RphxRight[comp]=0;
+                RphyUp[comp]=0;
+            }
+            for(ion=0;ion<Ni;ion++) {
+                for(comp=0;comp<Nc-1;comp++) {
                     Rcvx = 0;
                     RcvxRight = 0;
-                    if(x>0)
-                    {
+                    if(x>0) {
                     //First difference term
                     Rcvx = Dcs[c_index(x-1,y,comp,ion)*2]*(cp[c_index(x-1,y,comp,ion)]+cp[c_index(x,y,comp,ion)])/2;
                     Rcvx = Rcvx*(log(c[c_index(x,y,comp,ion)])-log(c[c_index(x-1,y,comp,ion)])+z[ion]*(phi[phi_index(x,y,comp)]-phi[phi_index(x-1,y,comp)]))/dx*dt/dx;
                     }
                     //Add Second right moving difference
-                    if(x<Nx-1)
-                    {
+                    if(x<Nx-1) {
                         RcvxRight = Dcs[c_index(x,y,comp,ion)*2]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x+1,y,comp,ion)])/2;
                         RcvxRight = RcvxRight*(log(c[c_index(x+1,y,comp,ion)])-log(c[c_index(x,y,comp,ion)])+z[ion]*(phi[phi_index(x+1,y,comp)]-phi[phi_index(x,y,comp)]))/dx*dt/dx;
                     } 
                     Rcvy = 0;
                     RcvyUp = 0;
                     //Up down difference
-                    if(y>0)
-                    { 
+                    if(y>0) {
                         Rcvy = Dcs[c_index(x,y-1,comp,ion)*2+1]*(cp[c_index(x,y-1,comp,ion)]+cp[c_index(x,y,comp,ion)])/2;
                         Rcvy = Rcvy*(log(c[c_index(x,y,comp,ion)])-log(c[c_index(x,y-1,comp,ion)])+z[ion]*(phi[phi_index(x,y,comp)]-phi[phi_index(x,y-1,comp)]))/dy*dt/dy;
                     }
                     //Next upward difference
-                    if(y<Ny-1)
-                    {
+                    if(y<Ny-1) {
                         RcvyUp = Dcs[c_index(x,y,comp,ion)*2+1]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x,y+1,comp,ion)])/2;
                         RcvyUp = RcvyUp*(log(c[c_index(x,y+1,comp,ion)])-log(c[c_index(x,y,comp,ion)])+z[ion]*(phi[phi_index(x,y+1,comp)]-phi[phi_index(x,y,comp)]))/dy*dt/dy;
                     }
@@ -200,6 +210,12 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
 
                     ierr = VecSetValue(Res,Ind_1(x,y,ion,comp),Resc,INSERT_VALUES);CHKERRQ(ierr);
 
+                    //Save values for voltage
+                    Rphx[comp]+=z[ion]*Rcvx;
+                    Rphy[comp]+=z[ion]*Rcvy;
+                    RphxRight[comp]+=z[ion]*RcvxRight;
+                    RphyUp[comp]+=z[ion]*RcvyUp;
+
                 }
                 //Set Extracellular values
                 alNc = 1 - al[al_index(x,y,0)] - al[al_index(x,y,1)];
@@ -207,29 +223,25 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
                 comp = Nc-1;
                 Rcvx = 0;
                 RcvxRight = 0;
-                if(x>0)
-                {
+                if(x>0) {
                 //First difference term
                 Rcvx = Dcs[c_index(x-1,y,comp,ion)*2]*(cp[c_index(x-1,y,comp,ion)]+cp[c_index(x,y,comp,ion)])/2;
                 Rcvx = Rcvx*(log(c[c_index(x,y,comp,ion)])-log(c[c_index(x-1,y,comp,ion)])+z[ion]*(phi[phi_index(x,y,comp)]-phi[phi_index(x-1,y,comp)]))/dx*dt/dx;
                 }
                 //Add Second right moving difference
-                if(x<Nx-1)
-                {
+                if(x<Nx-1) {
                     RcvxRight = Dcs[c_index(x,y,comp,ion)*2]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x+1,y,comp,ion)])/2;
                     RcvxRight = RcvxRight*(log(c[c_index(x+1,y,comp,ion)])-log(c[c_index(x,y,comp,ion)])+z[ion]*(phi[phi_index(x+1,y,comp)]-phi[phi_index(x,y,comp)]))/dx*dt/dx;
                 } 
                 Rcvy = 0;
                 RcvyUp = 0;
                 //Up down difference
-                if(y>0)
-                { 
+                if(y>0) {
                     Rcvy = Dcs[c_index(x,y-1,comp,ion)*2+1]*(cp[c_index(x,y-1,comp,ion)]+cp[c_index(x,y,comp,ion)])/2;
                     Rcvy = Rcvy*(log(c[c_index(x,y,comp,ion)])-log(c[c_index(x,y-1,comp,ion)])+z[ion]*(phi[phi_index(x,y,comp)]-phi[phi_index(x,y-1,comp)]))/dy*dt/dy;
                 }
                 //Next upward difference
-                if(y<Ny-1)
-                {
+                if(y<Ny-1) {
                     RcvyUp = Dcs[c_index(x,y,comp,ion)*2+1]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x,y+1,comp,ion)])/2;
                     RcvyUp = RcvyUp*(log(c[c_index(x,y+1,comp,ion)])-log(c[c_index(x,y,comp,ion)])+z[ion]*(phi[phi_index(x,y+1,comp)]-phi[phi_index(x,y,comp)]))/dy*dt/dy;
                 }
@@ -239,15 +251,44 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
 
                 Resc -= sqrt(pow(Dcb[c_index(x,y,comp,ion)*2],2)+pow(Dcb[c_index(x,y,comp,ion)*2+1],2))*(cp[c_index(x,y,comp,ion)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp)]-z[ion]*phibath)*dt;
                 ierr = VecSetValue(Res,Ind_1(x,y,ion,comp),Resc,INSERT_VALUES);CHKERRQ(ierr);
+
+                //Save values for voltage
+                Rphx[comp]+=z[ion]*Rcvx;
+                Rphy[comp]+=z[ion]*Rcvy;
+                RphxRight[comp]+=z[ion]*RcvxRight;
+                RphyUp[comp]+=z[ion]*RcvyUp;
             }
+
+            //Voltage Equations
+            ResphN = 0;
+            for(comp=0;comp<Nc-1;comp++) {
+                Resph = cm[comp]*(phi[phi_index(x,y,comp)]-phi[phi_index(x,y,Nc-1)])-cm[comp]*(phip[phi_index(x,y,comp)]-phip[phi_index(x,y,Nc-1)]);
+                for(ion=0;ion<Ni;ion++){
+                    //Ion channel
+                    Resph +=z[ion]*flux->mflux[c_index(x,y,comp,ion)]*dt;
+                }
+                //Add the terms shared with extracell
+                ResphN -= Resph; // Subtract total capacitance, subtract total ion channel flux
+                Resph += Rphx[comp] - RphxRight[comp] + Rphy[comp] - RphyUp[comp];
+                ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp),Resph,INSERT_VALUES); CHKERRQ(ierr);
+            }
+
+            //Finish adding extracell
+            comp = Nc-1;
+            //Add bath contribution
+            for(ion=0;ion<Ni;ion++){
+
+                ResphN -=z[ion]*sqrt(pow(Dcb[c_index(x,y,comp,ion)*2],2)+pow(Dcb[c_index(x,y,comp,ion)*2+1],2))*(cp[c_index(x,y,comp,ion)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp)]-z[ion]*phibath)*dt;
+            }
+            ResphN += Rphx[comp] - RphxRight[comp] + Rphy[comp] - RphyUp[comp];
+            ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp),ResphN,INSERT_VALUES); CHKERRQ(ierr);
         }
     }
     
 
-    for(x=0;x<Nx;x++)
-    {
-        for(y=0;y<Ny;y++)
-        {    
+    for(x=0;x<Nx;x++) {
+        for(y=0;y<Ny;y++) {
+            /*
             //Residual for electroneutrality condition
             for(comp=0;comp<Nc-1;comp++)
             {
@@ -259,11 +300,10 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
             comp=Nc-1;
             Resc = (1-al[al_index(x,y,0)]-al[al_index(x,y,1)])*cz(c,z,x,y,comp)+con_vars->zo[phi_index(0,0,comp)]*con_vars->ao[phi_index(0,0,comp)];
             ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp),Resc,INSERT_VALUES); CHKERRQ(ierr);
-            
+            */
             //Residual for water flow
             //Plus modification to electroneutrality for non-zero mem.compacitance
-            for(comp=0;comp<Nc-1;comp++)
-            {
+            for(comp=0;comp<Nc-1;comp++) {
                 //Water flow
                 ierr = VecSetValue(Res,Ind_1(x,y,Ni+1,comp),al[al_index(x,y,comp)]-alp[al_index(x,y,comp)]+flux->wflow[al_index(x,y,comp)]*dt,INSERT_VALUES);CHKERRQ(ierr);
 
@@ -273,7 +313,7 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
     //Assemble before we add values in on top to modify the electroneutral.
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
-
+    /*
     for(x=0;x<Nx;x++)
     {
         for(y=0;y<Ny;y++)
@@ -291,6 +331,7 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
     
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
+     */
 
     return ierr;
 }
@@ -308,17 +349,22 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
 
     PetscReal Ftmpx,Fc0x,Fc1x,Fph0x,Fph1x;
     PetscReal Ftmpy,Fc0y,Fc1y,Fph0y,Fph1y;
-    PetscReal Ac,Aphi;
+    PetscReal Ac,Aphi,Avolt,AvoltN;
+
+    PetscReal Fphph0x[Nc],Fphph1x[Nc];
+    PetscReal Fphph0y[Nc],Fphph1y[Nc];
 
     //Ionic concentration equations
-    for(x=0;x<Nx;x++)
-    {
-        for(y=0;y<Ny;y++)
-        {
-            for(ion=0;ion<Ni;ion++)
-            {
-                for(comp=0;comp<Nc-1;comp++)
-                {
+    for(x=0;x<Nx;x++) {
+        for(y=0;y<Ny;y++) {
+            for(comp=0;comp<Nc;comp++){
+                Fphph0x[comp]=0;
+                Fphph1x[comp]=0;
+                Fphph0y[comp]=0;
+                Fphph1y[comp]=0;
+            }
+            for(ion=0;ion<Ni;ion++) {
+                for(comp=0;comp<Nc-1;comp++) {
                     //Electrodiffusion contributions
                     Ftmpx = 0;
                     Fc0x = 0;
@@ -330,8 +376,7 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
                     Fc1y = 0;
                     Fph0y = 0;
                     Fph1y = 0;
-                    if(x<Nx-1)
-                    {
+                    if(x<Nx-1) {
                         Ftmpx = Dcs[c_index(x,y,comp,ion)*2]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x+1,y,comp,ion)])/2/dx*dt/dx;
                         Fc0x = Ftmpx/c[c_index(x,y,comp,ion)];
                         Fph0x = z[ion]*Ftmpx;
@@ -342,9 +387,12 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
                         //Right c with left phi (-Fph0x)
                         ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp),Ind_1(x,y,Ni,comp),-Fph0x,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
+
+                        //Right phi with left c in voltage eqn
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,Ni,comp),Ind_1(x,y,ion,comp),-z[ion]*Fc0x,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
                     }
-                    if(x>0)
-                    {
+                    if(x>0) {
                         Ftmpx = Dcs[c_index(x-1,y,comp,ion)*2]*(cp[c_index(x-1,y,comp,ion)]+cp[c_index(x,y,comp,ion)])/2/dx*dt/dx;
                         Fc1x = Ftmpx/c[c_index(x,y,comp,ion)];
                         Fph1x = z[ion]*Ftmpx;
@@ -354,9 +402,12 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
                         //Left c with right phi (-Fph1x)
                         ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp),Ind_1(x,y,Ni,comp),-Fph1x,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
+
+                        //Left phi with right c in voltage eqn
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,Ni,comp),Ind_1(x,y,ion,comp),-z[ion]*Fc1x,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
                     }
-                    if(y<Ny-1)
-                    {
+                    if(y<Ny-1) {
                         Ftmpy = Dcs[c_index(x,y,comp,ion)*2+1]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x,y+1,comp,ion)])/2/dy*dt/dy;
                         Fc0y = Ftmpy/c[c_index(x,y,comp,ion)];
                         Fph0y = z[ion]*Ftmpy;
@@ -366,9 +417,12 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
                         //Upper c with lower phi (-Fph0y)
                         ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp),Ind_1(x,y,Ni,comp),-Fph0y,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
+
+                        //Upper phi with lower c in voltage eqn
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,Ni,comp),Ind_1(x,y,ion,comp),-z[ion]*Fc0y,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
                     }
-                    if(y>0)
-                    {
+                    if(y>0) {
                         Ftmpy = Dcs[c_index(x,y-1,comp,ion)*2+1]*(cp[c_index(x,y-1,comp,ion)]+cp[c_index(x,y,comp,ion)])/2/dy*dt/dy;
                         Fc1y = Ftmpy/c[c_index(x,y,comp,ion)];
                         Fph1y = z[ion]*Ftmpy;
@@ -378,10 +432,20 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
                         //Lower c with Upper phi (-Fph1y)
                         ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp),Ind_1(x,y,Ni,comp),-Fph1y,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
+
+                        //Lower phi with upper c in voltage eqn
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,Ni,comp),Ind_1(x,y,ion,comp),-z[ion]*Fc1y,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
                     }
                     //Diagonal term contribution
                     Ac = al[al_index(x,y,comp)]+Fc0x+Fc1x+Fc0y+Fc1y;
                     Aphi = Fph0x + Fph1x + Fph0y + Fph1y;
+
+                    //Add up terms for voltage eqns
+                    Fphph0x[comp]+=z[ion]*Fph0x;
+                    Fphph1x[comp]+=z[ion]*Fph1x;
+                    Fphph0y[comp]+=z[ion]*Fph0y;
+                    Fphph1y[comp]+=z[ion]*Fph1y;
       
                     //membrane current contributions
                     Ac+=flux->dfdci[c_index(x,y,comp,ion)]*dt;
@@ -414,6 +478,16 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp),Ind_1(x,y,Ni,comp),Aphi,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
 
+                    //Intra-Phi with c (voltage eqn)
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,ion,comp),z[ion]*(Fc0x+Fc1x+Fc0y+Fc1y+flux->dfdci[c_index(x,y,comp,ion)]*dt),INSERT_VALUES); CHKERRQ(ierr);
+                    ind++;
+                    //IntraPhi with c extra(volt eqn)
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,ion,Nc-1),z[ion]*(flux->dfdce[c_index(x,y,comp,ion)]*dt),INSERT_VALUES); CHKERRQ(ierr);
+                    ind++;
+                    //Extra-Phi with intra-c (voltage eqn)
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1),Ind_1(x,y,ion,comp),-z[ion]*(flux->dfdci[c_index(x,y,comp,ion)]*dt),INSERT_VALUES); CHKERRQ(ierr);
+                    ind++;
+
                 }
                 //Extracellular terms
                 comp = Nc-1;
@@ -428,8 +502,7 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
                 Fc1y = 0;
                 Fph0y = 0;
                 Fph1y = 0;
-                if(x<Nx-1)
-                {
+                if(x<Nx-1) {
                     Ftmpx = Dcs[c_index(x,y,comp,ion)*2]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x+1,y,comp,ion)])/2/dx*dt/dx;
                     Fc0x = Ftmpx/c[c_index(x,y,comp,ion)];
                     Fph0x = z[ion]*Ftmpx;
@@ -439,9 +512,12 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
                     //Right c with left phi (-Fph0x)
                     ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp),Ind_1(x,y,Ni,comp),-Fph0x,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
+
+                    // Right Phi with left c (voltage eqn)
+                    ierr = MatSetValue(Jac,Ind_1(x+1,y,Ni,comp),Ind_1(x,y,ion,comp),-z[ion]*Fc0x,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
                 }
-                if(x>0)
-                {
+                if(x>0) {
                     Ftmpx = Dcs[c_index(x-1,y,comp,ion)*2]*(cp[c_index(x-1,y,comp,ion)]+cp[c_index(x,y,comp,ion)])/2/dx*dt/dx;
                     Fc1x = Ftmpx/c[c_index(x,y,comp,ion)];
                     Fph1x = z[ion]*Ftmpx;
@@ -451,9 +527,12 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
                     //Left c with right phi (-Fph1x)
                     ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp),Ind_1(x,y,Ni,comp),-Fph1x,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
+
+                    // left Phi with right c (voltage eqn)
+                    ierr = MatSetValue(Jac,Ind_1(x-1,y,Ni,comp),Ind_1(x,y,ion,comp),-z[ion]*Fc1x,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
                 }
-                if(y<Ny-1)
-                {
+                if(y<Ny-1) {
                     Ftmpy = Dcs[c_index(x,y,comp,ion)*2+1]*(cp[c_index(x,y,comp,ion)]+cp[c_index(x,y+1,comp,ion)])/2/dy*dt/dy;
                     Fc0y = Ftmpy/c[c_index(x,y,comp,ion)];
                     Fph0y = z[ion]*Ftmpy;
@@ -463,9 +542,12 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
                     //Upper c with lower phi (-Fph0y)
                     ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp),Ind_1(x,y,Ni,comp),-Fph0y,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
+
+                    // Upper Phi with lower c (voltage eqn)
+                    ierr = MatSetValue(Jac,Ind_1(x,y+1,Ni,comp),Ind_1(x,y,ion,comp),-z[ion]*Fc0y,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
                 }
-                if(y>0)
-                {
+                if(y>0) {
                     Ftmpy = Dcs[c_index(x,y-1,comp,ion)*2+1]*(cp[c_index(x,y-1,comp,ion)]+cp[c_index(x,y,comp,ion)])/2/dy*dt/dy;
                     Fc1y = Ftmpy/c[c_index(x,y,comp,ion)];
                     Fph1y = z[ion]*Ftmpy;
@@ -475,22 +557,36 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
                     //Lower c with Upper phi (-Fph1y)
                     ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp),Ind_1(x,y,Ni,comp),-Fph1y,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
+
+                    // Lower Phi with upper c (voltage eqn)
+                    ierr = MatSetValue(Jac,Ind_1(x,y-1,Ni,comp),Ind_1(x,y,ion,comp),-z[ion]*Fc1y,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
                 }
 
                 //Diagonal term contribution
                 Ac = (1-al[al_index(x,y,0)]-al[al_index(x,y,1)])+Fc0x+Fc1x+Fc0y+Fc1y;
                 Aphi = Fph0x + Fph1x + Fph0y + Fph1y;
+
+                Avolt = z[ion]*(Fc0x+Fc1x+Fc0y+Fc1y);
+
+                //Add up terms for voltage eqns
+                Fphph0x[comp]+=z[ion]*Fph0x;
+                Fphph1x[comp]+=z[ion]*Fph1x;
+                Fphph0y[comp]+=z[ion]*Fph0y;
+                Fphph1y[comp]+=z[ion]*Fph1y;
             
                 //Membrane current contribution
-                for(comp=0;comp<Nc-1;comp++)
-                {
+                for(comp=0;comp<Nc-1;comp++) {
                     Ac -= flux->dfdce[c_index(x,y,comp,ion)]*dt;
-                    Aphi += flux->dfdphim[c_index(x,y,comp,ion)]*dt; 
+                    Aphi += flux->dfdphim[c_index(x,y,comp,ion)]*dt;
+                    Avolt -=z[ion]*flux->dfdce[c_index(x,y,comp,ion)]*dt;
                 }
                 //Add bath contributions
                 Ftmpx=sqrt(pow(Dcb[c_index(x,y,Nc-1,ion)*2],2)+pow(Dcb[c_index(x,y,Nc-1,ion)*2+1],2));
                 Ac -= Ftmpx*(cp[c_index(x,y,Nc-1,ion)]+cbath[ion])/(2*c[c_index(x,y,Nc-1,ion)])*dt;
                 Aphi -= Ftmpx*(cp[c_index(x,y,Nc-1,ion)]+cbath[ion])*z[ion]/2*dt;
+
+                Avolt -=z[ion]*Ftmpx*(cp[c_index(x,y,Nc-1,ion)]+cbath[ion])/(2*c[c_index(x,y,Nc-1,ion)])*dt;
 
                 //Insert extracell to extracell parts
                 // c with c
@@ -499,10 +595,97 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
                  // c with phi
                 ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1),Ind_1(x,y,Ni,Nc-1),Aphi,INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
+
+                //phi with c (voltage eqn)
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1),Ind_1(x,y,ion,Nc-1),Avolt,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
             }
+            //Derivative of charge-capacitance
+            for(comp=0;comp<Nc-1;comp++) {
+                if(x<Nx-1) {
+                    //Right phi with left phi (-Fph0x)
+                    ierr = MatSetValue(Jac,Ind_1(x+1,y,Ni,comp),Ind_1(x,y,Ni,comp),-Fphph0x[comp],INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                }
+                if(x>0) {
+                    //Left phi with right phi (-Fph1x)
+                    ierr = MatSetValue(Jac,Ind_1(x-1,y,Ni,comp),Ind_1(x,y,Ni,comp),-Fphph1x[comp],INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                }
+                if(y<Ny-1) {
+                    //Upper phi with lower phi (-Fph0y)
+                    ierr = MatSetValue(Jac,Ind_1(x,y+1,Ni,comp),Ind_1(x,y,Ni,comp),-Fphph0y[comp],INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                }
+                if(y>0) {
+                    //Lower phi with upper phi (-Fph1y)
+                    ierr = MatSetValue(Jac,Ind_1(x,y-1,Ni,comp),Ind_1(x,y,Ni,comp),-Fphph1y[comp],INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                }
+                Avolt = cm[comp]+Fphph0x[comp]+Fphph1x[comp]+Fphph0y[comp]+Fphph1y[comp];
+                AvoltN = -cm[comp];
+                for(ion=0;ion<Ni;ion++) {
+                    Avolt+=z[ion]*flux->dfdphim[c_index(x,y,comp,ion)]*dt;
+                    AvoltN-=z[ion]*flux->dfdphim[c_index(x,y,comp,ion)]*dt;
+                }
+
+                //Intra-phi with Intra-phi
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni,comp),Avolt,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+                //Intra-phi with extra-phi
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni,Nc-1),AvoltN,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+            }
+            //Extracellular terms
+            comp = Nc-1;
+            if(x<Nx-1) {
+                //Right phi with left phi (-Fph0x)
+                ierr = MatSetValue(Jac,Ind_1(x+1,y,Ni,comp),Ind_1(x,y,Ni,comp),-Fphph0x[comp],INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+            }
+            if(x>0) {
+                //Left phi with right phi (-Fph1x)
+                ierr = MatSetValue(Jac,Ind_1(x-1,y,Ni,comp),Ind_1(x,y,Ni,comp),-Fphph1x[comp],INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+            }
+            if(y<Ny-1) {
+                //Upper phi with lower phi (-Fph0y)
+                ierr = MatSetValue(Jac,Ind_1(x,y+1,Ni,comp),Ind_1(x,y,Ni,comp),-Fphph0y[comp],INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+            }
+            if(y>0) {
+                //Lower phi with upper phi (-Fph1y)
+                ierr = MatSetValue(Jac,Ind_1(x,y-1,Ni,comp),Ind_1(x,y,Ni,comp),-Fphph1y[comp],INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+            }
+            AvoltN = 0;
+
+            for(int k=0;k<Nc-1;k++) {
+                AvoltN += cm[k];
+                Avolt = -cm[k];
+                for(ion=0;ion<Ni;ion++) {
+                    Avolt-=z[ion]*flux->dfdphim[c_index(x,y,k,ion)]*dt;
+                    AvoltN+=z[ion]*flux->dfdphim[c_index(x,y,k,ion)]*dt;
+                }
+                //Extra-phi with Intra-phi
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni,k),Avolt,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+            }
+
+            AvoltN += Fphph0x[comp]+Fphph1x[comp]+Fphph0y[comp]+Fphph1y[comp];
+
+            //Bath terms
+            for(ion=0;ion<Ni;ion++) {
+                Ftmpx = sqrt(pow(Dcb[c_index(x,y,Nc-1,ion)*2],2)+pow(Dcb[c_index(x,y,Nc-1,ion)*2+1],2));
+                AvoltN -= z[ion]*Ftmpx*(cp[c_index(x,y,Nc-1,ion)]+cbath[ion])*z[ion]/2*dt;
+            }
+            //extra-phi with extra-phi
+            ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp),Ind_1(x,y,Ni,comp),AvoltN,INSERT_VALUES);CHKERRQ(ierr);
+            ind++;
+
         }
     }
-    
+    /*
     //Electroneutrality charge-capcitance condition
     for(x=0;x<Nx;x++)
     {
@@ -552,31 +735,26 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
             }
         }
     }
+     */
     //water flow
-    for(x=0;x<Nx;x++)
-    {
-        for(y=0;y<Ny;y++)
-        {
-            for(comp=0;comp<Nc-1;comp++)
-            {
+    for(x=0;x<Nx;x++) {
+        for(y=0;y<Ny;y++) {
+            for(comp=0;comp<Nc-1;comp++) {
                 //Water flow volume fraction entries
                 //Volume to Volume
                 Ac=1+(flux->dwdpi[al_index(x,y,comp)]*(con_vars->ao[phi_index(0,0,Nc-1)]/(pow(1-al[al_index(x,y,0)]-al[al_index(x,y,1)],2))+con_vars->ao[phi_index(0,0,comp)]/pow(al[al_index(x,y,comp)],2))+flux->dwdal[al_index(x,y,comp)])*dt;
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,Ni+1,comp),Ac,INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
                 //Off diagonal (from aNc=1-sum(ak))
-                for (PetscInt l=0; l<comp; l++)
-                {
+                for (PetscInt l=0; l<comp; l++) {
                     ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,Ni+1,l),flux->dwdpi[al_index(x,y,comp)]*con_vars->ao[phi_index(0,0,Nc-1)]/pow(1-al[al_index(x,y,0)]-al[al_index(x,y,1)],2)*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
-                for (PetscInt l=comp+1; l<Nc-1; l++)
-                {
+                for (PetscInt l=comp+1; l<Nc-1; l++) {
                     ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,Ni+1,l),flux->dwdpi[al_index(x,y,comp)]*con_vars->ao[phi_index(0,0,Nc-1)]/((1-al[al_index(x,y,0)]-al[al_index(x,y,1)])*(1-al[al_index(x,y,0)]-al[al_index(x,y,1)]))*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
-                for (ion=0; ion<Ni; ion++)
-                {
+                for (ion=0; ion<Ni; ion++) {
                   //Volume to extra c
                     ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp),Ind_1(x,y,ion,Nc-1),flux->dwdpi[al_index(x,y,comp)]*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
@@ -590,7 +768,6 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
 
     ierr = MatAssemblyBegin(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-
     return ierr;
 }
 

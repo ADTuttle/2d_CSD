@@ -14,6 +14,12 @@ void initialize_data(struct SimState*,struct SimState *,struct GateType*,struct 
 //Set the paramaters based on the constants
 void set_params(struct SimState *,struct ConstVars*,struct GateType*,struct FluxData*);
 
+//Data management functions
+PetscErrorCode init_simstate(struct SimState*);
+PetscErrorCode extract_subarray(struct SimState*);
+PetscErrorCode restore_subarray(struct SimState*);
+PetscErrorCode copy_simstate(struct SimState *state_vars,struct SimState *state_vars_past);
+
 //Linear current-voltage flux relation
 void mclin(struct FluxData *,int,double,int,double,double,double,int);
 //GHK Relation 

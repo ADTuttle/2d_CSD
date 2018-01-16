@@ -23,6 +23,7 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 static const 	PetscReal dt = 0.01;
 static const   PetscReal Time = 3e-2;
 // static const   PetscReal Time = 1e-1;
+//static const   PetscReal Time = 1;
 // static const  PetscReal   Time=10;
 //static const    Time = 60//2e-2        //total simulated time in seconds
 // static const    Time=2e-2
@@ -30,7 +31,6 @@ static const  PetscInt  Nc = 3;            //number of compartments
   static const PetscInt  Nx = 64;         //number of grid points in the x direction
   static const PetscInt   Ny = 64;      //number of grid points in the y direction
 // static const  PetscInt  Nx = 50;
-// static const  PetscInt  Ny = 50;
 //static const PetscInt   Nx = 9;
 //static const PetscInt  Ny = 16;
 static const PetscReal  dx = 0.01;        //grid size in x direction (in cm)
@@ -46,8 +46,8 @@ static const PetscInt  Nv = (Ni+2)*Nc-1;  //number of variables to be solved for
 static const PetscInt  NA = Nx*Ny*Nv;     //total number of unknowns
 static const PetscInt Nz = Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny);
 
-// static const PetscInt  itermax = 10;      //maximum Newton iterations allowed
-static const PetscInt itermax = 4;
+ static const PetscInt  itermax = 10;      //maximum Newton iterations allowed
+//static const PetscInt itermax = 4;
 static const PetscReal  reltol = 1e-11;    //relative tolerance
 //static const PetscReal  reltol = 1e-9;
 
@@ -120,10 +120,23 @@ static const PetscReal npump = 1.0;               //multiplier to change neurona
 
 
 
+//struct SimState{
+//	PetscReal c[Nx*Ny*Nc*Ni];
+//	PetscReal phi[Nx*Ny*Nc];
+//	PetscReal alpha[Nx*Ny*(Nc-1)];
+//};
 struct SimState{
-	PetscReal c[Nx*Ny*Nc*Ni];
-	PetscReal phi[Nx*Ny*Nc];
-	PetscReal alpha[Nx*Ny*(Nc-1)];
+    PetscScalar *c; //Variable arrays
+    PetscScalar *phi;
+    PetscScalar *alpha;
+    Vec v;  // Full variable vec
+    Vec c_vec;  //Inidivual variable vecs
+    Vec phi_vec;
+    Vec al_vec;
+    IS c_ind;    //Indices for c/phi/al.
+    IS al_ind;
+    IS phi_ind;
+
 };
 
 struct FluxData{

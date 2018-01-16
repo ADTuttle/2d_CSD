@@ -216,6 +216,7 @@ void write_data(FILE *fp,struct SimState *state_vars,int start)
     if(start) {
 
         fprintf(fp,"%d,%d,%d,%d,%d\n",Nx,Ny,(int)floor(numrecords),Nc,Ni);
+        write_data(fp,state_vars,0);
     }else {
         int ion, comp, x, y;
         for (ion = 0; ion < Ni; ion++) {
