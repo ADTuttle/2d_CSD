@@ -34,7 +34,6 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
     PetscReal tol = reltol*array_max(state_vars->c,(size_t)Nx*Ny*Ni*Nc);
     rsd = tol+1;
 
-    PetscInt x=0;PetscInt y=0;
     for(PetscInt iter=0;iter<itermax;iter++)
     {
 

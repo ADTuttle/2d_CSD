@@ -49,9 +49,15 @@ PetscInt Ind_1(int,int,int,int);
 
 
 //Create Petsc Structures
+PetscInt Ind_nx(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp, PetscInt nx);
 PetscErrorCode initialize_petsc(struct Solver *,int, char **);
 void Get_Nonzero_in_Rows(int *);
 PetscErrorCode initialize_jacobian(Mat);
+
+//Multigrid functions
+PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny);
+PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny);
+PetscErrorCode Initialize_PCMG(PC pc,Mat A);
 
 //Newton Solver
 PetscErrorCode newton_solve(struct SimState *,struct SimState *, PetscReal, struct GateType *, struct ExctType *, struct ConstVars *,struct Solver *,struct FluxData*);

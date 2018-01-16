@@ -71,7 +71,7 @@ int main(int argc, char **argv)
         PetscTime(&tic);
         newton_solve(state_vars,state_vars_past,dt,gate_vars,gexct,con_vars,slvr,flux);
         PetscTime(&toc);
-//        printf("Newton time: %f\n",toc-tic);
+        printf("Newton time: %f\n",toc-tic);
         //Update gating variables
         gatevars_update(gate_vars,state_vars,dt*1e3,0);
         //Update Excitation
