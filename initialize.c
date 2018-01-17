@@ -32,13 +32,9 @@ PetscInt Ind_nx(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp, PetscInt nx)
     return Nv*(nx*y+x)+ion*Nc+comp;
 }
 
-PetscErrorCode init_simstate(struct SimState *state_vars)
+PetscErrorCode init_simstate(Vec state,struct SimState *state_vars)
 {
     PetscErrorCode ierr;
-    //Create Vectors
-    ierr = VecCreate(PETSC_COMM_WORLD,&state_vars->v);CHKERRQ(ierr);
-    ierr = VecSetType(state_vars->v,VECSEQ); CHKERRQ(ierr);
-    ierr = VecSetSizes(state_vars->v,PETSC_DECIDE,NA);CHKERRQ(ierr);
 
     //Setup indices
     int x,y,comp,ion;
@@ -63,40 +59,39 @@ PetscErrorCode init_simstate(struct SimState *state_vars)
     ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*Ni*Nc,c_ind,PETSC_COPY_VALUES,&state_vars->c_ind); CHKERRQ(ierr);
     ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*Nc,phi_ind,PETSC_COPY_VALUES,&state_vars->phi_ind); CHKERRQ(ierr);
     ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*(Nc-1),al_ind,PETSC_COPY_VALUES,&state_vars->al_ind); CHKERRQ(ierr);
-
-    ierr = extract_subarray(state_vars); CHKERRQ(ierr);
+    extract_subarray(state,state_vars);
     return ierr;
 }
-PetscErrorCode extract_subarray(struct SimState *state_vars)
+PetscErrorCode extract_subarray(Vec state,struct SimState *state_vars)
 {
     PetscErrorCode ierr;
-    ierr = VecGetSubVector(state_vars->v,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
+    ierr = VecGetSubVector(state,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
     ierr = VecGetArray(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
 
-    ierr = VecGetSubVector(state_vars->v,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
+    ierr = VecGetSubVector(state,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
     ierr = VecGetArray(state_vars->phi_vec,&state_vars->phi); CHKERRQ(ierr);
 
-    ierr = VecGetSubVector(state_vars->v,state_vars->al_ind,&state_vars->al_vec); CHKERRQ(ierr);
+    ierr = VecGetSubVector(state,state_vars->al_ind,&state_vars->al_vec); CHKERRQ(ierr);
     ierr = VecGetArray(state_vars->al_vec,&state_vars->alpha); CHKERRQ(ierr);
 
     return ierr;
 
 }
 
-PetscErrorCode restore_subarray(struct SimState *state_vars)
+PetscErrorCode restore_subarray(Vec state,struct SimState *state_vars)
 {
     PetscErrorCode ierr;
 
     ierr = VecRestoreArray(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
-    ierr = VecRestoreSubVector(state_vars->v,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
+    ierr = VecRestoreSubVector(state,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
 
 
     ierr = VecRestoreArray(state_vars->phi_vec,&state_vars->phi); CHKERRQ(ierr);
-    ierr = VecRestoreSubVector(state_vars->v,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
+    ierr = VecRestoreSubVector(state,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
 
 
     ierr = VecRestoreArray(state_vars->al_vec,&state_vars->alpha); CHKERRQ(ierr);
-    ierr = VecRestoreSubVector(state_vars->v,state_vars->al_ind,&state_vars->al_vec); CHKERRQ(ierr);
+    ierr = VecRestoreSubVector(state,state_vars->al_ind,&state_vars->al_vec); CHKERRQ(ierr);
 
     state_vars->c = NULL;
     state_vars->phi = NULL;
@@ -105,17 +100,17 @@ PetscErrorCode restore_subarray(struct SimState *state_vars)
     return ierr;
 
 }
-PetscErrorCode copy_simstate(struct SimState *state_vars,struct SimState *state_vars_past)
+PetscErrorCode copy_simstate(Vec current_state,struct SimState *state_vars_past)
 {
     PetscErrorCode ierr;
-    ierr = restore_subarray(state_vars_past); CHKERRQ(ierr);
-    ierr = VecCopy(state_vars->v,state_vars_past->v); CHKERRQ(ierr);
-    ierr = extract_subarray(state_vars_past); CHKERRQ(ierr);
+    ierr = VecCopy(current_state,state_vars_past->v); CHKERRQ(ierr);
+    ierr = extract_subarray(state_vars_past->v,state_vars_past); CHKERRQ(ierr);
     return ierr;
 }
 
-void init(struct SimState *state_vars)
+void init(Vec state,struct SimState *state_vars)
 {
+    extract_subarray(state,state_vars);
 	for(PetscInt x=0;x<Nx;x++)
 	{
 		for(PetscInt y=0;y<Ny;y++)
@@ -140,12 +135,12 @@ void init(struct SimState *state_vars)
 
 		}
 	}
-    restore_subarray(state_vars);
-    extract_subarray(state_vars);
+    restore_subarray(state,state_vars);
 }
 
-void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct GateType* gate_vars,struct FluxData *flux)
+void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars,struct GateType* gate_vars,struct FluxData *flux)
 {
+    extract_subarray(state,state_vars);
 	//Everything that follows will asume spatially uniform
 	//At rest state
 	PetscReal c[Ni*Nc];
@@ -279,44 +274,54 @@ void set_params(struct SimState* state_vars,struct ConstVars* con_vars,struct Ga
 
     con_vars->S = 1;  //Indicates whether zetaalpha is the stiffness (true) or 1/stiffness (false)
 
-    restore_subarray(state_vars);
-    extract_subarray(state_vars);
+    restore_subarray(state,state_vars);
 
 
     return;
 }
 
-void initialize_data(struct SimState *state_vars,struct SimState *state_vars_past, struct GateType* gate_vars,struct ConstVars* con_vars,struct Solver *slvr,struct FluxData *flux)
+void initialize_data(Vec current_state,struct AppCtx *user)
 {
+
 	PetscReal reltol = 1e-11;
-	PetscReal tol = reltol*array_max(state_vars->c,(size_t)Nx*Ny*Nc*Ni);
+    extract_subarray(current_state,user->state_vars);
+	PetscReal tol = reltol*array_max(user->state_vars->c,(size_t)Nx*Ny*Nc*Ni);
   	PetscReal rsd = 1.0;
   	PetscReal *cp;
   	cp = (PetscReal *)malloc(sizeof(PetscReal)*Nx*Ny*Ni*Nc);
     //Compute Gating variables
     //compute gating variables
-    gatevars_update(gate_vars,state_vars,0,1);
+    gatevars_update(user->gate_vars,user->state_vars,0,1);
+    restore_subarray(current_state,user->state_vars);
 
-  	//Initialize and comput the excitation (it's zeros here)
-  	struct ExctType *gexct;
-  	gexct = (struct ExctType*)malloc(sizeof(struct ExctType));
-  	excitation(gexct,texct+1);
+  	//Initialize and compute the excitation (it's zeros here)
+  	excitation(user->gexct,texct+1);
   	PetscInt k = 0;
-  	PetscReal dt_temp = 0.1;
+    user->dt = 0.1;
+//  	PetscReal dt_temp = 0.1;
     // PetscReal dt_temp = 0.01;
   	
-  	while(rsd>tol && dt_temp*k<10)
+  	while(rsd>tol && user->dt*k<10)
   	{
-    	memcpy(cp,state_vars->c,sizeof(PetscReal)*Nx*Ny*Ni*Nc);
-    	newton_solve(state_vars,state_vars_past, dt_temp, gate_vars, gexct,con_vars,slvr,flux);
-    	gatevars_update(gate_vars,state_vars,dt_temp*1e3,0);
-    	rsd = array_diff_max(state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/dt_temp;
+        extract_subarray(current_state,user->state_vars);
+    	memcpy(cp,user->state_vars->c,sizeof(PetscReal)*Nx*Ny*Ni*Nc);
+        //compute diffusion coefficients
+        diff_coef(user->Dcs,user->state_vars->alpha,1);
+        //Bath diffusion
+        diff_coef(user->Dcb,user->state_vars->alpha,Batheps);
+        restore_subarray(current_state,user->state_vars);
+
+    	newton_solve(current_state,user);
+
+        extract_subarray(current_state,user->state_vars);
+    	gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,0);
+    	rsd = array_diff_max(user->state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/user->dt;
+        restore_subarray(current_state,user->state_vars);
         printf("Init_Data rsd: %.10e, Tol: %.10e\n",rsd,tol);
     	k++;
 	}
   	
   	free(cp);
-  	free(gexct);
 	if(rsd>1e-7)
   	{
     	fprintf(stderr, "Did not converge! Aborting...\n");
@@ -382,8 +387,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
 //    ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
 //    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
 //     ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
-//     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
-    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
+     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
+//    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
 
 
 

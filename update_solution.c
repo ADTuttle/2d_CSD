@@ -2,7 +2,7 @@
 #include "functions.h"
 
 
-PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_vars_past, PetscReal dt, struct GateType *gvars, struct ExctType *gexct, struct ConstVars *con_vars,struct Solver *slvr,struct FluxData *flux)
+PetscErrorCode newton_solve(Vec current_state,struct AppCtx *user)
 {
 
     PetscReal rsd;
@@ -14,47 +14,28 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
 
     PetscLogDouble tic,toc;
     //Save the "current" aka past state
-    ierr = copy_simstate(state_vars,state_vars_past); CHKERRQ(ierr);
+    ierr = copy_simstate(current_state,user->state_vars_past); CHKERRQ(ierr);
 
     //Diffusion in each compartment
     //Has x and y components
     //x will be saved at even positions (0,2,4,...)
     //y at odd (1,3,5,...)
     //still use c_index(x,y,comp,ion), but with ind*2 or ind*2+1
-//    PetscTime(&tic);
-   	PetscReal Dcs[Nx*Ny*Ni*Nc*2];
-   	PetscReal Dcb[Nx*Ny*Ni*Nc*2];
-//    PetscTime(&toc);
-//    printf("Calc Diffusion :%.10e\n",toc-tic);
-   	//compute diffusion coefficients
-   	diff_coef(Dcs,state_vars->alpha,1);
-   	//Bath diffusion
-  	diff_coef(Dcb,state_vars->alpha,Batheps);
 
-    PetscReal tol = reltol*array_max(state_vars->c,(size_t)Nx*Ny*Ni*Nc);
+//    PetscReal tol = reltol*array_max(user->state_vars->c,(size_t)Nx*Ny*Ni*Nc);
+    PetscReal tol;
+    ierr = VecNorm(current_state,NORM_MAX,&tol);CHKERRQ(ierr);
+    tol = reltol*tol;
     rsd = tol+1;
 
     for(PetscInt iter=0;iter<itermax;iter++)
     {
-
-        //Compute membrane ionic flux relation quantitites
 //        PetscTime(&tic);
-        ionmflux(flux,state_vars,state_vars_past,gvars,gexct,con_vars);
-//        PetscTime(&toc);
-//        printf("Calc ion flux time: %.10e\n",toc-tic);
-
-        //Compute membrane water flow related quantities
-//        PetscTime(&tic);
-        wflowm(flux,state_vars,con_vars);
-//        PetscTime(&toc);
-//        printf("Calc wflow: %.10e\n",toc-tic);
-
-//        PetscTime(&tic);
-        ierr = calc_residual(slvr->Res,state_vars_past,state_vars,dt,Dcs,Dcb,flux,con_vars);CHKERRQ(ierr);
+        ierr = calc_residual(user->slvr->Res,current_state,user);CHKERRQ(ierr);
 //        PetscTime(&toc);
 //        printf("Calc Residual time: %.10e\n",toc-tic);
 
-        ierr = VecNorm(slvr->Res,NORM_MAX,&rsd);CHKERRQ(ierr);
+        ierr = VecNorm(user->slvr->Res,NORM_MAX,&rsd);CHKERRQ(ierr);
         if(rsd<tol)
         {
             if(details)
@@ -64,21 +45,21 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
             return ierr;
         }
 //        PetscTime(&tic);
-        ierr = calc_jacobian(slvr->A, state_vars_past, state_vars, dt, Dcs, Dcb, flux, con_vars, iter);CHKERRQ(ierr);
+        ierr = calc_jacobian(user->slvr->A, current_state, user);CHKERRQ(ierr);
 //        PetscTime(&toc);
 //        printf("Calculate Jacobian time: %.10e\n",toc-tic);
         //Set the new operator
-        ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
+        ierr = KSPSetOperators(user->slvr->ksp,user->slvr->A,user->slvr->A);CHKERRQ(ierr);
 //        ierr = PCSetOperators(slvr->pc,slvr->A,slvr->A);CHKERRQ(ierr);
 //        ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
 
         //Solve
         PetscTime(&tic);
-        ierr = KSPSolve(slvr->ksp,slvr->Res,slvr->Q);CHKERRQ(ierr);
+        ierr = KSPSolve(user->slvr->ksp,user->slvr->Res,user->slvr->Q);CHKERRQ(ierr);
         PetscTime(&toc);
 
-        ierr = KSPGetIterationNumber(slvr->ksp,&num_iter); CHKERRQ(ierr);
-        ierr =  KSPGetResidualNorm(slvr->ksp,&rnorm); CHKERRQ(ierr);
+        ierr = KSPGetIterationNumber(user->slvr->ksp,&num_iter); CHKERRQ(ierr);
+        ierr =  KSPGetResidualNorm(user->slvr->ksp,&rnorm); CHKERRQ(ierr);
         // printf("KSP Solve time: %f, iter num:%d, norm: %.10e\n",toc-tic,num_iter,rnorm);
 //        ierr = KSPView(slvr->ksp,PETSC_VIEWER_STDOUT_SELF);CHKERRQ(ierr);
 
@@ -88,9 +69,7 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
         }
 
 //        PetscTime(&tic);
-        ierr = restore_subarray(state_vars); CHKERRQ(ierr);
-        ierr = VecAXPY(state_vars->v,-1.0,slvr->Q); CHKERRQ(ierr);
-        ierr = extract_subarray(state_vars); CHKERRQ(ierr);
+        ierr = VecAXPY(current_state,-1.0,user->slvr->Q); CHKERRQ(ierr);
         /*
         ierr = VecGetArray(slvr->Q,&temp);CHKERRQ(ierr);
         for(x=0;x<Nx;x++)
@@ -122,6 +101,7 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
             printf("Iteration: %d, Residual: %.10e\n",iter,rsd);
         }
     }
+    ierr = restore_subarray(user->state_vars_past->v,user->state_vars_past); CHKERRQ(ierr);
 
     if(rsd>tol)
     {
@@ -132,14 +112,35 @@ PetscErrorCode newton_solve(struct SimState *state_vars,struct SimState *state_v
 }
 
 
-PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct SimState *state_vars,PetscReal dt,PetscReal *Dcs,PetscReal *Dcb,struct FluxData *flux,struct ConstVars *con_vars)
+PetscErrorCode calc_residual(Vec Res,Vec current_state,struct AppCtx *user)
 {
-    PetscReal *c = state_vars->c;
-    PetscReal *phi = state_vars->phi;
-    PetscReal *al = state_vars->alpha;
-    PetscReal *cp = state_vars_past->c;
-    PetscReal *alp = state_vars_past->alpha;
-    PetscReal *phip = state_vars_past->phi;
+
+    PetscErrorCode ierr;
+    ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    //Compute membrane ionic flux relation quantitites
+//        PetscTime(&tic);
+    ionmflux(user->flux,user->state_vars,user->state_vars_past,user->gate_vars,user->gexct,user->con_vars);
+//        PetscTime(&toc);
+//        printf("Calc ion flux time: %.10e\n",toc-tic);
+
+    //Compute membrane water flow related quantities
+//        PetscTime(&tic);
+    wflowm(user->flux,user->state_vars,user->con_vars);
+//        PetscTime(&toc);
+//        printf("Calc wflow: %.10e\n",toc-tic);
+
+    PetscReal *c = user->state_vars->c;
+    PetscReal *phi = user->state_vars->phi;
+    PetscReal *al = user->state_vars->alpha;
+    PetscReal *cp = user->state_vars_past->c;
+    PetscReal *alp = user->state_vars_past->alpha;
+    PetscReal *phip = user->state_vars_past->phi;
+
+    PetscReal *Dcs = user->Dcs;
+    PetscReal *Dcb = user->Dcb;
+    struct FluxData *flux = user->flux;
+    PetscReal dt = user->dt;
+
     //Residual for concentration equations
     PetscReal Rcvx,Rcvy,Resc;
     PetscReal RcvxRight,RcvyUp;
@@ -151,9 +152,6 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
     PetscReal alNc,alpNc;
     PetscInt ion,comp,x,y;
 
-
-
-    PetscErrorCode ierr;
 
     for(x=0;x<Nx;x++) {
         for(y=0;y<Ny;y++) {
@@ -298,6 +296,7 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
     //Assemble before we add values in on top to modify the electroneutral.
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
+    ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     /*
     for(x=0;x<Nx;x++)
     {
@@ -322,13 +321,20 @@ PetscErrorCode calc_residual(Vec Res,struct SimState *state_vars_past,struct Sim
 }
 
 PetscErrorCode
-calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_vars, PetscReal dt, PetscReal *Dcs,
-              PetscReal *Dcb, struct FluxData *flux, struct ConstVars *con_vars, int iter)
+calc_jacobian(Mat Jac, Vec current_state, struct AppCtx *user)
 {
     PetscErrorCode ierr;
-    PetscReal *c = state_vars->c;
-    PetscReal *al = state_vars->alpha;
-    PetscReal *cp = state_vars_past->c;
+    ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    PetscReal *c = user->state_vars->c;
+    PetscReal *al = user->state_vars->alpha;
+    PetscReal *cp = user->state_vars_past->c;
+
+    PetscReal *Dcs = user->Dcs;
+    PetscReal *Dcb = user->Dcb;
+    struct FluxData *flux = user->flux;
+    PetscReal dt = user->dt;
+    struct ConstVars *con_vars = user->con_vars;
+
     PetscInt ind = 0;
     PetscInt x,y,ion,comp;
 
@@ -753,6 +759,8 @@ calc_jacobian(Mat Jac, struct SimState *state_vars_past, struct SimState *state_
 
     ierr = MatAssemblyBegin(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+
+    ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     return ierr;
 }
 

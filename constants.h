@@ -23,8 +23,8 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 static const 	PetscReal dt = 0.01;
 //static const   PetscReal Time = 3e-2;
 // static const   PetscReal Time = 1e-1;
-static const   PetscReal Time = 1;
-// static const  PetscReal   Time=10;
+//static const   PetscReal Time = 1;
+ static const  PetscReal   Time=10;
 //static const    Time = 60//2e-2        //total simulated time in seconds
 // static const    Time=2e-2
 static const  PetscInt  Nc = 3;            //number of compartments
@@ -205,6 +205,18 @@ struct Solver{
   	PetscMPIInt   size;
 };
 
+struct AppCtx{
+    struct SimState *state_vars;
+    struct SimState *state_vars_past;
+    struct Solver *slvr;
+    struct FluxData *flux;
+    struct GateType *gate_vars;
+    struct ExctType *gexct;
+    struct ConstVars *con_vars;
+    PetscReal Dcs[Nx*Ny*Ni*Nc*2];
+    PetscReal Dcb[Nx*Ny*Ni*Nc*2];
+    PetscReal dt;
+};
 /*
 struct ConstVars{
 	PetscReal pNaKCl;

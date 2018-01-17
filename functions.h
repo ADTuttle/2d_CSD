@@ -7,18 +7,18 @@
 #include <petscmat.h>
 #include "petscsys.h" 
 //Function to initialize the state
-void init(struct SimState *);
+void init(Vec,struct SimState *);
 //Solve until steady state (mostly to update gating_vars)
-void initialize_data(struct SimState*,struct SimState *,struct GateType*,struct ConstVars*,struct Solver*,struct FluxData*);
+void initialize_data(Vec,struct AppCtx*);
 
 //Set the paramaters based on the constants
-void set_params(struct SimState *,struct ConstVars*,struct GateType*,struct FluxData*);
+void set_params(Vec,struct SimState *,struct ConstVars*,struct GateType*,struct FluxData*);
 
 //Data management functions
-PetscErrorCode init_simstate(struct SimState*);
-PetscErrorCode extract_subarray(struct SimState*);
-PetscErrorCode restore_subarray(struct SimState*);
-PetscErrorCode copy_simstate(struct SimState *state_vars,struct SimState *state_vars_past);
+PetscErrorCode init_simstate(Vec,struct SimState*);
+PetscErrorCode extract_subarray(Vec,struct SimState*);
+PetscErrorCode restore_subarray(Vec,struct SimState*);
+PetscErrorCode copy_simstate(Vec,struct SimState *state_vars_past);
 
 //Linear current-voltage flux relation
 void mclin(struct FluxData *,int,double,int,double,double,double,int);
@@ -60,11 +60,10 @@ PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny);
 PetscErrorCode Initialize_PCMG(PC pc,Mat A);
 
 //Newton Solver
-PetscErrorCode newton_solve(struct SimState *,struct SimState *, PetscReal, struct GateType *, struct ExctType *, struct ConstVars *,struct Solver *,struct FluxData*);
+PetscErrorCode newton_solve(Vec,struct AppCtx*);
 //Calculate residual
-PetscErrorCode calc_residual(Vec,struct SimState *,struct SimState *,PetscReal,PetscReal *,PetscReal *,struct FluxData *,struct ConstVars *);
-PetscErrorCode calc_jacobian(Mat, struct SimState *, struct SimState *, PetscReal, PetscReal *, PetscReal *, struct FluxData *,
-                             struct ConstVars *, int iter);
+PetscErrorCode calc_residual(Vec,Vec,struct AppCtx*);
+PetscErrorCode calc_jacobian(Mat, Vec, struct AppCtx*);
 
 //Find abs. max value of an array
 PetscReal array_max(PetscReal *,size_t);
