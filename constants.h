@@ -3,12 +3,13 @@
 #include <petsctime.h>
 #include <petscksp.h>
 #include <petscmat.h>
+#include <petscsnes.h>
 
 //set global parameters here (static constants)
 
 static const int use_en_deriv = 0; //if true, will use the derivative of the electroneutrality condition for the system of equations
 static const int use_direct_solve = 0; //if true, will use gmres instead of direct solve
-static const int details = 0; //if true, will show how many iterations were necessary for each newton solve, and the residual
+static const int details = 1; //if true, will show how many iterations were necessary for each newton solve, and the residual
 static const int krecordfreq = 10; //determines how many time steps to run before recording the state variables
 static const int two_points_exct = 0;   //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 static const int savefreq = 500;
@@ -200,6 +201,7 @@ struct Solver{
 	Vec Q;      /* Update*/
 	Vec Res;
   	Mat A;            /* linear system matrix */
+    SNES snes;       /*Nonlinear solver context*/
   	KSP ksp;         /* linear solver context */
   	PC pc;           /* preconditioner context */
   	PetscMPIInt   size;

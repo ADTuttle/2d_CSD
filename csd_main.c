@@ -11,7 +11,9 @@ int main(int argc, char **argv)
     //Petsc Initialize
     struct Solver *slvr;
     slvr = (struct Solver*)malloc(sizeof(struct Solver));
-    ierr = initialize_petsc(slvr,argc,argv);CHKERRQ(ierr);
+    struct AppCtx *user;
+    user = (struct AppCtx*)malloc(sizeof(struct AppCtx));
+    ierr = initialize_petsc(slvr,argc,argv,user);CHKERRQ(ierr);
 
     printf("\n\n\nGrid size: %dx%d, with %d ions, and %d compartments.\n",Nx,Ny,Ni,Nc);
     PetscLogDouble tic,toc,full_tic,full_toc;
@@ -63,8 +65,6 @@ int main(int argc, char **argv)
     set_params(current_state,state_vars,con_vars,gate_vars,flux);
 
     //Pass data structs over to AppCtx
-    struct AppCtx *user;
-    user = (struct AppCtx*)malloc(sizeof(struct AppCtx));
 
     user->slvr = slvr;
     user->con_vars = con_vars;
@@ -95,9 +95,13 @@ int main(int argc, char **argv)
     //Create the excitation
     excitation(user->gexct,0);
     int count = 0;
+    PetscInt num_iters;
     PetscTime(&full_tic);
     for(PetscReal t=dt;t<=Time;t+=dt)
     {
+        //Save the "current" aka past state
+        ierr = restore_subarray(user->state_vars_past->v,user->state_vars_past); CHKERRQ(ierr);
+        ierr = copy_simstate(current_state,user->state_vars_past); CHKERRQ(ierr);
         //Update diffusion with past
         //compute diffusion coefficients
         diff_coef(user->Dcs,state_vars->alpha,1);
@@ -106,9 +110,16 @@ int main(int argc, char **argv)
         restore_subarray(current_state,state_vars);
         //Newton update
         PetscTime(&tic);
-        newton_solve(current_state,user);
+//        newton_solve(current_state,user);
+        SNESSolve(user->slvr->snes,NULL,current_state);
         PetscTime(&toc);
-//        printf("Newton time: %f\n",toc-tic);
+
+
+        if(details) {
+            SNESGetIterationNumber(user->slvr->snes,&num_iters);
+
+            printf("Newton time: %f,iters:%d\n", toc - tic,num_iters);
+        }
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
         gatevars_update(user->gate_vars,state_vars,user->dt*1e3,0);

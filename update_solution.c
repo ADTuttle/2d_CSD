@@ -13,8 +13,6 @@ PetscErrorCode newton_solve(Vec current_state,struct AppCtx *user)
 
 
     PetscLogDouble tic,toc;
-    //Save the "current" aka past state
-    ierr = copy_simstate(current_state,user->state_vars_past); CHKERRQ(ierr);
 
     //Diffusion in each compartment
     //Has x and y components
@@ -31,11 +29,12 @@ PetscErrorCode newton_solve(Vec current_state,struct AppCtx *user)
     for(PetscInt iter=0;iter<itermax;iter++)
     {
 //        PetscTime(&tic);
-        ierr = calc_residual(user->slvr->Res,current_state,user);CHKERRQ(ierr);
+        ierr = calc_residual(user->slvr->snes,current_state,user->slvr->Res,user);CHKERRQ(ierr);
 //        PetscTime(&toc);
 //        printf("Calc Residual time: %.10e\n",toc-tic);
 
         ierr = VecNorm(user->slvr->Res,NORM_MAX,&rsd);CHKERRQ(ierr);
+        printf("Iteration: %d, Residual: %.10e\n",iter,rsd);
         if(rsd<tol)
         {
             if(details)
@@ -45,7 +44,7 @@ PetscErrorCode newton_solve(Vec current_state,struct AppCtx *user)
             return ierr;
         }
 //        PetscTime(&tic);
-        ierr = calc_jacobian(user->slvr->A, current_state, user);CHKERRQ(ierr);
+        ierr = calc_jacobian(user->slvr->snes,current_state,user->slvr->A,user->slvr->A, user);CHKERRQ(ierr);
 //        PetscTime(&toc);
 //        printf("Calculate Jacobian time: %.10e\n",toc-tic);
         //Set the new operator
@@ -112,9 +111,9 @@ PetscErrorCode newton_solve(Vec current_state,struct AppCtx *user)
 }
 
 
-PetscErrorCode calc_residual(Vec Res,Vec current_state,struct AppCtx *user)
+PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
 {
-
+    struct AppCtx * user = (struct AppCtx *) ctx;
     PetscErrorCode ierr;
     ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     //Compute membrane ionic flux relation quantitites
@@ -321,8 +320,9 @@ PetscErrorCode calc_residual(Vec Res,Vec current_state,struct AppCtx *user)
 }
 
 PetscErrorCode
-calc_jacobian(Mat Jac, Vec current_state, struct AppCtx *user)
+calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
 {
+    struct AppCtx * user = (struct AppCtx *) ctx;
     PetscErrorCode ierr;
     ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     PetscReal *c = user->state_vars->c;
@@ -759,6 +759,10 @@ calc_jacobian(Mat Jac, Vec current_state, struct AppCtx *user)
 
     ierr = MatAssemblyBegin(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+
+    if (A != Jac) {
+        ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+        ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr); }
 
     ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     return ierr;

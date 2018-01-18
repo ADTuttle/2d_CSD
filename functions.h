@@ -3,6 +3,7 @@
 #define __FUNCTIONS__
 
 #include <petsctime.h>
+#include <petscsnes.h>
 #include <petscksp.h>
 #include <petscmat.h>
 #include "petscsys.h" 
@@ -50,7 +51,7 @@ PetscInt Ind_1(int,int,int,int);
 
 //Create Petsc Structures
 PetscInt Ind_nx(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp, PetscInt nx);
-PetscErrorCode initialize_petsc(struct Solver *,int, char **);
+PetscErrorCode initialize_petsc(struct Solver *,int, char **,struct AppCtx*);
 void Get_Nonzero_in_Rows(int *);
 PetscErrorCode initialize_jacobian(Mat);
 
@@ -62,8 +63,8 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A);
 //Newton Solver
 PetscErrorCode newton_solve(Vec,struct AppCtx*);
 //Calculate residual
-PetscErrorCode calc_residual(Vec,Vec,struct AppCtx*);
-PetscErrorCode calc_jacobian(Mat, Vec, struct AppCtx*);
+PetscErrorCode calc_residual(SNES,Vec,Vec,void*); //void is masked AppCtx
+PetscErrorCode calc_jacobian(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
 
 //Find abs. max value of an array
 PetscReal array_max(PetscReal *,size_t);

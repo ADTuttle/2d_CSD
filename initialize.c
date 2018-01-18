@@ -305,6 +305,9 @@ void initialize_data(Vec current_state,struct AppCtx *user)
   	{
         extract_subarray(current_state,user->state_vars);
     	memcpy(cp,user->state_vars->c,sizeof(PetscReal)*Nx*Ny*Ni*Nc);
+        //Save the "current" aka past state
+        restore_subarray(user->state_vars_past->v,user->state_vars_past);
+        copy_simstate(current_state,user->state_vars_past);
         //compute diffusion coefficients
         diff_coef(user->Dcs,user->state_vars->alpha,1);
         //Bath diffusion
@@ -334,7 +337,7 @@ void initialize_data(Vec current_state,struct AppCtx *user)
 }
 
 
-PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
+PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct AppCtx *user)
 {
     PetscErrorCode ierr;
 	//Init Petsc
@@ -342,19 +345,6 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
   	ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
 
   	//Create Vectors
-    /*
-  	ierr = VecCreate(PETSC_COMM_WORLD,&slvr->Q);CHKERRQ(ierr);
-  	ierr = PetscObjectSetName((PetscObject) slvr->Q, "Solution");CHKERRQ(ierr);
-  	ierr = VecSetSizes(slvr->Q,PETSC_DECIDE,NA);CHKERRQ(ierr);
-  	ierr = VecSetFromOptions(slvr->Q);CHKERRQ(ierr);
-  	ierr = VecDuplicate(slvr->Q,&slvr->Res);CHKERRQ(ierr);
-    */
-    /*
-    ierr = VecCreateSeq(PETSC_COMM_WORLD,NA,&slvr->Q);CHKERRQ(ierr);
-    ierr = VecSetFromOptions(slvr->Q);CHKERRQ(ierr);
-    ierr = VecCreateSeq(PETSC_COMM_WORLD,NA,&slvr->Res);CHKERRQ(ierr);
-    ierr = VecSetFromOptions(slvr->Res);CHKERRQ(ierr);
-    */
     ierr = VecCreate(PETSC_COMM_WORLD,&slvr->Q);CHKERRQ(ierr);
     ierr = VecSetType(slvr->Q,VECSEQ);CHKERRQ(ierr);
     ierr = VecSetSizes(slvr->Q,PETSC_DECIDE,NA);CHKERRQ(ierr);
@@ -378,8 +368,22 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
     ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
 
   	//Create Solver Contexts
+    ierr = SNESCreate(PETSC_COMM_WORLD,&slvr->snes); CHKERRQ(ierr);
+
     
-    ierr = KSPCreate(PETSC_COMM_WORLD,&slvr->ksp);CHKERRQ(ierr);
+//    ierr = KSPCreate(PETSC_COMM_WORLD,&slvr->ksp);CHKERRQ(ierr);
+    ierr = SNESGetKSP(slvr->snes,&slvr->ksp); CHKERRQ(ierr);
+
+    //Set Function eval
+    ierr = SNESSetFunction(slvr->snes,slvr->Res,calc_residual,user); CHKERRQ(ierr);
+    //Set Jacobian eval
+    ierr = SNESSetJacobian(slvr->snes,slvr->A,slvr->A,calc_jacobian,user); CHKERRQ(ierr);
+
+    //Set SNES types
+//    ierr = SNESSetType(slvr->snes,SNESNEWTONLS); CHKERRQ(ierr);
+    ierr = SNESSetType(slvr->snes,SNESNEWTONTR); CHKERRQ(ierr);
+
+
     /*
      Set operators. Here the matrix that defines the linear system
      also serves as the preconditioning matrix.
@@ -408,9 +412,9 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
     ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
     ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
     ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
-//    ierr = PCFactorSetMatOrderingType(slvr->pc,MATORDERINGNATURAL); CHKERRQ(ierr);
+    ierr = PCFactorSetMatOrderingType(slvr->pc,MATORDERINGNATURAL); CHKERRQ(ierr);
 //    */
-    // ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
+//     ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     PetscReal div_tol = 1e12;
 //    PetscReal abs_tol = 1e-13;
 //    PetscReal rel_tol = 1e-10;
@@ -427,6 +431,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv)
     KSPSetFromOptions() is called _after_ any other customization
     routines.
     */
+    ierr = SNESSetFromOptions(slvr->snes);CHKERRQ(ierr);
      ierr = KSPSetFromOptions(slvr->ksp);CHKERRQ(ierr);
      ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
 
@@ -1707,8 +1712,8 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A)
 
     ierr = PCSetType(pc,PCMG); CHKERRQ(ierr);
     ierr = PCSetOperators(pc,A,A);CHKERRQ(ierr);
-//    ierr = PCMGSetType(pc,PC_MG_MULTIPLICATIVE); CHKERRQ(ierr);
-    ierr = PCMGSetType(pc,PC_MG_KASKADE); CHKERRQ(ierr);
+    ierr = PCMGSetType(pc,PC_MG_MULTIPLICATIVE); CHKERRQ(ierr);
+//    ierr = PCMGSetType(pc,PC_MG_KASKADE); CHKERRQ(ierr);
     ierr = PCMGSetGalerkin(pc,PC_MG_GALERKIN_BOTH); CHKERRQ(ierr);
     PCMGSetLevels(pc,nlevels,PETSC_NULL);
 //    ierr = PCMGSetCycleType(pc,	PC_MG_CYCLE_V); CHKERRQ(ierr);
@@ -1823,26 +1828,27 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A)
 
 
         //Smoother KSP
-        ierr = KSPSetType(sksp,KSPRICHARDSON); CHKERRQ(ierr);
-        ierr = KSPRichardsonSetScale(sksp,1.0); CHKERRQ(ierr);
+//        ierr = KSPSetType(sksp,KSPRICHARDSON); CHKERRQ(ierr);
+//        ierr = KSPRichardsonSetScale(sksp,1.0); CHKERRQ(ierr);
 //        ierr = KSPSetType(sksp,KSPBCGS); CHKERRQ(ierr);
-//        ierr = KSPSetType(sksp,KSPGMRES); CHKERRQ(ierr);
+        ierr = KSPSetType(sksp,KSPGMRES); CHKERRQ(ierr);
 //        ierr = KSPSetType(sksp,KSPPREONLY); CHKERRQ(ierr);
         //Smoother Precond
-        /*
+//        /*
         ierr = PCSetType(spc,PCSOR); CHKERRQ(ierr);
 //        ierr = PCSORSetSymmetric(spc,SOR_LOCAL_BACKWARD_SWEEP); CHKERRQ(ierr);
         ierr = PCSORSetSymmetric(spc,SOR_LOCAL_FORWARD_SWEEP); CHKERRQ(ierr);
         ierr = PCSORSetIterations(spc,2,2); CHKERRQ(ierr);
         ierr = PCSORSetOmega(spc,1.0);
-         */
+//         */
 //        ierr = PCSetType(spc, PCJACOBI);CHKERRQ(ierr);
 //        ierr = PCJacobiSetType(spc,PC_JACOBI_ROWMAX); CHKERRQ(ierr);
-
+        /*
         ierr = PCSetType(spc, PCASM); CHKERRQ(ierr);
         ierr = PCASMSetType(spc,PC_ASM_BASIC); CHKERRQ(ierr);
         ierr = PCASMSetLocalType(spc,PC_COMPOSITE_ADDITIVE); CHKERRQ(ierr);
 //        ierr = PCASMSetLocalType(spc,PC_COMPOSITE_MULTIPLICATIVE); CHKERRQ(ierr);
+         */
 
         /*
         ierr = PCSetType(spc,PCILU);CHKERRQ(ierr);
