@@ -96,6 +96,7 @@ int main(int argc, char **argv)
     excitation(user->gexct,0);
     int count = 0;
     PetscInt num_iters;
+    SNESConvergedReason reason;
     PetscTime(&full_tic);
     for(PetscReal t=dt;t<=Time;t+=dt)
     {
@@ -117,8 +118,8 @@ int main(int argc, char **argv)
 
         if(details) {
             SNESGetIterationNumber(user->slvr->snes,&num_iters);
-
-            printf("Newton time: %f,iters:%d\n", toc - tic,num_iters);
+            SNESGetConvergedReason(user->slvr->snes,&reason);
+            printf("Newton time: %f,iters:%d, Reason: %d\n", toc - tic,num_iters,reason);
         }
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
@@ -127,7 +128,9 @@ int main(int argc, char **argv)
         excitation(user->gexct,t);
         count++;
         if(count%krecordfreq==0) {
-            printf("Time: %f, Netwon SolveTime %f\n",t,toc-tic);
+            SNESGetIterationNumber(user->slvr->snes,&num_iters);
+            SNESGetConvergedReason(user->slvr->snes,&reason);
+            printf("Time: %f,Newton time: %f,iters:%d, Reason: %d\n",t, toc - tic,num_iters,reason);
             write_data(fp, state_vars, 0);
         }
 
