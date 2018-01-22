@@ -3,22 +3,23 @@
 #define __FUNCTIONS__
 
 #include <petsctime.h>
+#include <petscsnes.h>
 #include <petscksp.h>
 #include <petscmat.h>
 #include "petscsys.h" 
 //Function to initialize the state
-void init(struct SimState *);
+void init(Vec,struct SimState *);
 //Solve until steady state (mostly to update gating_vars)
-void initialize_data(struct SimState*,struct SimState *,struct GateType*,struct ConstVars*,struct Solver*,struct FluxData*);
+void initialize_data(Vec,struct AppCtx*);
 
 //Set the paramaters based on the constants
-void set_params(struct SimState *,struct ConstVars*,struct GateType*,struct FluxData*);
+void set_params(Vec,struct SimState *,struct ConstVars*,struct GateType*,struct FluxData*);
 
 //Data management functions
-PetscErrorCode init_simstate(struct SimState*);
-PetscErrorCode extract_subarray(struct SimState*);
-PetscErrorCode restore_subarray(struct SimState*);
-PetscErrorCode copy_simstate(struct SimState *state_vars,struct SimState *state_vars_past);
+PetscErrorCode init_simstate(Vec,struct SimState*);
+PetscErrorCode extract_subarray(Vec,struct SimState*);
+PetscErrorCode restore_subarray(Vec,struct SimState*);
+PetscErrorCode copy_simstate(Vec,struct SimState *state_vars_past);
 
 //Linear current-voltage flux relation
 void mclin(struct FluxData *,int,double,int,double,double,double,int);
@@ -37,6 +38,8 @@ void wflowm(struct FluxData *,struct SimState *,struct ConstVars *);
 
 //Update the gating variables
 void gatevars_update(struct GateType *,struct SimState *,PetscReal,int);
+//Update Volume fraction
+void volume_update(struct SimState*,struct SimState*,struct AppCtx*);
 //Initial excitation
 void excitation(struct ExctType *,PetscReal);
 
@@ -50,7 +53,7 @@ PetscInt Ind_1(int,int,int,int);
 
 //Create Petsc Structures
 PetscInt Ind_nx(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp, PetscInt nx);
-PetscErrorCode initialize_petsc(struct Solver *,int, char **);
+PetscErrorCode initialize_petsc(struct Solver *,int, char **,struct AppCtx*);
 void Get_Nonzero_in_Rows(int *);
 PetscErrorCode initialize_jacobian(Mat);
 
@@ -60,11 +63,12 @@ PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny);
 PetscErrorCode Initialize_PCMG(PC pc,Mat A);
 
 //Newton Solver
-PetscErrorCode newton_solve(struct SimState *,struct SimState *, PetscReal, struct GateType *, struct ExctType *, struct ConstVars *,struct Solver *,struct FluxData*);
+PetscErrorCode newton_solve(Vec,struct AppCtx*);
 //Calculate residual
-PetscErrorCode calc_residual(Vec,struct SimState *,struct SimState *,PetscReal,PetscReal *,PetscReal *,struct FluxData *,struct ConstVars *);
-PetscErrorCode calc_jacobian(Mat, struct SimState *, struct SimState *, PetscReal, PetscReal *, PetscReal *, struct FluxData *,
-                             struct ConstVars *, int iter);
+PetscErrorCode calc_residual(SNES,Vec,Vec,void*); //void is masked AppCtx
+PetscErrorCode calc_jacobian(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
+PetscErrorCode calc_residual_no_vol(SNES,Vec,Vec,void*); //void is masked AppCtx
+PetscErrorCode calc_jacobian_no_vol(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
 
 //Find abs. max value of an array
 PetscReal array_max(PetscReal *,size_t);
