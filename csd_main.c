@@ -103,11 +103,15 @@ int main(int argc, char **argv)
         //Save the "current" aka past state
         ierr = restore_subarray(user->state_vars_past->v,user->state_vars_past); CHKERRQ(ierr);
         ierr = copy_simstate(current_state,user->state_vars_past); CHKERRQ(ierr);
+        if(separate_vol) {
+            //Update volume(uses past c values for wflow)
+            volume_update(user->state_vars, user->state_vars_past, user);
+        }
         //Update diffusion with past
         //compute diffusion coefficients
-        diff_coef(user->Dcs,state_vars->alpha,1);
+        diff_coef(user->Dcs,state_vars_past->alpha,1);
         //Bath diffusion
-        diff_coef(user->Dcb,state_vars->alpha,Batheps);
+        diff_coef(user->Dcb,state_vars_past->alpha,Batheps);
         restore_subarray(current_state,state_vars);
         //Newton update
         PetscTime(&tic);
@@ -123,7 +127,11 @@ int main(int argc, char **argv)
         }
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
-        gatevars_update(user->gate_vars,state_vars,user->dt*1e3,0);
+        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,0);
+        if(separate_vol) {
+            //Update volume (this uses new c values for wflow)
+//            volume_update(user->state_vars, user->state_vars_past, user);
+        }
         //Update Excitation
         excitation(user->gexct,t);
         count++;

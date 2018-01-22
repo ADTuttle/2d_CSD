@@ -38,6 +38,8 @@ void wflowm(struct FluxData *,struct SimState *,struct ConstVars *);
 
 //Update the gating variables
 void gatevars_update(struct GateType *,struct SimState *,PetscReal,int);
+//Update Volume fraction
+void volume_update(struct SimState*,struct SimState*,struct AppCtx*);
 //Initial excitation
 void excitation(struct ExctType *,PetscReal);
 
@@ -65,6 +67,8 @@ PetscErrorCode newton_solve(Vec,struct AppCtx*);
 //Calculate residual
 PetscErrorCode calc_residual(SNES,Vec,Vec,void*); //void is masked AppCtx
 PetscErrorCode calc_jacobian(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
+PetscErrorCode calc_residual_no_vol(SNES,Vec,Vec,void*); //void is masked AppCtx
+PetscErrorCode calc_jacobian_no_vol(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
 
 //Find abs. max value of an array
 PetscReal array_max(PetscReal *,size_t);

@@ -7,8 +7,8 @@
 
 //set global parameters here (static constants)
 
-static const int use_en_deriv = 0; //if true, will use the derivative of the electroneutrality condition for the system of equations
-static const int use_direct_solve = 0; //if true, will use gmres instead of direct solve
+static const int use_en_deriv = 1; //if true, will use the derivative of the electroneutrality condition for the system of equations
+static const PetscInt separate_vol = 1; //if true, will solve c,phi separate from alpha.
 static const int details = 0; //if true, will show how many iterations were necessary for each newton solve, and the residual
 static const int krecordfreq = 10; //determines how many time steps to run before recording the state variables
 static const int two_points_exct = 0;   //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
@@ -23,18 +23,19 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 // static const   PetscReal dt = 1e-2 ;        //time step (in s)
 static const 	PetscReal dt = 0.01;
 //static const   PetscReal Time = 3e-2;
-// static const   PetscReal Time = 1e-1;
+ static const   PetscReal Time = 5e-1;
 //static const   PetscReal Time = 1;
- static const  PetscReal   Time=10;
+// static const  PetscReal   Time=10;
+//static const  PetscReal   Time=3;
 //static const    Time = 60//2e-2        //total simulated time in seconds
 // static const    Time=2e-2
 static const  PetscInt  Nc = 3;            //number of compartments
-//  static const PetscInt  Nx = 64;         //number of grid points in the x direction
-//  static const PetscInt   Ny = 64;      //number of grid points in the y direction
- static const  PetscInt  Nx = 50;
- static const  PetscInt  Ny = 50;
-//static const PetscInt   Nx = 9;
-//static const PetscInt  Ny = 8;
+  static const PetscInt  Nx = 64;         //number of grid points in the x direction
+  static const PetscInt   Ny = 64;      //number of grid points in the y direction
+// static const  PetscInt  Nx = 50;
+// static const  PetscInt  Ny = 50;
+//static const PetscInt   Nx = 25;
+//static const PetscInt  Ny = 25;
 static const PetscReal  dx = 0.01;        //grid size in x direction (in cm)
 static const PetscReal   dy = 0.01;        //grid size in y direction (in cm)
 static const PetscReal  Lx = Nx*dx;          //width of domain in cm (x)
@@ -44,7 +45,10 @@ static const PetscInt  Nt = Time/dt;     //total number of time steps
 static const PetscReal numrecords = Time/(dt*krecordfreq);
 
 //Newton solve parameters
-static const PetscInt  Nv = (Ni+2)*Nc-1;  //number of variables to be solved for at each grid point
+//number of variables to be solved for at each grid point
+//static const PetscInt  Nv = (Ni+2)*Nc-1; //version if volume is included
+//static const PetscInt  Nv = (Ni+1)*Nc; //version if volume is excluded
+static const PetscInt  Nv = ((Ni+2)*Nc-1)*(!separate_vol)+((Ni+1)*Nc)*separate_vol;  //combining the above two with the separate_vol
 static const PetscInt  NA = Nx*Ny*Nv;     //total number of unknowns
 static const PetscInt Nz = Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny);
 

@@ -70,3 +70,5 @@ cmake-build-debug/CMakeFiles/TargetDirectories.txt
 run_batch.sh
 
 timing.txt
+
+*.swp
