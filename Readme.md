@@ -125,13 +125,13 @@ User context that Petsc allows you to pass. It's a container for everything that
 * dt: Time step
 
 ### Indexing
-Throughout the code we make use of index functions. The 5 currently in use are:
+Throughout the code we make use of index functions. The 6 currently in use are:
 * c_index(x,y,comp,ion): tracks concentration variable/equation quantities. Also anything that varies by ion and compartment. E.g ion channel fluxes.
 * phi_index(x,y,comp): Tracks voltage variable/equation quantities. Also anything that varies in all 3 compartments.
 * al_index(x,y,comp): Tracks volume fraction variable/equation quantities. Also anything that varies in only intracellular spaces. 
 * xy_index(x,y): Tracks xy coordinate indices when needed.
 * Ind_1(x,y,"ion",comp): Tracks all variable quantities that have equations represented in the residual/jacobian. "ion" tracks ions if we are in the concentration equations. E.g 1,2,...,Ni-1 will be concentration equations. "ion"=Ni corresponds to voltage equations. And "ion"=Ni+1 corresponds to volume equations.
-* Ind_nx(x,y,ion,comp,nx): Same as Ind_1 but allows variable number of x-y gridpoints.
+* Ind_nx(x,y,ion,comp,nx): Same as Ind_1 but allows variable number of x-y gridpoints. Needed in order to do multigrid.
 
 To spell out more. For 3 ions and 3 compartments. There are 14 variables (Nv=14). These are broken into 3 groups.
 
@@ -146,15 +146,62 @@ Ind_1(x,y,Ni+1,0), Ind_1(x,y,Ni+1,1)
 
 <a name="biology"></a>
 ## Biology 
+There are 3 parts where the underlying biology would be modified. First, the initial values of c, phi, and alpha are set in the function init in initialize.c.
+
+Second, parameter values can be changed in constants.h (which has a huge list of constants). While others could be changed in the function set_params in initialize.c. set_params has values chosen so that given values from constants.h will start us at steady state. If new ion channels are added some of these formula will need to be checked.
+
+Third, ion_channels.c. If a new ion channel was added you would have to modify it in this file most of all. The function ionmflux calculates the flux and derivatives from the gating variables. It uses two functions mclin (linear current voltage relationship) and mcgoldman (using GHK type relation), the exact functions for each are detailed in the comments in each function. Both these functions have the same format:
+void mclin(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,PetscReal ci,PetscReal ce,PetscReal phim,PetscInt ADD)
+
+* flux: the whole flux structure being updated.
+* index: index corresponding the ion we are updating. For example updating the neuronal sodium will at int x and int y will have index = c_index(x,y,0,0).
+* pc: permeability
+* zi: valence of ion
+* ci: intracellular concentration of this ion.
+* ce: extracellular concentration of this ion.
+* phim: Membrane voltage difference.
+* ADD: We update by passing flux by reference. ADD = 0 means we reset the current value. ADD = 1 means we add to the current value.
+
+A new voltage gated ion channel being added would also need to modify gatevars_update. Time in this function is in ms (not seconds like the rest). Also, it has two parts a firstpass uniform initialization of values and an afterwards update using backwards euler (explicitly coded in).
+
+Lastly, for different interesting excitations modify the values in excitation (can easily make them vary over the domain). Ionic diffusion is modified in diff_coef. And water flux in w_flux.
 
 <a name="algorithm"></a>
 ## Algorithm and Petsc 
+#### Algorithm
+The algorithm we use can be summed up as:
+1. Create all data structures (no new memory is allocated after)
+2. Set initial values.
+3. Iterate with a larger time step until steady state is reached.
+4. Begin solve loop.
+	a. Update c, phi, alpha (possibly alpha separately).
+	b. Update gating variables.
+	c. Record values every krecordfreq.
 
+The update will always involve solving a nonlinear system via newton's method. Which in term has a matrix being "inverted". The details in this is determined by the petsc settings used. Additionally, my own newton_solve code is implemented and could be used if desired.
+
+#### Petsc
+All the Petsc settings are set early in the program by calling inialize_petsc. In here we:
+1. Create vectors.
+2. Create Matrix using Get_Nonzero_in_Rows to count non-zeros on each row.
+3. Initialize the matrix values to zero (unnecessary, but allows us to set MAT_NEW_NONZERO_LOCATION_ERR for saftey).
+4. Create SNES (nonlinear solver) and set the functions that calculate Jacobian and Function (aka residual for us) value.
+5. Set the SNES solver.
+6. Set the KSP (krylov subspace) solver.
+7. Choose a preconditioner.
+8. Set all of the above from options (allows the solver details to be modified from the command line)
+
+
+Currently the matrix is set to be a sequential matrix. An improvement would be a block matrix, which should just require modification in this part of the code. The only other use of Petsc in the code is the SETVALUE calls in calc_residual and calc_jacobian and the SNESSolve command in csd_main.
 
 <a name="future"></a>
 ## Future Fixes 
-Most parameters (most notably those stored in con_vars) are currently constant in space. However, the indexing on these still uses the indexing functions, just with x and y set to 0. If these were modified in the future, that needs to be updated.
+1. Most parameters (most notably those stored in con_vars) are currently constant in space. However, the indexing on these still uses the indexing functions, just with x and y set to 0. If these were modified in the future, that needs to be updated.
 
 However, some calls to con_vars->ao or zo, might have the wrong indexing function. It needs to be indexed by phi_index and not al_index.
 
-A consequence of the transition is that c_index(x,y,comp,ion) does not agree with Ind_1(x,y,ion,comp). Ind_1 is used for the row and column ordering of the matrix. It has not been swapped because Ind_1 counts up the "ion" number by Nv and not Ni. This allows us to put in arguments like  Ind_1(x,y,Ni/Ni+1,comp) to represent the voltage and water flow equations.
+2. A consequence of the copying from Julia is that c_index(x,y,comp,ion) does not agree with Ind_1(x,y,ion,comp). Ind_1 is used for the row and column ordering of the matrix. It has not been swapped because Ind_1 counts up the "ion" number by Nv and not Ni. This allows us to put in arguments like  Ind_1(x,y,Ni/Ni+1,comp) to represent the voltage and water flow equations.
+
+3. Vectorize sections. Everything relies on taking values from c/phi/alpha arrays. But now we have these as vectors. We could use Petsc vector operations to likely do these faster. This improvement is necessary in order to realistically run this with MPI enabled.
+
+4. Use Petsc's Data Managment (DM) types. Specifically the DMDA for structured meshes. This will allow automatic use of multigrid and FAS.
