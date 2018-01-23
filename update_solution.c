@@ -91,6 +91,7 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
 {
     struct AppCtx * user = (struct AppCtx *) ctx;
     PetscErrorCode ierr;
+    PetscLogEventBegin(event[1],0,0,0,0);
     ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     //Compute membrane ionic flux relation quantitites
 //        PetscTime(&tic);
@@ -291,7 +292,7 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
      */
-
+    PetscLogEventEnd(event[1],0,0,0,0);
     return ierr;
 }
 
@@ -300,6 +301,7 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
 {
     struct AppCtx * user = (struct AppCtx *) ctx;
     PetscErrorCode ierr;
+    PetscLogEventBegin(event[0],0,0,0,0);
     ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     PetscReal *c = user->state_vars->c;
     PetscReal *al = user->state_vars->alpha;
@@ -741,11 +743,13 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
         ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr); }
 
     ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    PetscLogEventEnd(event[0],0,0,0,0);
     return ierr;
 }
 
 void volume_update(struct SimState *state_vars,struct SimState *state_vars_past, struct AppCtx *user)
 {
+    PetscLogEventBegin(event[7],0,0,0,0);
     int x,y,comp;
     PetscReal dt = user->dt;
     for(int n=0;n<1;n++) {
@@ -787,13 +791,14 @@ void volume_update(struct SimState *state_vars,struct SimState *state_vars_past,
             if (max_res < reltol) { return; }
         }
     }
-
+    PetscLogEventEnd(event[7],0,0,0,0);
 }
 
 PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ctx)
 {
     struct AppCtx * user = (struct AppCtx *) ctx;
     PetscErrorCode ierr;
+    PetscLogEventBegin(event[1],0,0,0,0);
     ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     //Compute membrane ionic flux relation quantitites
 //        PetscTime(&tic);
@@ -949,7 +954,7 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
     ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
-
+    PetscLogEventEnd(event[1],0,0,0,0);
     return ierr;
 }
 
@@ -958,6 +963,7 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
 {
     struct AppCtx * user = (struct AppCtx *) ctx;
     PetscErrorCode ierr;
+    PetscLogEventBegin(event[0],0,0,0,0);
     ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     PetscReal *c = user->state_vars->c;
     PetscReal *al = user->state_vars->alpha;
@@ -1312,5 +1318,6 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
         ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr); }
 
     ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    PetscLogEventEnd(event[0],0,0,0,0);
     return ierr;
 }

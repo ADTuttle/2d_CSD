@@ -75,6 +75,7 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars)
 }
 PetscErrorCode extract_subarray(Vec state,struct SimState *state_vars)
 {
+    PetscLogEventBegin(event[2],0,0,0,0);
     PetscErrorCode ierr;
     ierr = VecGetSubVector(state,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
     ierr = VecGetArray(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
@@ -87,6 +88,7 @@ PetscErrorCode extract_subarray(Vec state,struct SimState *state_vars)
         ierr = VecGetArray(state_vars->al_vec, &state_vars->alpha);
         CHKERRQ(ierr);
     }
+    PetscLogEventEnd(event[2],0,0,0,0);
 
     return ierr;
 
@@ -94,6 +96,7 @@ PetscErrorCode extract_subarray(Vec state,struct SimState *state_vars)
 
 PetscErrorCode restore_subarray(Vec state,struct SimState *state_vars)
 {
+    PetscLogEventBegin(event[3],0,0,0,0);
     PetscErrorCode ierr;
 
     ierr = VecRestoreArray(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
@@ -113,6 +116,7 @@ PetscErrorCode restore_subarray(Vec state,struct SimState *state_vars)
 
     state_vars->c = NULL;
     state_vars->phi = NULL;
+    PetscLogEventEnd(event[3],0,0,0,0);
 
     return ierr;
 
@@ -368,7 +372,6 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 	//Init Petsc
 	PetscInitialize(&argc,&argv,(char*)0,NULL);
   	ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
-
   	//Create Vectors
     ierr = VecCreate(PETSC_COMM_WORLD,&slvr->Q);CHKERRQ(ierr);
     ierr = VecSetType(slvr->Q,VECSEQ);CHKERRQ(ierr);
@@ -388,7 +391,9 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
   	// ierr = MatSetFromOptions(slvr->A);CHKERRQ(ierr);
   	ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
 
+
     //Initialize Space
+
     ierr = initialize_jacobian(slvr->A); CHKERRQ(ierr);
     ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
 
@@ -426,21 +431,21 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
     //Gmres type methods
 //     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
-    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
-    /*
+//    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
+//    /*
     ierr = KSPSetType(slvr->ksp,KSPDGMRES); CHKERRQ(ierr);
 
     ierr = KSPGMRESSetRestart(slvr->ksp,40); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_eigen","10"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_max_eigen","100"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_force",""); CHKERRQ(ierr);
-*/
+//*/
 
 
 
     ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
     //Multigrid precond
-    ierr = Initialize_PCMG(slvr->pc,slvr->A); CHKERRQ(ierr);
+//    ierr = Initialize_PCMG(slvr->pc,slvr->A); CHKERRQ(ierr);
 
     //LU Direct solve
     /*
@@ -448,13 +453,13 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
     */
     // ILU Precond
-    /*
+//    /*
     ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
     ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
     ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
     ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     ierr = PCFactorSetMatOrderingType(slvr->pc,MATORDERINGNATURAL); CHKERRQ(ierr);
-    */
+//    */
 //     ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     PetscReal div_tol = 1e12;
 //    PetscReal abs_tol = 1e-13;

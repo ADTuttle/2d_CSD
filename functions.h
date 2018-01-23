@@ -6,7 +6,8 @@
 #include <petscsnes.h>
 #include <petscksp.h>
 #include <petscmat.h>
-#include "petscsys.h" 
+#include <petscsys.h>
+#include <petsclog.h>
 //Function to initialize the state
 void init(Vec,struct SimState *);
 //Solve until steady state (mostly to update gating_vars)
@@ -83,6 +84,7 @@ const char* getfield(char* , int );
 void find_print(int, int, double, int iter);
 void compare_res(double *, int );
 void write_data(FILE *,struct SimState *,int );
+void init_events(struct AppCtx *);
 
 
 #endif
