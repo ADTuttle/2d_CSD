@@ -71,6 +71,9 @@ PetscErrorCode calc_residual(SNES,Vec,Vec,void*); //void is masked AppCtx
 PetscErrorCode calc_jacobian(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
 PetscErrorCode calc_residual_no_vol(SNES,Vec,Vec,void*); //void is masked AppCtx
 PetscErrorCode calc_jacobian_no_vol(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
+PetscErrorCode calc_residual_algebraic(SNES,Vec,Vec,void*); //void is masked AppCtx
+PetscErrorCode calc_jacobian_algebraic(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
+
 
 //Find abs. max value of an array
 PetscReal array_max(PetscReal *,size_t);
