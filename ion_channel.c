@@ -190,7 +190,9 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale)
 
 void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,PetscReal dtms,PetscInt firstpass)
 {
-	PetscLogEventBegin(event[4],0,0,0,0);
+	if(Profiling_on) {
+		PetscLogEventBegin(event[4], 0, 0, 0, 0);
+	}
 	if(firstpass)
 	{
 		//membrane potential in mV
@@ -324,7 +326,9 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,Pets
   			}
   		}
   	}
-	PetscLogEventEnd(event[4],0,0,0,0);
+	if(Profiling_on) {
+		PetscLogEventEnd(event[4], 0, 0, 0, 0);
+	}
 }
 
 void excitation(struct ExctType *exct,PetscReal t)
@@ -369,7 +373,9 @@ void excitation(struct ExctType *exct,PetscReal t)
 
 void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState *state_vars_past,struct GateType *gvars, struct ExctType *gexct,struct ConstVars *con_vars)
 {
-	PetscLogEventBegin(event[5],0,0,0,0);
+	if(Profiling_on) {
+		PetscLogEventBegin(event[5], 0, 0, 0, 0);
+	}
     //Variables to save to for ease of notation
     PetscReal vm,vmg,vmgp;
     PetscReal ci,cg,ce,cgp,cep;
@@ -485,7 +491,9 @@ void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState 
             }
         }
     }
-	PetscLogEventEnd(event[5],0,0,0,0);
+	if(Profiling_on) {
+		PetscLogEventEnd(event[5], 0, 0, 0, 0);
+	}
 }
 void wflowm(struct FluxData *flux,struct SimState *state_vars,struct ConstVars *con_vars)
 {
@@ -493,7 +501,9 @@ void wflowm(struct FluxData *flux,struct SimState *state_vars,struct ConstVars *
   // piw is the total number of ions in a compartment
   //outward transmembrane water flow seen as a function of
   //osmotic pressure and volume fraction or pressure.
-	PetscLogEventBegin(event[6],0,0,0,0);
+	if(Profiling_on) {
+		PetscLogEventBegin(event[6], 0, 0, 0, 0);
+	}
     PetscReal dwdpi,dwdal,piw,piwNc;
     for(PetscInt x=0;x<Nx;x++)
     {
@@ -524,7 +534,9 @@ void wflowm(struct FluxData *flux,struct SimState *state_vars,struct ConstVars *
             }
         }
     }
-	PetscLogEventEnd(event[6],0,0,0,0);
+	if(Profiling_on) {
+		PetscLogEventEnd(event[6], 0, 0, 0, 0);
+	}
 }
 
 

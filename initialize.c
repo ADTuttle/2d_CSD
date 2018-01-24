@@ -75,7 +75,9 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars)
 }
 PetscErrorCode extract_subarray(Vec state,struct SimState *state_vars)
 {
-    PetscLogEventBegin(event[2],0,0,0,0);
+    if(Profiling_on) {
+        PetscLogEventBegin(event[2], 0, 0, 0, 0);
+    }
     PetscErrorCode ierr;
     ierr = VecGetSubVector(state,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
     ierr = VecGetArray(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
@@ -88,7 +90,9 @@ PetscErrorCode extract_subarray(Vec state,struct SimState *state_vars)
         ierr = VecGetArray(state_vars->al_vec, &state_vars->alpha);
         CHKERRQ(ierr);
     }
-    PetscLogEventEnd(event[2],0,0,0,0);
+    if(Profiling_on) {
+        PetscLogEventEnd(event[2], 0, 0, 0, 0);
+    }
 
     return ierr;
 
@@ -96,7 +100,9 @@ PetscErrorCode extract_subarray(Vec state,struct SimState *state_vars)
 
 PetscErrorCode restore_subarray(Vec state,struct SimState *state_vars)
 {
-    PetscLogEventBegin(event[3],0,0,0,0);
+    if(Profiling_on) {
+        PetscLogEventBegin(event[3], 0, 0, 0, 0);
+    }
     PetscErrorCode ierr;
 
     ierr = VecRestoreArray(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
@@ -116,7 +122,9 @@ PetscErrorCode restore_subarray(Vec state,struct SimState *state_vars)
 
     state_vars->c = NULL;
     state_vars->phi = NULL;
-    PetscLogEventEnd(event[3],0,0,0,0);
+    if(Profiling_on) {
+        PetscLogEventEnd(event[3], 0, 0, 0, 0);
+    }
 
     return ierr;
 

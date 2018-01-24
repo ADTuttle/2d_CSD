@@ -14,12 +14,14 @@ int main(int argc, char **argv)
     struct AppCtx *user;
     user = (struct AppCtx*)malloc(sizeof(struct AppCtx));
     ierr = initialize_petsc(slvr,argc,argv,user);CHKERRQ(ierr);
-    PetscLogStage stage1,stage2;
-    PetscLogStageRegister("Initialize",&stage1);
-    PetscLogStageRegister("Main Loop",&stage2);
-    //Start events
-    init_events(user);
-    PetscLogStagePush(stage1);
+
+    if(Profiling_on) {
+        PetscLogStage stage1;
+        PetscLogStageRegister("Initialize", &stage1);
+        //Start events
+        init_events(user);
+        PetscLogStagePush(stage1);
+    }
 
     printf("\n\n\nGrid size: %dx%d, with %d ions, and %d compartments.\n",Nx,Ny,Ni,Nc);
     PetscLogDouble tic,toc,full_tic,full_toc;
@@ -80,17 +82,18 @@ int main(int argc, char **argv)
     user->state_vars_past=state_vars_past;
     user->state_vars=state_vars;
 
-    //Initialize event log
-//    PetscLogEventRegister()
-
     printf("Steady State Routine\n");
 
 	//Run Initialization routine to get to steady state
 	initialize_data(current_state,user);
 
-    PetscLogStagePop();
-    PetscLogStagePush(stage2);
-    init_events(user);
+    if(Profiling_on) {
+        PetscLogStage stage2;
+        PetscLogStageRegister("Main Loop", &stage2);
+        PetscLogStagePop();
+        PetscLogStagePush(stage2);
+        init_events(user);
+    }
     printf("Beginning Main Routine \n");
     printf("\n\n\n");
     //Open file to write to
@@ -163,10 +166,12 @@ int main(int argc, char **argv)
     fclose(fptime);
     printf("Finished Running. Full solve time: %.10e\n",full_toc-full_tic);
 
-    PetscLogStagePop();
-//    PetscLogView(PETSC_VIEWER_STDOUT_SELF);
+    if(Profiling_on) {
+        PetscLogStagePop();
+        PetscLogView(PETSC_VIEWER_STDOUT_SELF);
+    }
     //Free memory
-    VecDestroy(&state_vars->v); VecDestroy(&state_vars_past->v);
+    VecDestroy(&current_state); VecDestroy(&state_vars_past->v);
     free(state_vars);free(con_vars);free(gate_vars);
     VecDestroy(&slvr->Q); VecDestroy(&slvr->Res); MatDestroy(&slvr->A);
     KSPDestroy(&slvr->ksp);

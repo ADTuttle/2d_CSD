@@ -213,7 +213,9 @@ void compare_res(double *Res, int iter)
 
 void write_data(FILE *fp,struct SimState *state_vars,int start)
 {
-    PetscLogEventBegin(event[8],0,0,0,0);
+    if(Profiling_on) {
+        PetscLogEventBegin(event[8], 0, 0, 0, 0);
+    }
     if(start) {
 
         fprintf(fp,"%d,%d,%d,%d,%d\n",Nx,Ny,(int)floor(numrecords),Nc,Ni);
@@ -256,7 +258,9 @@ void write_data(FILE *fp,struct SimState *state_vars,int start)
             }
         }
     }
-    PetscLogEventEnd(event[8],0,0,0,0);
+    if(Profiling_on) {
+        PetscLogEventEnd(event[8], 0, 0, 0, 0);
+    }
 }
 
 void init_events(struct AppCtx *user)
