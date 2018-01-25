@@ -213,6 +213,9 @@ void compare_res(double *Res, int iter)
 
 void write_data(FILE *fp,struct SimState *state_vars,int start)
 {
+    if(Profiling_on) {
+        PetscLogEventBegin(event[8], 0, 0, 0, 0);
+    }
     if(start) {
 
         fprintf(fp,"%d,%d,%d,%d,%d\n",Nx,Ny,(int)floor(numrecords),Nc,Ni);
@@ -255,4 +258,55 @@ void write_data(FILE *fp,struct SimState *state_vars,int start)
             }
         }
     }
+    if(Profiling_on) {
+        PetscLogEventEnd(event[8], 0, 0, 0, 0);
+    }
+}
+
+void init_events(struct AppCtx *user)
+{
+    PetscLogDefaultBegin();
+
+
+    PetscClassId id;
+    PetscClassIdRegister("CSD",&id);
+
+    PetscLogEventRegister("Jacobian",id,&event[0]);
+    PetscLogEventRegister("Residual",id,&event[1]);
+    PetscLogEventRegister("Extract Subarray",id,&event[2]);
+    PetscLogEventRegister("Restore Subarray",id,&event[3]);
+    PetscLogEventRegister("Gating Variables",id,&event[4]);
+    PetscLogEventRegister("Ion Flux",id,&event[5]);
+    PetscLogEventRegister("Water Flux",id,&event[6]);
+    PetscLogEventRegister("Volume Update",id,&event[7]);
+    PetscLogEventRegister("Write to File",id,&event[8]);
+
+    //Deactivate Petsc tracking
+    PetscLogEvent deactivate;
+
+    PetscLogEventDeactivateClass(MAT_CLASSID);
+    PetscLogEventDeactivateClass(KSP_CLASSID); /* includes PC and KSP */
+    PetscLogEventDeactivateClass(VEC_CLASSID);
+//    PetscLogEventDeactivateClass(SNES_CLASSID);
+
+    //Some events are leftover somehow
+
+    PetscLogEventGetId("PCApply",&deactivate);
+    PetscLogEventDeactivate(deactivate);
+    PetscLogEventGetId("VecSet",&deactivate);
+    PetscLogEventDeactivate(deactivate);
+    PetscLogEventGetId("MatAssemblyBegin",&deactivate);
+    PetscLogEventDeactivate(deactivate);
+    PetscLogEventGetId("MatAssemblyEnd",&deactivate);
+    PetscLogEventDeactivate(deactivate);
+    PetscLogEventGetId("SNESLineSearch",&deactivate);
+    PetscLogEventDeactivate(deactivate);
+    PetscLogEventGetId("PCSetUp",&deactivate);
+    PetscLogEventDeactivate(deactivate);
+
+    PetscLogEventGetId("SNESFunctionEval",&deactivate);
+    PetscLogEventDeactivate(deactivate);
+    PetscLogEventGetId("SNESJacobianEval",&deactivate);
+    PetscLogEventDeactivate(deactivate);
+
 }

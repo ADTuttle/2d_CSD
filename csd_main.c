@@ -15,6 +15,14 @@ int main(int argc, char **argv)
     user = (struct AppCtx*)malloc(sizeof(struct AppCtx));
     ierr = initialize_petsc(slvr,argc,argv,user);CHKERRQ(ierr);
 
+    if(Profiling_on) {
+        PetscLogStage stage1;
+        PetscLogStageRegister("Initialize", &stage1);
+        //Start events
+        init_events(user);
+        PetscLogStagePush(stage1);
+    }
+
     printf("\n\n\nGrid size: %dx%d, with %d ions, and %d compartments.\n",Nx,Ny,Ni,Nc);
     PetscLogDouble tic,toc,full_tic,full_toc;
     //Create state_variables struct
@@ -79,6 +87,13 @@ int main(int argc, char **argv)
 	//Run Initialization routine to get to steady state
 	initialize_data(current_state,user);
 
+    if(Profiling_on) {
+        PetscLogStage stage2;
+        PetscLogStageRegister("Main Loop", &stage2);
+        PetscLogStagePop();
+        PetscLogStagePush(stage2);
+        init_events(user);
+    }
     printf("Beginning Main Routine \n");
     printf("\n\n\n");
     //Open file to write to
@@ -127,6 +142,7 @@ int main(int argc, char **argv)
         }
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
+
         gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,0);
         if(separate_vol) {
             //Update volume (this uses new c values for wflow)
@@ -149,11 +165,18 @@ int main(int argc, char **argv)
     fprintf(fptime,"%d,%f\n",count,full_toc-full_tic);
     fclose(fptime);
     printf("Finished Running. Full solve time: %.10e\n",full_toc-full_tic);
+
+    if(Profiling_on) {
+        PetscLogStagePop();
+        PetscLogView(PETSC_VIEWER_STDOUT_SELF);
+    }
     //Free memory
+    VecDestroy(&current_state); VecDestroy(&state_vars_past->v);
     free(state_vars);free(con_vars);free(gate_vars);
     VecDestroy(&slvr->Q); VecDestroy(&slvr->Res); MatDestroy(&slvr->A);
     KSPDestroy(&slvr->ksp);
     free(slvr);
+    PetscFinalize();
     return 0;
 }
 
