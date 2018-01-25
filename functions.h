@@ -66,13 +66,20 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A);
 
 //Newton Solver
 PetscErrorCode newton_solve(Vec,struct AppCtx*);
-//Calculate residual
+//Calculate residuals and jacobians
+
+// Derivative of CC with volume
 PetscErrorCode calc_residual(SNES,Vec,Vec,void*); //void is masked AppCtx
 PetscErrorCode calc_jacobian(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
+//Derivative of CC with no volume
 PetscErrorCode calc_residual_no_vol(SNES,Vec,Vec,void*); //void is masked AppCtx
 PetscErrorCode calc_jacobian_no_vol(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
+//Algebraic CC with volume
 PetscErrorCode calc_residual_algebraic(SNES,Vec,Vec,void*); //void is masked AppCtx
 PetscErrorCode calc_jacobian_algebraic(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
+//Algebraic CC with no volume
+PetscErrorCode calc_residual_algebraic_no_vol(SNES,Vec,Vec,void*); //void is masked AppCtx
+PetscErrorCode calc_jacobian_algebraic_no_vol(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
 
 
 //Find abs. max value of an array

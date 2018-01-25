@@ -426,6 +426,13 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
         //Set Jacobian eval
         ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian_algebraic, user);
         CHKERRQ(ierr);
+    } else if(separate_vol && !use_en_deriv){
+        //Set Function eval
+        ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual_algebraic_no_vol, user);
+        CHKERRQ(ierr);
+        //Set Jacobian eval
+        ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian_algebraic_no_vol, user);
+        CHKERRQ(ierr);
     } else{
         //Set Function eval
         ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual, user);
@@ -1086,16 +1093,18 @@ PetscErrorCode initialize_jacobian(Mat Jac) {
                     ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp), Ind_1(x, y, Ni, comp), 0, INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
-                    //Extra phi with intra-Volume
-                    ierr = MatSetValue(Jac, Ind_1(x, y, Ni, Nc - 1), Ind_1(x, y, Ni + 1, comp), 0,
-                                       INSERT_VALUES);
-                    CHKERRQ(ierr);
-                    ind++;
-                    //Intra phi with Intra Vol
-                    ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp), Ind_1(x, y, Ni + 1, comp), 0,
-                                       INSERT_VALUES);
-                    CHKERRQ(ierr);
-                    ind++;
+                    if(!separate_vol) {
+                        //Extra phi with intra-Volume
+                        ierr = MatSetValue(Jac, Ind_1(x, y, Ni, Nc - 1), Ind_1(x, y, Ni + 1, comp), 0,
+                                           INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        //Intra phi with Intra Vol
+                        ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp), Ind_1(x, y, Ni + 1, comp), 0,
+                                           INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
                 }
             }
         }
