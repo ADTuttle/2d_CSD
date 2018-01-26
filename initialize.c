@@ -412,34 +412,43 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 //    ierr = KSPCreate(PETSC_COMM_WORLD,&slvr->ksp);CHKERRQ(ierr);
     ierr = SNESGetKSP(slvr->snes,&slvr->ksp); CHKERRQ(ierr);
 
-    if(separate_vol && use_en_deriv){
+    if(Linear_Diffusion){
         //Set Function eval
-        ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual_no_vol, user);
+        ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual_linear_algebraic, user);
         CHKERRQ(ierr);
         //Set Jacobian eval
-        ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian_no_vol, user);
+        ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian_linear_algebraic, user);
         CHKERRQ(ierr);
-    } else if(!separate_vol && !use_en_deriv){
-        //Set Function eval
-        ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual_algebraic, user);
-        CHKERRQ(ierr);
-        //Set Jacobian eval
-        ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian_algebraic, user);
-        CHKERRQ(ierr);
-    } else if(separate_vol && !use_en_deriv){
-        //Set Function eval
-        ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual_algebraic_no_vol, user);
-        CHKERRQ(ierr);
-        //Set Jacobian eval
-        ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian_algebraic_no_vol, user);
-        CHKERRQ(ierr);
-    } else{
-        //Set Function eval
-        ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual, user);
-        CHKERRQ(ierr);
-        //Set Jacobian eval
-        ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian, user);
-        CHKERRQ(ierr);
+    }else {
+        if (separate_vol && use_en_deriv) {
+            //Set Function eval
+            ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual_no_vol, user);
+            CHKERRQ(ierr);
+            //Set Jacobian eval
+            ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian_no_vol, user);
+            CHKERRQ(ierr);
+        } else if (!separate_vol && !use_en_deriv) {
+            //Set Function eval
+            ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual_algebraic, user);
+            CHKERRQ(ierr);
+            //Set Jacobian eval
+            ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian_algebraic, user);
+            CHKERRQ(ierr);
+        } else if (separate_vol && !use_en_deriv) {
+            //Set Function eval
+            ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual_algebraic_no_vol, user);
+            CHKERRQ(ierr);
+            //Set Jacobian eval
+            ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian_algebraic_no_vol, user);
+            CHKERRQ(ierr);
+        } else {
+            //Set Function eval
+            ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual, user);
+            CHKERRQ(ierr);
+            //Set Jacobian eval
+            ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian, user);
+            CHKERRQ(ierr);
+        }
     }
     //Set SNES types
     ierr = SNESSetType(slvr->snes,SNESNEWTONLS); CHKERRQ(ierr);
