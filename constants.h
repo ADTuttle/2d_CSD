@@ -7,15 +7,15 @@
 
 //set global parameters here (static constants)
 
-static const int use_en_deriv = 0; //if true, will use the derivative of the electroneutrality condition for the system of equations
+static const int use_en_deriv = 1; //if true, will use the derivative of the electroneutrality condition for the system of equations
 static const PetscInt separate_vol = 1; //if true, will solve c,phi separate from alpha.
 static const int details = 0; //if true, will show how many iterations were necessary for each newton solve, and the residual
-static const int krecordfreq = 10; //determines how many time steps to run before recording the state variables
 static const int two_points_exct = 0;   //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
-static const int savefreq = 500;
 static const int Profiling_on = 1; //Turns timing of functions on/off.
 static const int Linear_Diffusion = 1; //Changes to a linear discretization of electrodiffusion.
-
+static const int krecordfreq = 10; //determines how many time steps to run before recording the state variables
+//static const int krecordfreq = 1; //determines how many time steps to run before recording the state variables
+static const int save_one_var = 0;
 //basic ion static constants
 static const   PetscInt Ni = 3;            //number of ion species (Na, K, Cl)
 static const   PetscInt z[3] = {1,1,-1};//valences of ion species
@@ -27,17 +27,17 @@ static const 	PetscReal dt = 0.01;
 //static const   PetscReal Time = 3e-2;
 // static const   PetscReal Time = 1e-1;
 //static const   PetscReal Time = 1;
-// static const  PetscReal   Time = 10;
-//static const  PetscReal   Time=3;
-static const  PetscReal  Time = 60;//2e-2        //total simulated time in seconds
+ static const  PetscReal   Time = 10;
+//static const  PetscReal   Time = 24;
+//static const  PetscReal  Time = 60;//2e-2        //total simulated time in seconds
 // static const    Time=2e-2
 static const  PetscInt  Nc = 3;            //number of compartments
 //  static const PetscInt  Nx = 64;         //number of grid points in the x direction
 //  static const PetscInt   Ny = 64;      //number of grid points in the y direction
-// static const  PetscInt  Nx = 50;
-// static const  PetscInt  Ny = 50;
-static const PetscInt   Nx = 32;
-static const PetscInt  Ny = 32;
+ static const  PetscInt  Nx = 50;
+ static const  PetscInt  Ny = 50;
+//static const PetscInt   Nx = 32;
+//static const PetscInt  Ny = 32;
 static const PetscReal  dx = 0.01;        //grid size in x direction (in cm)
 static const PetscReal   dy = 0.01;        //grid size in y direction (in cm)
 static const PetscReal  Lx = Nx*dx;          //width of domain in cm (x)

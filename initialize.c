@@ -413,12 +413,21 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = SNESGetKSP(slvr->snes,&slvr->ksp); CHKERRQ(ierr);
 
     if(Linear_Diffusion){
-        //Set Function eval
-        ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual_linear_algebraic, user);
-        CHKERRQ(ierr);
-        //Set Jacobian eval
-        ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian_linear_algebraic, user);
-        CHKERRQ(ierr);
+        if(use_en_deriv){
+            //Set Function eval
+            ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual_linear_deriv, user);
+            CHKERRQ(ierr);
+            //Set Jacobian eval
+            ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian_linear_deriv, user);
+            CHKERRQ(ierr);
+        } else {
+            //Set Function eval
+            ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual_linear_algebraic, user);
+            CHKERRQ(ierr);
+            //Set Jacobian eval
+            ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian_linear_algebraic, user);
+            CHKERRQ(ierr);
+        }
     }else {
         if (separate_vol && use_en_deriv) {
             //Set Function eval

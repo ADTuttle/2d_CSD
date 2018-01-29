@@ -216,43 +216,63 @@ void write_data(FILE *fp,struct SimState *state_vars,int start)
     if(Profiling_on) {
         PetscLogEventBegin(event[8], 0, 0, 0, 0);
     }
-    if(start) {
+    if(!save_one_var) {
+        if (start) {
 
-        fprintf(fp,"%d,%d,%d,%d,%d\n",Nx,Ny,(int)floor(numrecords),Nc,Ni);
-        write_data(fp,state_vars,0);
-    }else {
-        int ion, comp, x, y;
-        for (ion = 0; ion < Ni; ion++) {
+            fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, (int) floor(numrecords), Nc, Ni);
+            write_data(fp, state_vars, 0);
+        } else {
+            int ion, comp, x, y;
+            for (ion = 0; ion < Ni; ion++) {
+                for (comp = 0; comp < Nc; comp++) {
+                    for (y = 0; y < Ny; y++) {
+                        for (x = 0; x < Nx; x++) {
+                            if (x == Nx - 1 & y == Ny - 1) {
+                                fprintf(fp, "%f\n", state_vars->c[c_index(x, y, comp, ion)]);
+                            } else {
+                                fprintf(fp, "%f,", state_vars->c[c_index(x, y, comp, ion)]);
+                            }
+                        }
+                    }
+                }
+            }
             for (comp = 0; comp < Nc; comp++) {
                 for (y = 0; y < Ny; y++) {
                     for (x = 0; x < Nx; x++) {
-                        if(x==Nx-1 & y==Ny-1){
-                            fprintf(fp, "%f\n", state_vars->c[c_index(x, y, comp, ion)]);
-                        }else {
-                            fprintf(fp, "%f,", state_vars->c[c_index(x, y, comp, ion)]);
+                        if (x == Nx - 1 & y == Ny - 1) {
+                            fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, comp)] * RTFC);
+                        } else {
+                            fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, comp)] * RTFC);
+                        }
+                    }
+                }
+            }
+            for (comp = 0; comp < Nc - 1; comp++) {
+                for (y = 0; y < Ny; y++) {
+                    for (x = 0; x < Nx; x++) {
+                        if (x == Nx - 1 & y == Ny - 1) {
+                            fprintf(fp, "%f\n", state_vars->alpha[al_index(x, y, comp)]);
+                        } else {
+                            fprintf(fp, "%f,", state_vars->alpha[al_index(x, y, comp)]);
                         }
                     }
                 }
             }
         }
-        for (comp = 0; comp < Nc; comp++) {
+    } else{
+        if (start) {
+
+            fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, (int) floor(numrecords), 0, 0);
+            write_data(fp, state_vars, 0);
+        } else {
+            int ion, comp, x, y;
+            comp = 0;
             for (y = 0; y < Ny; y++) {
                 for (x = 0; x < Nx; x++) {
-                    if(x==Nx-1 & y==Ny-1){
-                        fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, comp)]);
+                    if (x == Nx - 1 & y == Ny - 1) {
+                        fprintf(fp, "%f\n", (state_vars->phi[phi_index(x, y, comp)]-state_vars->phi[phi_index(x, y, Nc-1)]) * RTFC);
                     } else {
-                        fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, comp)]);
-                    }
-                }
-            }
-        }
-        for (comp = 0; comp < Nc - 1; comp++) {
-            for (y = 0; y < Ny; y++) {
-                for (x = 0; x < Nx; x++) {
-                    if(x==Nx-1 & y==Ny-1){
-                        fprintf(fp, "%f\n", state_vars->alpha[al_index(x, y, comp)]);
-                    } else {
-                        fprintf(fp, "%f,", state_vars->alpha[al_index(x, y, comp)]);
+                        fprintf(fp, "%f,", (state_vars->phi[phi_index(x, y, comp)]-state_vars->phi[phi_index(x, y, Nc-1)]) * RTFC);
                     }
                 }
             }

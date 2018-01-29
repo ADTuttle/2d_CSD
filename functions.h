@@ -86,6 +86,8 @@ PetscErrorCode calc_jacobian_algebraic_no_vol(SNES, Vec, Mat,Mat, void*); //void
 // Linear system Algebraic CC with no volume
 PetscErrorCode calc_residual_linear_algebraic(SNES,Vec,Vec,void*); //void is masked AppCtx
 PetscErrorCode calc_jacobian_linear_algebraic(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
+PetscErrorCode calc_residual_linear_deriv(SNES,Vec,Vec,void*); //void is masked AppCtx
+PetscErrorCode calc_jacobian_linear_deriv(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
 
 
 //Find abs. max value of an array
