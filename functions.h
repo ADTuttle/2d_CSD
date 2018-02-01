@@ -17,6 +17,7 @@ void initialize_data(Vec,struct AppCtx*);
 void set_params(Vec,struct SimState *,struct ConstVars*,struct GateType*,struct FluxData*);
 
 //Data management functions
+void init_arrays(struct AppCtx*);
 PetscErrorCode init_simstate(Vec,struct SimState*);
 PetscErrorCode extract_subarray(Vec,struct SimState*);
 PetscErrorCode restore_subarray(Vec,struct SimState*);

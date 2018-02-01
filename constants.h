@@ -158,28 +158,28 @@ struct SimState{
 };
 
 struct FluxData{
-	PetscReal mflux[Nx*Ny*Ni*Nc];
-	PetscReal dfdci[Nx*Ny*Ni*Nc];
-	PetscReal dfdce[Nx*Ny*Ni*Nc];
-	PetscReal dfdphim[Nx*Ny*Ni*Nc];
-	PetscReal wflow[Nx*Ny*(Nc-1)];
-	PetscReal dwdpi[Nx*Ny*(Nc-1)];
-	PetscReal dwdal[Nx*Ny*(Nc-1)];
+	PetscReal *mflux;
+	PetscReal *dfdci;
+	PetscReal *dfdce;
+	PetscReal *dfdphim;
+	PetscReal *wflow;
+	PetscReal *dwdpi;
+	PetscReal *dwdal;
 };
 
 
 struct GateType{
-	PetscReal mNaT[Nx*Ny];
-	PetscReal hNaT[Nx*Ny];
-	PetscReal gNaT[Nx*Ny];
-	PetscReal mNaP[Nx*Ny];
-	PetscReal hNaP[Nx*Ny];
-	PetscReal gNaP[Nx*Ny];
-	PetscReal mKDR[Nx*Ny];
-	PetscReal gKDR[Nx*Ny];
-	PetscReal mKA[Nx*Ny];
-	PetscReal hKA[Nx*Ny];
-	PetscReal gKA[Nx*Ny];
+	PetscReal *mNaT;
+	PetscReal *hNaT;
+	PetscReal *gNaT;
+	PetscReal *mNaP;
+	PetscReal *hNaP;
+	PetscReal *gNaP;
+	PetscReal *mKDR;
+	PetscReal *gKDR;
+	PetscReal *mKA;
+	PetscReal *hKA;
+	PetscReal *gKA;
 };
 struct GatePoint{
 	PetscReal mNaT;
@@ -196,9 +196,9 @@ struct GatePoint{
 };
 
 struct ExctType{
-	PetscReal pNa[Nx*Ny];
-	PetscReal pK[Nx*Ny];
-	PetscReal pCl[Nx*Ny];
+	PetscReal *pNa;
+	PetscReal *pK;
+	PetscReal *pCl;
 };
 
 struct ConstVars{
@@ -207,12 +207,12 @@ struct ConstVars{
 	PetscReal pNaLeak;
 	PetscReal Imaxg;
 	PetscReal pNaLeakg;
-	PetscReal ao[Nc];
-	PetscReal zo[Nc];
+	PetscReal *ao;
+	PetscReal *zo;
 	PetscReal kappa;
-	PetscReal zeta1[Nc-1];
+	PetscReal *zeta1;
 	int S; //boolean
-	PetscReal zetaalpha[Nc-1];
+	PetscReal *zetaalpha;
 };
 struct Solver{
 	Vec Q;      /* Update*/
@@ -232,8 +232,8 @@ struct AppCtx{
     struct GateType *gate_vars;
     struct ExctType *gexct;
     struct ConstVars *con_vars;
-    PetscReal Dcs[Nx*Ny*Ni*Nc*2];
-    PetscReal Dcb[Nx*Ny*Ni*Nc*2];
+    PetscReal *Dcs;
+    PetscReal *Dcb;
     PetscReal dt;
 };
 PetscLogEvent event[10];

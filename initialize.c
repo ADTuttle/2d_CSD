@@ -167,6 +167,47 @@ void init(Vec state,struct SimState *state_vars)
     restore_subarray(state,state_vars);
 }
 
+void init_arrays(struct AppCtx*user)
+{
+
+    //Flux quantities
+    user->flux->mflux = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
+    user->flux->dfdci = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
+    user->flux->dfdce = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
+    user->flux->dfdphim = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
+    user->flux->wflow = (PetscReal*) malloc(Nx*Ny*(Nc-1)*sizeof(PetscReal));
+    user->flux->dwdpi = (PetscReal*) malloc(Nx*Ny*(Nc-1)*sizeof(PetscReal));
+    user->flux->dwdal = (PetscReal*) malloc(Nx*Ny*(Nc-1)*sizeof(PetscReal));
+
+    //Gating variables
+    user->gate_vars->mNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->hNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->gNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->mNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->hNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->gNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->mKDR = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->gKDR = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->mKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->hKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->gKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+
+
+    //Excitation
+    user->gexct->pNa = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gexct->pK = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gexct->pCl = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+
+    //Constant params
+    user->con_vars->ao = (PetscReal*) malloc(Nc*sizeof(PetscReal));
+    user->con_vars->zo = (PetscReal*) malloc(Nc*sizeof(PetscReal));
+    user->con_vars->zeta1 = (PetscReal*) malloc((Nc-1)*sizeof(PetscReal));
+    user->con_vars->zetaalpha = (PetscReal*) malloc((Nc-1)*sizeof(PetscReal));
+
+    //Diffusion in ctx
+    user->Dcs = (PetscReal*) malloc(Nx*Ny*Ni*Nc*2*sizeof(PetscReal));
+    user->Dcb = (PetscReal*) malloc(Nx*Ny*Ni*Nc*2*sizeof(PetscReal));
+}
 void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars,struct GateType* gate_vars,struct FluxData *flux)
 {
     extract_subarray(state,state_vars);

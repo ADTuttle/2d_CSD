@@ -68,10 +68,6 @@ int main(int argc, char **argv)
     //Create Excitation
     struct ExctType *gexct;
     gexct = (struct ExctType*)malloc(sizeof(struct ExctType));
-
-    //Set the constant variables
-    set_params(current_state,state_vars,con_vars,gate_vars,flux);
-
     //Pass data structs over to AppCtx
 
     user->slvr = slvr;
@@ -81,6 +77,14 @@ int main(int argc, char **argv)
     user->gexct=gexct;
     user->state_vars_past=state_vars_past;
     user->state_vars=state_vars;
+
+    //Init misc. array sizes
+    init_arrays(user);
+
+    //Set the constant variables
+    set_params(current_state,state_vars,con_vars,gate_vars,flux);
+
+
 
     printf("Steady State Routine\n");
 

@@ -29,7 +29,7 @@ csd:
 	#View assembly file?
 	# gcc -O3 $(LFlags)   -S csd initialize.o csd_main.o ion_channel.o array_function.o update_solution.o $(Linker) -lpetsc -lf2clapack -lf2cblas -lX11 -ldl 
 
-	rm csd_main.o initialize.o linear_update.o ion_channel.o array_function.o update_solution.o misc_print_plot.o
+	rm csd_main.o constants.o initialize.o linear_update.o ion_channel.o array_function.o update_solution.o misc_print_plot.o
 
 debug: 
 	clang -O0 -g -o csd_main.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/csd_main.c
