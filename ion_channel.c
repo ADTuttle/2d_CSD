@@ -353,7 +353,8 @@ void excitation(struct ExctType *exct,PetscReal t)
 	  		if( t<texct && i<Nexct && j<Nexct)
 	  		{
 	    		pexct=pmax*(sin(pi*t/texct))*RTFC/FC;
-	    		xexct=pow((cos(pi/2*(i+.5)/Nexct))*(cos(pi/2*(j+.5)/Nexct)),2);
+//	    		xexct=pow((cos(pi/2*(i+.5)/Nexct))*(cos(pi/2*(j+.5)/Nexct)),2);
+				xexct=pow((cos(pi/2*(i)/Nexct))*(cos(pi/2*(j)/Nexct)),2);
 	    		pany=pexct*xexct;
 	    		exct->pNa[xy_index(i,j)]=pany;
 	    		exct->pK[xy_index(i,j)]=pany;

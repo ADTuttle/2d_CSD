@@ -16,6 +16,7 @@ Linker= -L$(PETSC_DIR)/lib -L/opt/X11/lib
 
 LFlags= -Wall -march=native -mtune=native
 csd: 
+	gcc -O3 -g -o constants.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/constants.c
 	gcc -O3 -o csd_main.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/csd_main.c
 	gcc -O3 -o initialize.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/initialize.c
 	gcc -O3 -o ion_channel.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/ion_channel.c
@@ -24,8 +25,7 @@ csd:
 	gcc -O3 -g -o misc_print_plot.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/misc_print_plot.c
 	gcc -O3 -g -o linear_update.o -c $(Flags) $(Includes) $(CSD_Includes) `pwd`/linear_update.c
 
-
-	gcc -O3 $(LFlags)   -o csd linear_update.o initialize.o csd_main.o ion_channel.o array_function.o update_solution.o misc_print_plot.o $(Linker) -lpetsc -lf2clapack -lf2cblas -lX11 -ldl 
+	gcc -O3 $(LFlags)   -o csd constants.o linear_update.o initialize.o csd_main.o ion_channel.o array_function.o update_solution.o misc_print_plot.o $(Linker) -lpetsc -lf2clapack -lf2cblas -lX11 -ldl 
 	#View assembly file?
 	# gcc -O3 $(LFlags)   -S csd initialize.o csd_main.o ion_channel.o array_function.o update_solution.o $(Linker) -lpetsc -lf2clapack -lf2cblas -lX11 -ldl 
 

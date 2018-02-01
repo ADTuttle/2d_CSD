@@ -490,6 +490,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     /*
     ierr = PCSetType(slvr->pc,PCLU);CHKERRQ(ierr);
     ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
+     ierr = PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
     */
     // ILU Precond
 //    /*

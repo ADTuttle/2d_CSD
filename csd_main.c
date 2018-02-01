@@ -99,12 +99,11 @@ int main(int argc, char **argv)
     //Open file to write to
     FILE *fp;
     fp = fopen("data_csd.txt","w");
-
     FILE *fptime;
     fptime = fopen("timing.txt","a");
     extract_subarray(current_state,state_vars);
-    write_data(fp,state_vars,1);
-
+//    write_data(fp,state_vars,1);
+    write_point(fp,state_vars,1);
     //Reset time step
     user->dt = dt;
     //Create the excitation
@@ -156,9 +155,10 @@ int main(int argc, char **argv)
             SNESGetConvergedReason(user->slvr->snes,&reason);
             printf("Time: %f,Newton time: %f,iters:%d, Reason: %d\n",t, toc - tic,num_iters,reason);
             if(reason<0){
-                fprintf(stderr, "Netwon Iteration did not converge! Stopping...\n");
+                fprintf(stderr, "Netwon Iteration did not converge! Stopping at %f...\n",t);
                 exit(EXIT_FAILURE); /* indicate failure.*/}
-            write_data(fp, state_vars, 0);
+//            write_data(fp, state_vars, 0);
+            write_point(fp, state_vars, 0);
         }
 
     }

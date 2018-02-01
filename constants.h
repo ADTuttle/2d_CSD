@@ -5,127 +5,138 @@
 #include <petscmat.h>
 #include <petscsnes.h>
 
-//set global parameters here (static constants)
+//set global parameters here (extern constants)
 
-static const int use_en_deriv = 1; //if true, will use the derivative of the electroneutrality condition for the system of equations
-static const PetscInt separate_vol = 1; //if true, will solve c,phi separate from alpha.
-static const int details = 0; //if true, will show how many iterations were necessary for each newton solve, and the residual
-static const int two_points_exct = 0;   //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
-static const int Profiling_on = 1; //Turns timing of functions on/off.
-static const int Linear_Diffusion = 1; //Changes to a linear discretization of electrodiffusion.
-static const int krecordfreq = 10; //determines how many time steps to run before recording the state variables
-//static const int krecordfreq = 1; //determines how many time steps to run before recording the state variables
-static const int save_one_var = 0;
-//basic ion static constants
+extern const int use_en_deriv ; //if true, will use the derivative of the electroneutrality condition for the system of equations
+extern const PetscInt separate_vol; //if true, will solve c,phi separate from alpha.
+extern const int details; //if true, will show how many iterations were necessary for each newton solve, and the residual
+extern const int two_points_exct;   //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
+extern const int Profiling_on; //Turns timing of functions on/off.
+extern const int Linear_Diffusion; //Changes to a linear discretization of electrodiffusion.
+//extern const int krecordfreq = 10; //determines how many time steps to run before recording the state variables
+extern const int krecordfreq; //determines how many time steps to run before recording the state variables
+extern const int save_one_var;
+//basic ion extern constants
 static const   PetscInt Ni = 3;            //number of ion species (Na, K, Cl)
-static const   PetscInt z[3] = {1,1,-1};//valences of ion species
-static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
+extern const   PetscInt z[3];//valences of ion species
+extern const   PetscReal D[3];      //diffusion coefficients in cm^2/sec
 
 //grid parameters
-// static const   PetscReal dt = 1e-2 ;        //time step (in s)
-static const 	PetscReal dt = 0.01;
-//static const   PetscReal Time = 3e-2;
-// static const   PetscReal Time = 1e-1;
-//static const   PetscReal Time = 1;
- static const  PetscReal   Time = 10;
-//static const  PetscReal   Time = 24;
-//static const  PetscReal  Time = 60;//2e-2        //total simulated time in seconds
-// static const    Time=2e-2
+// extern const   PetscReal dt = 1e-2 ;        //time step (in s)
+extern const 	PetscReal dt;
+//extern const 	PetscReal dt = 0.001;
+//extern const   PetscReal Time = 3e-2;
+// extern const   PetscReal Time = 1e-1;
+//extern const   PetscReal Time = 1;
+ extern const  PetscReal   Time;
+//extern const  PetscReal   Time = 24;
+//extern const  PetscReal  Time = 60;//2e-2        //total simulated time in seconds
+// extern const    Time=2e-2
 static const  PetscInt  Nc = 3;            //number of compartments
-//  static const PetscInt  Nx = 64;         //number of grid points in the x direction
-//  static const PetscInt   Ny = 64;      //number of grid points in the y direction
- static const  PetscInt  Nx = 50;
- static const  PetscInt  Ny = 50;
-//static const PetscInt   Nx = 32;
-//static const PetscInt  Ny = 32;
-static const PetscReal  dx = 0.01;        //grid size in x direction (in cm)
-static const PetscReal   dy = 0.01;        //grid size in y direction (in cm)
-static const PetscReal  Lx = Nx*dx;          //width of domain in cm (x)
-static const PetscReal  Ly = Ny*dy;         //length of domain in cm (y)
-static const PetscInt  Nt = Time/dt;     //total number of time steps
+  // extern const PetscInt  Nx;         //number of grid points in the x direction
+  // extern const PetscInt   Ny;      //number of grid points in the y direction
+// extern const  PetscInt  Nx = 100;
+// extern const  PetscInt  Ny = 100;
+static const PetscInt   Nx = 32;
+static const PetscInt  Ny = 32;
+extern const PetscReal  dx;        //grid size in x direction (in cm)
+extern const PetscReal   dy;        //grid size in y direction (in cm)
+//extern const PetscReal  dx = 0.02;        //grid size in x direction (in cm)
+//extern const PetscReal   dy = 0.02;        //grid size in y direction (in cm)
+extern const PetscReal  Lx;          //width of domain in cm (x)
+extern const PetscReal  Ly;         //length of domain in cm (y)
+extern const PetscInt  Nt;     //total number of time steps
 
-static const PetscReal numrecords = Time/(dt*krecordfreq);
+extern const PetscReal numrecords;
 
 //Newton solve parameters
 //number of variables to be solved for at each grid point
-//static const PetscInt  Nv = (Ni+2)*Nc-1; //version if volume is included
-//static const PetscInt  Nv = (Ni+1)*Nc; //version if volume is excluded
-static const PetscInt  Nv = ((Ni+2)*Nc-1)*(!separate_vol)+((Ni+1)*Nc)*separate_vol;  //combining the above two with the separate_vol
-static const PetscInt  NA = Nx*Ny*Nv;     //total number of unknowns
-static const PetscInt Nz = Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny);
+//extern const PetscInt  Nv = (Ni+2)*Nc-1; //version if volume is included
+//extern const PetscInt  Nv = (Ni+1)*Nc; //version if volume is excluded
+extern const PetscInt  Nv;   //combining the above two with the separate_vol
+extern const PetscInt  NA;     //total number of unknowns
+extern const PetscInt Nz;
 
- static const PetscInt  itermax = 10;      //maximum Newton iterations allowed
-//static const PetscInt itermax = 4;
-static const PetscReal  reltol = 1e-11;    //relative tolerance
+ extern const PetscInt  itermax;      //maximum Newton iterations allowed
+//extern const PetscInt itermax = 4;
+extern const PetscReal  reltol;    //relative tolerance
 
 
-//physical static constants
-static const  PetscReal  R = 8.314472e6;    //gas static constant in nJ/K/mmol
-static const  PetscReal  T = 273.15+37;     //absolute temperature in K
-static const  PetscReal  FC = 9.64853399e7; //Faraday static constant in muC/mmol
-static const  PetscReal  RTFC = R*T/FC;
+//physical extern constants
+extern const  PetscReal  R;    //gas extern constant in nJ/K/mmol
+extern const  PetscReal  T;     //absolute temperature in K
+extern const  PetscReal  FC; //Faraday extern constant in muC/mmol
+extern const  PetscReal  RTFC;
 #define pi 3.14159265358979323846 //M_PI is defined in some C implementations, but isn't in gen.
 //So we define pi here.
 
 //Bath variables
-static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
-static const PetscReal Batheps=1; //Bath diffusion multiplier
-static const PetscReal phibath=-0/RTFC;
+extern const PetscReal cbath[3]; //Na, K, and Cl
+extern const PetscReal Batheps; //Bath diffusion multiplier
+extern const PetscReal phibath;
 
 //excitation parameters
-static const  PetscReal  pmax  = 5;          //max value for excitation
-static const  PetscReal  texct = 2;          //time for excitation
-static const  PetscInt  Nexct = 5;          //number of grid points for excitation in each directionexport pmax, texct, Nexct
+extern const  PetscReal  pmax;          //max value for excitation
+//extern const  PetscReal  pmax  = 25;          //max value for excitation
+extern const  PetscReal  texct;          //time for excitation
+extern const  PetscInt  Nexct;          //number of grid points for excitation in each direction
 
 //initial state setup
-static const PetscInt rest_state = 1;        //if true, membrane parameters are set so that the initial voltages and concentrations are at a rest state
-static const PetscInt spatially_uniform = 0; //if true, all initial values and parameters are spatially uniform
+extern const PetscInt rest_state;        //if true, membrane parameters are set so that the initial voltages and concentrations are at a rest state
+extern const PetscInt spatially_uniform ; //if true, all initial values and parameters are spatially uniform
 
 
 
 //set "relaxed" volume fractions and initial volume fractions
-static const long double alphaon = .5;         //base neuronal volume fraction
-static const long double alphaog = .300000;        //base glial volume fraction
+extern const long double alphaon;         //base neuronal volume fraction
+extern const long double alphaog;        //base glial volume fraction
       // alphaotemp = zeros(Nx,Ny,Nc-1)
       // alphaotemp[:,:,1] = alphaon
       // alphaotemp[:,:,2] = alphaog
-// static const alphao = alphaotemp
+// extern const alphao = alphaotemp
       // alpha0 = copy(alphao) //initial volume fractions equal to "relaxed" volume fractions
-static const PetscReal alphao[2]={alphaon,alphaog};
-//static const PetscReal alphao[2]={0.5,0.3};
-static const PetscReal alpha0[2]={alphaon,alphaog};
+extern const PetscReal alphao[2];
+//extern const PetscReal alphao[2]={0.5,0.3};
+extern const PetscReal alpha0[2];
 // membrane parameters
-static const    PetscReal cmt = 0.75e-3;            //membrane capacitance in mF/cm^2
+extern const    PetscReal cmt;            //membrane capacitance in mF/cm^2
       // cmt = repmat([cmt],Nc-1)
-static const PetscReal sa = 1.586e-5;           //membrane area in cm^2
-static const PetscReal voli = 2.16e-9;          //intracellular volume in cm^3
-static const PetscReal vole = 0.15*voli;        //extracellular volume
-static const PetscReal ell = (voli+vole)/sa;    //average membrane separation in cm
-static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
+extern const PetscReal sa;           //membrane area in cm^2
+extern const PetscReal voli;          //intracellular volume in cm^3
+extern const PetscReal vole;        //extracellular volume
+extern const PetscReal ell ;    //average membrane separation in cm
+extern const PetscReal cm[2];     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
-static const PetscReal pNaT = 0;                  //1e-4%0%1e-3%if set to 0, recovery possible
-static const PetscReal pNaP = 2e-5;
-static const PetscReal pKDR = 1e-3;
-static const PetscReal pKA = 1e-4;
+extern const PetscReal pNaT;                  //1e-4%0%1e-3%if set to 0, recovery possible
+extern const PetscReal pNaP;
+extern const PetscReal pKDR;
+extern const PetscReal pKA;
 
 //Leak conductances in mS/cm^2 from Kager, 2000 or Yao, Huang, Miura, 2011.
-static const PetscReal pKLeak = 7e-2*RTFC/FC;     //Kager:10e-2,Miura:7e-2%K Leak conductance in mS/cm^2 converted to mmol/cm^2/s
-static const PetscReal pClLeak = 10e-2*RTFC/FC;   //Kager:10e-2,Miura:20e-2%Cl Leak conductance in mS/cm^2 converted to mmol/cm^2/s
-static const PetscReal pClLeakg = 5e-2*RTFC/FC;
+extern const PetscReal pKLeak;     //Kager:10e-2,Miura:7e-2%K Leak conductance in mS/cm^2 converted to mmol/cm^2/s
+extern const PetscReal pClLeak;   //Kager:10e-2,Miura:20e-2%Cl Leak conductance in mS/cm^2 converted to mmol/cm^2/s
+extern const PetscReal pClLeakg;
 
 //Glial KIR from Steinberg et al 2005
-static const PetscReal pKIR = .13*RTFC/FC;        //conductance in mS/cm^2 converted to mmol/cm^2/s
-static const PetscReal pKLeakadjust = 1.0;        //parameter for varying glial permeability
+extern const PetscReal pKIR;        //conductance in mS/cm^2 converted to mmol/cm^2/s
+extern const PetscReal pKLeakadjust;        //parameter for varying glial permeability
 
 //pump current, parameters from Yao, Huang, Miura, 2011
-static const PetscReal mK = 2e-3;                 //pump current static constant in mmol/cm^3=mol/l
-static const PetscReal mNa = 7.7e-3;              //pump current static constant in mmol/cm^3=mol/l
-static const PetscReal glpump = 1.0;              //multiplier to change glial pump rate
-static const PetscReal npump = 1.0;               //multiplier to change neuronal pump rate
+extern const PetscReal mK;                 //pump current extern constant in mmol/cm^3=mol/l
+extern const PetscReal mNa;              //pump current extern constant in mmol/cm^3=mol/l
+extern const PetscReal glpump;              //multiplier to change glial pump rate
+extern const PetscReal npump;               //multiplier to change neuronal pump rate
 
 
+// extern const struct Simstate;
+// extern const struct FluxData;
+// extern const struct AppCtx;
+// extern const struct GateType;
+// extern const struct ConstVars;
+// extern const struct ExctType;
+// extern const struct Solver;
 
 //struct SimState{
 //	PetscReal c[Nx*Ny*Nc*Ni];

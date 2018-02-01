@@ -102,6 +102,7 @@ const char* getfield(char* , int );
 void find_print(int, int, double, int iter);
 void compare_res(double *, int );
 void write_data(FILE *,struct SimState *,int );
+void write_point(FILE *,struct SimState *,int );
 void init_events(struct AppCtx *);
 
 
