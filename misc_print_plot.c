@@ -1,4 +1,5 @@
 #include "functions.h"
+#include "constants.h"
 #include <string.h>
 #include <math.h>
 
@@ -211,7 +212,7 @@ void compare_res(double *Res, int iter)
     return;
 }
 
-void write_data(FILE *fp,struct SimState *state_vars,int start)
+void write_data(FILE *fp,struct SimState *state_vars,PetscReal numrecords,int start)
 {
     if(Profiling_on) {
         PetscLogEventBegin(event[8], 0, 0, 0, 0);
@@ -219,7 +220,7 @@ void write_data(FILE *fp,struct SimState *state_vars,int start)
     if(!save_one_var) {
         if (start) {
             fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, (int) floor(numrecords), Nc, Ni);
-            write_data(fp, state_vars, 0);
+            write_data(fp, state_vars, numrecords,0);
         } else {
             int ion, comp, x, y;
             for (ion = 0; ion < Ni; ion++) {
@@ -261,7 +262,7 @@ void write_data(FILE *fp,struct SimState *state_vars,int start)
     } else{
         if (start) {
             fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, (int) floor(numrecords), 0, 0);
-            write_data(fp, state_vars, 0);
+            write_data(fp, state_vars,numrecords, 0);
         } else {
             int ion, comp, x, y;
             comp = 0;
@@ -282,14 +283,14 @@ void write_data(FILE *fp,struct SimState *state_vars,int start)
         PetscLogEventEnd(event[8], 0, 0, 0, 0);
     }
 }
-void write_point(FILE *fp,struct SimState *state_vars,int start)
+void write_point(FILE *fp,struct SimState *state_vars,PetscReal numrecords,int start)
 {
     if(Profiling_on) {
         PetscLogEventBegin(event[8], 0, 0, 0, 0);
     }
     if (start) {
         fprintf(fp, "%d,%d,%d,%d,%d,%d,%d,%d\n", Nx, Ny, (int) floor(numrecords), Nc, Ni,use_en_deriv,separate_vol,Linear_Diffusion);
-        write_point(fp, state_vars, 0);
+        write_point(fp, state_vars,numrecords, 0);
         } else {
             int ion, comp;
             int x =10;
