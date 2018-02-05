@@ -18,9 +18,10 @@
 
 //basic ion extern constants
 #define   Ni  3           //number of ion species (Na, K, Cl)
-//const  PetscInt z[3] = {1,1,-1};//valences of ion species
-extern const PetscInt z[3]; //valences of ion species
-extern const PetscReal D[3]; //diffusion coefficients in cm^2/sec
+//extern const PetscInt z[3]; //valences of ion species
+//extern const PetscReal D[3]; //diffusion coefficients in cm^2/sec
+static const   PetscInt z[3] = {1,1,-1};//valences of ion species
+static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
 
 //grid parameters
@@ -56,7 +57,8 @@ extern const PetscReal D[3]; //diffusion coefficients in cm^2/sec
 //So we define pi here.
 
 //Bath variables
-extern PetscReal cbath[3]; //Na, K, and Cl
+//extern PetscReal cbath[3]; //Na, K, and Cl
+static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
 #define Batheps 1 //Bath diffusion multiplier
 #define phibath (-0/RTFC) //Voltage of outside bath
 
@@ -73,15 +75,18 @@ extern PetscReal cbath[3]; //Na, K, and Cl
 //set "relaxed" volume fractions and initial volume fractions
 #define  alphaon 0.5         //base neuronal volume fraction
 #define alphaog 0.300000       //base glial volume fraction
-extern const PetscReal alphao[2];
-extern const PetscReal alpha0[2];
+//extern const PetscReal alphao[2];
+//extern const PetscReal alpha0[2];
+static const PetscReal alphao[2]={alphaon,alphaog};
+static const PetscReal alpha0[2]={alphaon,alphaog};
 // membrane parameters
 #define  cmt  0.75e-3            //membrane capacitance in mF/cm^2
  #define sa  1.586e-5          //membrane area in cm^2
  #define voli  2.16e-9         //intracellular volume in cm^3
 #define vole (0.15*voli)
 #define ell (voli+vole/sa)    //average membrane separation in cm
-extern const PetscReal cm[2];     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
+//extern const PetscReal cm[2];     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
+static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
 
 
 //data for ion channel currents

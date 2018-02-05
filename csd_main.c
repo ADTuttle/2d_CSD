@@ -161,7 +161,7 @@ int main(int argc, char **argv)
         if(count%krecordfreq==0) {
             SNESGetIterationNumber(user->slvr->snes,&num_iters);
             SNESGetConvergedReason(user->slvr->snes,&reason);
-//            printf("Time: %f,Newton time: %f,iters:%d, Reason: %d\n",t, toc - tic,num_iters,reason);
+            printf("Time: %f,Newton time: %f,iters:%d, Reason: %d\n",t, toc - tic,num_iters,reason);
             if(reason<0){
                 fprintf(stderr, "Netwon Iteration did not converge! Stopping at %f...\n",t);
                 exit(EXIT_FAILURE); /* indicate failure.*/}
