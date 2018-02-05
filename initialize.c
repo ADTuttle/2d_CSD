@@ -353,9 +353,9 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 void initialize_data(Vec current_state,struct AppCtx *user)
 {
 
-	PetscReal reltol = 1e-11;
+	PetscReal convtol = 1e-11;
     extract_subarray(current_state,user->state_vars);
-	PetscReal tol = reltol*array_max(user->state_vars->c,(size_t)Nx*Ny*Nc*Ni);
+	PetscReal tol = convtol*array_max(user->state_vars->c,(size_t)Nx*Ny*Nc*Ni);
   	PetscReal rsd = 1.0;
   	PetscReal *cp;
   	cp = (PetscReal *)malloc(sizeof(PetscReal)*Nx*Ny*Ni*Nc);

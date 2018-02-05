@@ -110,8 +110,8 @@ int main(int argc, char **argv)
     FILE *fptime;
     fptime = fopen("timing.txt","a");
     extract_subarray(current_state,state_vars);
-//    write_data(fp,state_vars,numrecords,1);
-    write_point(fp,state_vars,numrecords,1);
+    write_data(fp,state_vars,numrecords,1);
+//    write_point(fp,state_vars,numrecords,1);
     //Reset time step
     user->dt = dt;
     //Create the excitation
@@ -161,12 +161,12 @@ int main(int argc, char **argv)
         if(count%krecordfreq==0) {
             SNESGetIterationNumber(user->slvr->snes,&num_iters);
             SNESGetConvergedReason(user->slvr->snes,&reason);
-            printf("Time: %f,Newton time: %f,iters:%d, Reason: %d\n",t, toc - tic,num_iters,reason);
+//            printf("Time: %f,Newton time: %f,iters:%d, Reason: %d\n",t, toc - tic,num_iters,reason);
             if(reason<0){
                 fprintf(stderr, "Netwon Iteration did not converge! Stopping at %f...\n",t);
                 exit(EXIT_FAILURE); /* indicate failure.*/}
-//            write_data(fp, state_vars,numrecords, 0);
-            write_point(fp, state_vars,numrecords, 0);
+            write_data(fp, state_vars,numrecords, 0);
+//            write_point(fp, state_vars,numrecords, 0);
         }
 
     }
