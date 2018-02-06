@@ -8,8 +8,10 @@
 int main(int argc, char **argv)
 {
     PetscReal dt =0.01;
-    PetscInt Nt = Time/dt;
-    PetscReal numrecords = Time/(dt*krecordfreq);
+    PetscInt Nt = (PetscInt) floor(Time/dt);
+    PetscInt numrecords = (PetscInt)floor(Time/trecordstep);
+    PetscInt krecordfreq = (PetscInt)floor(trecordstep/dt);
+    printf("%f\n",dx);
 
     PetscErrorCode ierr;
     //Petsc Initialize
@@ -162,12 +164,13 @@ int main(int argc, char **argv)
             SNESGetIterationNumber(user->slvr->snes,&num_iters);
             SNESGetConvergedReason(user->slvr->snes,&reason);
             printf("Time: %f,Newton time: %f,iters:%d, Reason: %d\n",t, toc - tic,num_iters,reason);
-            if(reason<0){
-                fprintf(stderr, "Netwon Iteration did not converge! Stopping at %f...\n",t);
-                exit(EXIT_FAILURE); /* indicate failure.*/}
-            write_data(fp, state_vars,numrecords, 0);
 //            write_point(fp, state_vars,numrecords, 0);
+            write_data(fp, state_vars,numrecords, 0);
         }
+        SNESGetConvergedReason(user->slvr->snes,&reason);
+        if(reason<0){
+            fprintf(stderr, "Netwon Iteration did not converge! Stopping at %f...\n",t);
+            exit(EXIT_FAILURE); /* indicate failure.*/}
 
     }
     PetscTime(&full_toc);

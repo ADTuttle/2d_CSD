@@ -10,10 +10,10 @@
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
-#define two_points_exct 0   //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
+#define mid_points_exct 1   //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 #define Profiling_on 1 //Turns timing of functions on/off.
-#define Linear_Diffusion 1 //Changes to a linear discretization of electrodiffusion.
-#define krecordfreq 10 //determines how many time steps to run before recording the state variables
+#define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
+#define trecordstep 0.1 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 
 //basic ion extern constants
@@ -23,17 +23,19 @@
 static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
-
 //grid parameters
 #define Time 20.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
-#define  Nx  32     //number of grid points in the x direction
-#define  Ny  32     //number of grid points in the y direction
-#define dx 0.01       //grid size in x direction (in cm)
-#define dy 0.01        //grid size in y direction (in cm)
-#define Lx (Nx*dx)         //width of domain in cm (x)
-#define Ly (Ny*dy)         //length of domain in cm (y)
+//#define Lx 0.32        //width of domain in cm (x)
+//#define Ly 0.32         //length of domain in cm (y)
+#define Lx 0.5        //width of domain in cm (x)
+#define Ly 0.5         //length of domain in cm (y)
+#define  Nx  48     //number of grid points in the x direction
+#define  Ny  48     //number of grid points in the y direction
+#define dx (Lx/Nx)       //grid size in x direction (in cm)
+#define dy (Ly/Ny)        //grid size in y direction (in cm)
+
 
 
 //number of variables to be solved for at each grid point
@@ -59,13 +61,14 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 //Bath variables
 //extern PetscReal cbath[3]; //Na, K, and Cl
 static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
-#define Batheps 1 //Bath diffusion multiplier
+#define Batheps 1.0 //Bath diffusion multiplier
 #define phibath (-0/RTFC) //Voltage of outside bath
 
 //excitation parameters
 #define pmax  5          //max value for excitation
 #define texct 2         //time for excitation
-#define Nexct 5          //number of grid points for excitation in each direction
+//#define Lexct 0.05          //Length of region for excitation in each direction
+#define Lexct 0.025          //Length of region for excitation in each direction
 
 //initial state setup
 #define rest_state  1        //if true, membrane parameters are set so that the initial voltages and concentrations are at a rest state

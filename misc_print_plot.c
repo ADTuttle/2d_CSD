@@ -212,14 +212,14 @@ void compare_res(double *Res, int iter)
     return;
 }
 
-void write_data(FILE *fp,struct SimState *state_vars,PetscReal numrecords,int start)
+void write_data(FILE *fp,struct SimState *state_vars,PetscInt numrecords,int start)
 {
     if(Profiling_on) {
         PetscLogEventBegin(event[8], 0, 0, 0, 0);
     }
     if(!save_one_var) {
         if (start) {
-            fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, (int) floor(numrecords), Nc, Ni);
+            fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, numrecords, Nc, Ni);
             write_data(fp, state_vars, numrecords,0);
         } else {
             int ion, comp, x, y;
@@ -283,13 +283,13 @@ void write_data(FILE *fp,struct SimState *state_vars,PetscReal numrecords,int st
         PetscLogEventEnd(event[8], 0, 0, 0, 0);
     }
 }
-void write_point(FILE *fp,struct SimState *state_vars,PetscReal numrecords,int start)
+void write_point(FILE *fp,struct SimState *state_vars,PetscInt numrecords,int start)
 {
     if(Profiling_on) {
         PetscLogEventBegin(event[8], 0, 0, 0, 0);
     }
     if (start) {
-        fprintf(fp, "%d,%d,%d,%d,%d,%d,%d,%d\n", Nx, Ny, (int) floor(numrecords), Nc, Ni,use_en_deriv,separate_vol,Linear_Diffusion);
+        fprintf(fp, "%d,%d,%d,%d,%d,%d,%d,%d\n", Nx, Ny, numrecords, Nc, Ni,use_en_deriv,separate_vol,Linear_Diffusion);
         write_point(fp, state_vars,numrecords, 0);
         } else {
             int ion, comp;

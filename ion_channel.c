@@ -338,38 +338,48 @@ void excitation(struct ExctType *exct,PetscReal t)
   //all units converted to mmol/cm^2/sec
   	PetscReal pexct,pany;
   	PetscReal xexct;
-  	for(PetscInt i=0;i<Nx;i++)
-  	{
-	  	for(PetscInt j=0;j<Ny;j++)
-	  		{
-	  		if(two_points_exct)
-	  		{
-	  			fprintf(stderr, "Two Points Exct is not implemented\n");
-	    		exit(EXIT_FAILURE); /* indicate failure.*/
-	    		// centerpointx=floor(Nx/2)
-	    		// xexct[centerpointx+1:centerpointx+Nexct,1:Nexct]=xexct[1:Nexct,1:Nexct]
-	    		// xexct[centerpointx+1-Nexct:centerpointx,1:Nexct]=xexct[Nexct:-1:1,1:Nexct]
-	  		}
-	  		if( t<texct && i<Nexct && j<Nexct)
-	  		{
-	    		pexct=pmax*(sin(pi*t/texct))*RTFC/FC;
+    PetscReal radius;
+    PetscInt num_points = 0;
+  	for(PetscInt i=0;i<Nx;i++) {
+	  	for(PetscInt j=0;j<Ny;j++) {
+            if(mid_points_exct) {
+                radius = sqrt(pow((i + 0.5) * dx-Lx/2, 2) + pow((j + 0.5) * dy-Lx/2, 2));
+                if (t < texct && radius < Lexct) {
+                    num_points++;
+                    pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
+                    xexct = pow(cos(pi / 2 * (radius / Lexct)), 2);
+                    pany = pexct * xexct;
+                    exct->pNa[xy_index(i, j)] = pany;
+                    exct->pK[xy_index(i, j)] = pany;
+                    exct->pCl[xy_index(i, j)] = pany;
+                } else {
+                    //pexct=0*RTFC/FC
+                    exct->pNa[xy_index(i, j)] = 0;
+                    exct->pK[xy_index(i, j)] = 0;
+                    exct->pCl[xy_index(i, j)] = 0;
+	  		    }
+            }else{
+                radius = sqrt(pow((i + 0.5) * dx, 2) + pow((j + 0.5) * dy, 2));
+                if (t < texct && radius < Lexct) {
+                    num_points++;
+                    pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
 //	    		xexct=pow((cos(pi/2*(i+.5)/Nexct))*(cos(pi/2*(j+.5)/Nexct)),2);
-				xexct=pow((cos(pi/2*(i)/Nexct))*(cos(pi/2*(j)/Nexct)),2);
-	    		pany=pexct*xexct;
-	    		exct->pNa[xy_index(i,j)]=pany;
-	    		exct->pK[xy_index(i,j)]=pany;
-	    		exct->pCl[xy_index(i,j)]=pany;
-			}
-	  		else
-	  		{
-	    		//pexct=0*RTFC/FC
-	    		exct->pNa[xy_index(i,j)]=0;
-	    		exct->pK[xy_index(i,j)]=0;
-	    		exct->pCl[xy_index(i,j)]=0;
-			}
+                    xexct = pow(cos(pi / 2 * (radius / Lexct)), 2);
+//				xexct=pow((cos(pi/2*((i+.5)*dx)/Lexct))*(cos(pi/2*((j+.5)*dy)/Lexct)),2);
+                    pany = pexct * xexct;
+                    exct->pNa[xy_index(i, j)] = pany;
+                    exct->pK[xy_index(i, j)] = pany;
+                    exct->pCl[xy_index(i, j)] = pany;
+                } else {
+                    //pexct=0*RTFC/FC
+                    exct->pNa[xy_index(i, j)] = 0;
+                    exct->pK[xy_index(i, j)] = 0;
+                    exct->pCl[xy_index(i, j)] = 0;
+                }
+            }
 		}
 	}
-
+//    printf("Number of excited points: %d\n",num_points);
 }
 
 void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState *state_vars_past,struct GateType *gvars, struct ExctType *gexct,struct ConstVars *con_vars)
