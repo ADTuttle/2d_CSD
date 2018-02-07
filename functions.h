@@ -46,11 +46,11 @@ void volume_update(struct SimState*,struct SimState*,struct AppCtx*);
 void excitation(struct ExctType *,PetscReal);
 
 // Indexing functions
-PetscInt c_index(PetscInt,PetscInt,PetscInt,PetscInt);
-PetscInt phi_index(PetscInt,PetscInt,PetscInt);
-PetscInt al_index(PetscInt,PetscInt,PetscInt);
-PetscInt xy_index(PetscInt,PetscInt);
-PetscInt Ind_1(PetscInt,PetscInt,PetscInt,PetscInt);
+PetscInt c_index(PetscInt,PetscInt,PetscInt,PetscInt,PetscInt);
+PetscInt phi_index(PetscInt,PetscInt,PetscInt,PetscInt);
+PetscInt al_index(PetscInt,PetscInt,PetscInt,PetscInt);
+PetscInt xy_index(PetscInt,PetscInt,PetscInt);
+PetscInt Ind_1(PetscInt,PetscInt,PetscInt,PetscInt,PetscInt);
 PetscInt Ind_nx(PetscInt,PetscInt ,PetscInt ,PetscInt , PetscInt );
 
 

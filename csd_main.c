@@ -3,6 +3,12 @@
 #include <stdlib.h>
 #include "functions.h"
 
+const PetscInt Nx = 32;
+const PetscInt Ny = 32;
+PetscReal dx = Lx/Nx;
+PetscReal dy = Ly/Ny;
+PetscInt NA = Nx*Ny*Nv;//total number of unknowns
+PetscInt Nz = (Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny)); //number of nonzeros in Jacobian
 
 
 int main(int argc, char **argv)

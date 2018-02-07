@@ -19,14 +19,14 @@ void print_all(PetscReal *Dcs, PetscReal *Dcb, struct ConstVars *con_vars, struc
     //Has x and y components
     //x will be saved at even positions (0,2,4,...)
     //y at odd (1,3,5,...)
-    //still use c_index(x,y,comp,ion), but with ind*2 or ind*2+1
+    //still use c_index(x,y,comp,ion,Nx), but with ind*2 or ind*2+1
 
     for(PetscInt ion=0;ion<Ni;ion++)
     {
         for(PetscInt comp=0;comp<Nc;comp++)
         {
             printf("Dcs: Ion %d, Comp %d ",ion,comp);
-            printf("Dcs x: %f, Dcs y: %f\n",1e6*Dcs[c_index(0,0,comp,ion)*2],1e6*Dcs[c_index(0,4,comp,ion)*2+1]);
+            printf("Dcs x: %f, Dcs y: %f\n",1e6*Dcs[c_index(0,0,comp,ion,Nx)*2],1e6*Dcs[c_index(0,4,comp,ion,Nx)*2+1]);
         }
     }
     printf("\n");
@@ -38,7 +38,7 @@ void print_all(PetscReal *Dcs, PetscReal *Dcb, struct ConstVars *con_vars, struc
         for(PetscInt comp=0;comp<Nc;comp++)
         {
             printf("Dcb: Ion %d, Comp %d ",ion,comp);
-            printf("Dcb x: %f, Dcb y: %f\n",1e6*Dcb[c_index(0,0,comp,ion)*2],1e6*Dcb[c_index(0,4,comp,ion)*2+1]);
+            printf("Dcb x: %f, Dcb y: %f\n",1e6*Dcb[c_index(0,0,comp,ion,Nx)*2],1e6*Dcb[c_index(0,4,comp,ion,Nx)*2+1]);
         }
     }
 
@@ -48,16 +48,16 @@ void print_all(PetscReal *Dcs, PetscReal *Dcb, struct ConstVars *con_vars, struc
     {
         for(PetscInt comp=0;comp<Nc;comp++)
         {
-            printf("Ion: %d, Comp %d, C: %.10e\n",ion,comp,state_vars->c[c_index(0,0,comp,ion)]);
+            printf("Ion: %d, Comp %d, C: %.10e\n",ion,comp,state_vars->c[c_index(0,0,comp,ion,Nx)]);
         }
     }
     for(PetscInt comp=0;comp<Nc;comp++)
     {
-        printf("Comp %d, Phi: %.10e\n",comp,state_vars->phi[phi_index(0,0,comp)]);
+        printf("Comp %d, Phi: %.10e\n",comp,state_vars->phi[phi_index(0,0,comp,Nx)]);
     }
     for(PetscInt comp=0;comp<Nc-1;comp++)
     {
-        printf("Comp %d, alpha: %.10e\n",comp,state_vars->alpha[al_index(0,0,comp)]);
+        printf("Comp %d, alpha: %.10e\n",comp,state_vars->alpha[al_index(0,0,comp,Nx)]);
     }
     printf("Gvars:\n");
     printf("NaT :%f,%f,%f*1e-6\n",gvars->mNaT[0],gvars->hNaT[0],1e6*gvars->gNaT[0]);
@@ -72,7 +72,7 @@ void print_all(PetscReal *Dcs, PetscReal *Dcb, struct ConstVars *con_vars, struc
         for(PetscInt comp=0;comp<Nc;comp++)
         {
             printf("Ion: %d, Comp %d\n",ion,comp);
-            printf("Flux: %f*1e20, dfdci: %f, dfdce: %f, dfdphim: %f\n",1e20*flux->mflux[c_index(0,0,comp,ion)],flux->dfdci[c_index(0,0,comp,ion)],flux->dfdce[c_index(0,0,comp,ion)],flux->dfdphim[c_index(0,0,comp,ion)]);
+            printf("Flux: %f*1e20, dfdci: %f, dfdce: %f, dfdphim: %f\n",1e20*flux->mflux[c_index(0,0,comp,ion,Nx)],flux->dfdci[c_index(0,0,comp,ion,Nx)],flux->dfdce[c_index(0,0,comp,ion,Nx)],flux->dfdphim[c_index(0,0,comp,ion,Nx)]);
         }
     }
     printf("\n");
@@ -80,7 +80,7 @@ void print_all(PetscReal *Dcs, PetscReal *Dcb, struct ConstVars *con_vars, struc
     for(PetscInt comp=0;comp<Nc-1;comp++)
     {
         printf("Comp: %d\n",comp);
-        printf("wFlux: %f,%f,%f\n",flux->wflow[al_index(x,y,comp)],flux->dwdpi[al_index(x,y,comp)],flux->dwdal[al_index(x,y,comp)]);
+        printf("wFlux: %f,%f,%f\n",flux->wflow[al_index(x,y,comp,Nx)],flux->dwdpi[al_index(x,y,comp,Nx)],flux->dwdal[al_index(x,y,comp,Nx)]);
     }
     printf("\n");
     // VecView(slvr->Res,PETSC_VIEWER_STDOUT_SELF);
@@ -228,9 +228,9 @@ void write_data(FILE *fp,struct SimState *state_vars,PetscInt numrecords,int sta
                     for (y = 0; y < Ny; y++) {
                         for (x = 0; x < Nx; x++) {
                             if (x == Nx - 1 & y == Ny - 1) {
-                                fprintf(fp, "%f\n", state_vars->c[c_index(x, y, comp, ion)]);
+                                fprintf(fp, "%f\n", state_vars->c[c_index(x, y, comp, ion,Nx)]);
                             } else {
-                                fprintf(fp, "%f,", state_vars->c[c_index(x, y, comp, ion)]);
+                                fprintf(fp, "%f,", state_vars->c[c_index(x, y, comp, ion,Nx)]);
                             }
                         }
                     }
@@ -240,9 +240,9 @@ void write_data(FILE *fp,struct SimState *state_vars,PetscInt numrecords,int sta
                 for (y = 0; y < Ny; y++) {
                     for (x = 0; x < Nx; x++) {
                         if (x == Nx - 1 & y == Ny - 1) {
-                            fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, comp)] * RTFC);
+                            fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, comp,Nx)] * RTFC);
                         } else {
-                            fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, comp)] * RTFC);
+                            fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, comp,Nx)] * RTFC);
                         }
                     }
                 }
@@ -251,9 +251,9 @@ void write_data(FILE *fp,struct SimState *state_vars,PetscInt numrecords,int sta
                 for (y = 0; y < Ny; y++) {
                     for (x = 0; x < Nx; x++) {
                         if (x == Nx - 1 & y == Ny - 1) {
-                            fprintf(fp, "%f\n", state_vars->alpha[al_index(x, y, comp)]);
+                            fprintf(fp, "%f\n", state_vars->alpha[al_index(x, y, comp,Nx)]);
                         } else {
-                            fprintf(fp, "%f,", state_vars->alpha[al_index(x, y, comp)]);
+                            fprintf(fp, "%f,", state_vars->alpha[al_index(x, y, comp,Nx)]);
                         }
                     }
                 }
@@ -269,11 +269,11 @@ void write_data(FILE *fp,struct SimState *state_vars,PetscInt numrecords,int sta
             for (y = 0; y < Ny; y++) {
                 for (x = 0; x < Nx; x++) {
                     if (x == Nx - 1 & y == Ny - 1) {
-                        fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, Nc-1)] * RTFC);
-//                        fprintf(fp, "%f\n", (state_vars->phi[phi_index(x, y, comp)]-state_vars->phi[phi_index(x, y, Nc-1)]) * RTFC);
+                        fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
+//                        fprintf(fp, "%f\n", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
                     } else {
-                        fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, Nc-1)] * RTFC);
-//                        fprintf(fp, "%f,", (state_vars->phi[phi_index(x, y, comp)]-state_vars->phi[phi_index(x, y, Nc-1)]) * RTFC);
+                        fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
+//                        fprintf(fp, "%f,", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
                     }
                 }
             }
@@ -297,18 +297,18 @@ void write_point(FILE *fp,struct SimState *state_vars,PetscInt numrecords,int st
             int y=10;
             for (ion = 0; ion < Ni; ion++) {
                 for (comp = 0; comp < Nc; comp++) {
-//                    fprintf(fp, "%f,", state_vars->c[c_index(x, y, comp, ion)]);
-                    fprintf(fp, "%.10e,", state_vars->c[c_index(x, y, comp, ion)]);
+//                    fprintf(fp, "%f,", state_vars->c[c_index(x, y, comp, ion,Nx)]);
+                    fprintf(fp, "%.10e,", state_vars->c[c_index(x, y, comp, ion,Nx)]);
                 }
             }
 
             for (comp = 0; comp < Nc; comp++) {
-//                fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, comp)] * RTFC);
-                fprintf(fp, "%.10e,", state_vars->phi[phi_index(x, y, comp)] * RTFC);
+//                fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, comp,Nx)] * RTFC);
+                fprintf(fp, "%.10e,", state_vars->phi[phi_index(x, y, comp,Nx)] * RTFC);
             }
             for (comp = 0; comp < Nc - 1; comp++) {
-//                fprintf(fp, "%f,", state_vars->alpha[al_index(x, y, comp)]);
-                fprintf(fp, "%.10e,", state_vars->alpha[al_index(x, y, comp)]);
+//                fprintf(fp, "%f,", state_vars->alpha[al_index(x, y, comp,Nx)]);
+                fprintf(fp, "%.10e,", state_vars->alpha[al_index(x, y, comp,Nx)]);
             }
             fprintf(fp,"\n");
         }

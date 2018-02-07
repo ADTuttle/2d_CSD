@@ -76,3 +76,5 @@ timing.txt
 cmake-build-debug/log.txt
 
 log.txt
+
+Scripts/*
