@@ -421,6 +421,20 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 	//Init Petsc
 	PetscInitialize(&argc,&argv,(char*)0,NULL);
   	ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
+    //    Get Nx, Ny, and dt from options if possible
+//    PetscInt Nx = 32;
+//    PetscInt Ny = 32;
+//    PetscReal dx = Lx/Nx;
+//    PetscReal dy = Ly/Ny;
+//    PetscInt NA = Nx*Ny*Nv;//total number of unknowns
+//    PetscInt Nz = (Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny)); //number of nonzeros in Jacobian
+//
+//
+//    PetscOptionsGetInt(NULL,NULL,"-Nx",&Nx,NULL);
+//    PetscOptionsGetInt(NULL,NULL,"-Ny",&Ny,NULL);
+//    PetscOptionsGetReal(NULL,NULL,"-Nt",&user->dt,NULL);
+//    printf("here\n");
+
   	//Create Vectors
     ierr = VecCreate(PETSC_COMM_WORLD,&slvr->Q);CHKERRQ(ierr);
     ierr = VecSetType(slvr->Q,VECSEQ);CHKERRQ(ierr);
@@ -561,6 +575,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = SNESSetFromOptions(slvr->snes);CHKERRQ(ierr);
      ierr = KSPSetFromOptions(slvr->ksp);CHKERRQ(ierr);
      ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
+
+
 
   return ierr;
 }

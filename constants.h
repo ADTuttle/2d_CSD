@@ -10,11 +10,12 @@
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
-#define mid_points_exct 1   //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
+#define mid_points_exct 1
+# define one_point_exct 1 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 #define Profiling_on 1 //Turns timing of functions on/off.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define trecordstep 0.1 //determines how often to record
-#define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
+#define trecordstep 0.01 //determines how often to record
+#define save_one_var 1 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 
 //basic ion extern constants
 #define   Ni  3           //number of ion species (Na, K, Cl)
@@ -24,15 +25,19 @@ static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
 //grid parameters
-#define Time 20.0   //total simulated time in seconds
+#define Time 6.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
-//#define Lx 0.32        //width of domain in cm (x)
-//#define Ly 0.32         //length of domain in cm (y)
-#define Lx 0.5        //width of domain in cm (x)
-#define Ly 0.5         //length of domain in cm (y)
-#define  Nx  48     //number of grid points in the x direction
-#define  Ny  48     //number of grid points in the y direction
+#define Lx 0.32        //width of domain in cm (x)
+#define Ly 0.32         //length of domain in cm (y)
+//#define Lx 0.5        //width of domain in cm (x)
+//#define Ly 0.5         //length of domain in cm (y)
+#define  Nx  50     //number of grid points in the x direction
+#define  Ny  50     //number of grid points in the y direction
+//extern const PetscInt Nx;   //number of grid points in x and y
+//extern const PetscInt Ny;   //Set through -Nx number and -Ny number
+//extern PetscReal dx;
+//extern PetscReal dy;
 #define dx (Lx/Nx)       //grid size in x direction (in cm)
 #define dy (Ly/Ny)        //grid size in y direction (in cm)
 
@@ -42,6 +47,8 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 //#define  Nv  ((Ni+2)*Nc-1) //version if volume is included
 //#define  Nv  ((Ni+1)*Nc) //version if volume is excluded
 #define Nv  (((Ni+2)*Nc-1)*(!separate_vol)+((Ni+1)*Nc)*separate_vol)  //combining the above two with the separate_vol
+//extern PetscInt NA;
+//extern PetscInt Nz;
 #define NA  (Nx*Ny*Nv)     //total number of unknowns
 #define Nz  (Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny)) //number of nonzeros in Jacobian
 
@@ -66,6 +73,7 @@ static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
 
 //excitation parameters
 #define pmax  5          //max value for excitation
+//#define pmax  50          //max value for excitation
 #define texct 2         //time for excitation
 //#define Lexct 0.05          //Length of region for excitation in each direction
 #define Lexct 0.025          //Length of region for excitation in each direction

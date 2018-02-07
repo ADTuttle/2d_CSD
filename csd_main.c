@@ -7,11 +7,6 @@
 
 int main(int argc, char **argv)
 {
-    PetscReal dt =0.01;
-    PetscInt Nt = (PetscInt) floor(Time/dt);
-    PetscInt numrecords = (PetscInt)floor(Time/trecordstep);
-    PetscInt krecordfreq = (PetscInt)floor(trecordstep/dt);
-    printf("%f\n",dx);
 
     PetscErrorCode ierr;
     //Petsc Initialize
@@ -19,7 +14,12 @@ int main(int argc, char **argv)
     slvr = (struct Solver*)malloc(sizeof(struct Solver));
     struct AppCtx *user;
     user = (struct AppCtx*)malloc(sizeof(struct AppCtx));
+    user->dt =0.01;
     ierr = initialize_petsc(slvr,argc,argv,user);CHKERRQ(ierr);
+    PetscReal dt = user->dt;
+    PetscInt Nt = (PetscInt) floor(Time/dt);
+    PetscInt numrecords = (PetscInt)floor(Time/trecordstep);
+    PetscInt krecordfreq = (PetscInt)floor(trecordstep/dt);
 
     if(Profiling_on) {
         PetscLogStage stage1;
@@ -29,7 +29,7 @@ int main(int argc, char **argv)
         PetscLogStagePush(stage1);
     }
 
-    printf("\n\n\nGrid size: %dx%d, with %d ions, and %d compartments.\n",Nx,Ny,Ni,Nc);
+    printf("\n\n\nGrid size: %dx%d, with %d ions, and %d compartments. For %f sec at step %f\n",Nx,Ny,Ni,Nc,Time,dt);
     PetscLogDouble tic,toc,full_tic,full_toc;
     //Create state_variables struct
     struct SimState *state_vars;

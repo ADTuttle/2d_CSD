@@ -133,32 +133,25 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale)
   //diffusion coefficients at all points, for all ions, in all compartments, in both x and y directions
 	PetscReal tortuosity=1.6;
 	PetscReal alNcL,alNcR,alNcU;
-  	for(PetscInt x=0;x<Nx;x++)
-  	{
-	  	for(PetscInt y=0;y<Ny;y++)
-	  	{
+  	for(PetscInt x=0;x<Nx;x++) {
+	  	for(PetscInt y=0;y<Ny;y++) {
 
 	  		alNcL=1-alp[al_index(x,y,0)]-alp[al_index(x,y,1)]; //Left extracell
 			alNcR = 0;
-			if(x<Nx-1)
-			{
+			if(x<Nx-1) {
 				alNcR = 1 - alp[al_index(x + 1, y, 0)] - alp[al_index(x + 1, y, 1)]; //Right extracell
 			}
             alNcU = 0;
-			if(y<Ny-1)
-			{
+			if(y<Ny-1) {
 				alNcU = 1 - alp[al_index(x, y + 1, 0)] - alp[al_index(x, y + 1, 1)];
 			}
-		  	for(PetscInt ion = 0; ion<Ni;ion++)
-		  	{
+		  	for(PetscInt ion = 0; ion<Ni;ion++) {
 			    //diffusion coefficients in x direction
-			    if(x==(Nx-1))
-			    {
+			    if(x==(Nx-1)) {
 			    	//Boundary is zero
-			    	Dc[c_index(x,y,Nc-1,ion)*2] = 0;
+			    	Dc[c_index(x,y,Nc-1,ion)*2] = scale*D[ion]*(alNcL)/(tortuosity*tortuosity);
 			    }
-			    else
-			    {
+			    else {
 					//diffusion coefficients in the extracellular space proportional to volume fraction
 			    	Dc[c_index(x,y,Nc-1,ion)*2] = scale*D[ion]/2*(alNcL+alNcR)/(tortuosity*tortuosity);
 			    }
@@ -166,14 +159,13 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale)
 			    Dc[c_index(x,y,0,ion)*2] = 0.0 ;
 			    //diffusion coefficients in glial compartment proportional to default volume fraction
 			    Dc[c_index(x,y,1,ion)*2] = 0*scale*D[ion]*alphao[al_index(0,0,1)]/pow(tortuosity,2);
+//                Dc[c_index(x,y,1,ion)*2] = 0.25*scale*D[ion]*alphao[al_index(0,0,1)]/pow(tortuosity,2);
 			    //diffusion coefficients in y direction
-			    if(y==(Ny-1))
-			    {
+			    if(y==(Ny-1)) {
 			    	//Boundary is zero
-			    	Dc[c_index(x,y,Nc-1,ion)*2+1] = 0;
+			    	Dc[c_index(x,y,Nc-1,ion)*2+1] = scale*D[ion]*(alNcL)/pow(tortuosity,2);
 			    }
-			    else
-			    {
+			    else {
 			    	//diffusion coefficients in the extracellular space proportional to volume fraction
 			    	Dc[c_index(x,y,Nc-1,ion)*2+1] = scale*D[ion]/2*(alNcL+alNcU)/pow(tortuosity,2);
 
@@ -181,7 +173,8 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale)
 				//diffusion coefficients in neuronal compartment equal to 0
 			    Dc[c_index(x,y,0,ion)*2+1] = 0.0;
 			    //diffusion coefficients in glial compartment proportional to default volume fraction
-			    Dc[c_index(x,y,1,ion)*2+1] = 0.25*scale*D[ion]*alphao[al_index(0,0,1)]/pow(tortuosity,2);
+//			    Dc[c_index(x,y,1,ion)*2+1] = 0.25*scale*D[ion]*alphao[al_index(0,0,1)]/pow(tortuosity,2);
+                Dc[c_index(x,y,1,ion)*2+1] = 0.001*scale*D[ion]*alphao[al_index(0,0,1)]/pow(tortuosity,2);
 
 		  	}
 		}
@@ -340,45 +333,66 @@ void excitation(struct ExctType *exct,PetscReal t)
   	PetscReal xexct;
     PetscReal radius;
     PetscInt num_points = 0;
-  	for(PetscInt i=0;i<Nx;i++) {
-	  	for(PetscInt j=0;j<Ny;j++) {
-            if(mid_points_exct) {
-                radius = sqrt(pow((i + 0.5) * dx-Lx/2, 2) + pow((j + 0.5) * dy-Lx/2, 2));
-                if (t < texct && radius < Lexct) {
+    if(one_point_exct){
+        for (PetscInt i = 0; i < Nx; i++) {
+            for (PetscInt j = 0; j < Ny; j++) {
+
+                if (t < texct && i==0 && j==0) {
                     num_points++;
-                    pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
-                    xexct = pow(cos(pi / 2 * (radius / Lexct)), 2);
-                    pany = pexct * xexct;
+                    pany = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
                     exct->pNa[xy_index(i, j)] = pany;
                     exct->pK[xy_index(i, j)] = pany;
                     exct->pCl[xy_index(i, j)] = pany;
-                } else {
-                    //pexct=0*RTFC/FC
-                    exct->pNa[xy_index(i, j)] = 0;
-                    exct->pK[xy_index(i, j)] = 0;
-                    exct->pCl[xy_index(i, j)] = 0;
-	  		    }
-            }else{
-                radius = sqrt(pow((i + 0.5) * dx, 2) + pow((j + 0.5) * dy, 2));
-                if (t < texct && radius < Lexct) {
-                    num_points++;
-                    pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
-//	    		xexct=pow((cos(pi/2*(i+.5)/Nexct))*(cos(pi/2*(j+.5)/Nexct)),2);
-                    xexct = pow(cos(pi / 2 * (radius / Lexct)), 2);
-//				xexct=pow((cos(pi/2*((i+.5)*dx)/Lexct))*(cos(pi/2*((j+.5)*dy)/Lexct)),2);
-                    pany = pexct * xexct;
-                    exct->pNa[xy_index(i, j)] = pany;
-                    exct->pK[xy_index(i, j)] = pany;
-                    exct->pCl[xy_index(i, j)] = pany;
-                } else {
+                }else {
                     //pexct=0*RTFC/FC
                     exct->pNa[xy_index(i, j)] = 0;
                     exct->pK[xy_index(i, j)] = 0;
                     exct->pCl[xy_index(i, j)] = 0;
                 }
             }
-		}
-	}
+        }
+
+    }else {
+        for (PetscInt i = 0; i < Nx; i++) {
+            for (PetscInt j = 0; j < Ny; j++) {
+                if (mid_points_exct) {
+                    radius = sqrt(pow((i + 0.5) * dx - Lx / 2, 2) + pow((j + 0.5) * dy - Lx / 2, 2));
+                    if (t < texct && radius < Lexct) {
+                        num_points++;
+                        pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
+                        xexct = pow(cos(pi / 2 * (radius / Lexct)), 2);
+                        pany = pexct * xexct;
+                        exct->pNa[xy_index(i, j)] = pany;
+                        exct->pK[xy_index(i, j)] = pany;
+                        exct->pCl[xy_index(i, j)] = pany;
+                    } else {
+                        //pexct=0*RTFC/FC
+                        exct->pNa[xy_index(i, j)] = 0;
+                        exct->pK[xy_index(i, j)] = 0;
+                        exct->pCl[xy_index(i, j)] = 0;
+                    }
+                } else {
+                    radius = sqrt(pow((i + 0.5) * dx, 2) + pow((j + 0.5) * dy, 2));
+                    if (t < texct && radius < Lexct) {
+                        num_points++;
+                        pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
+//	    		xexct=pow((cos(pi/2*(i+.5)/Nexct))*(cos(pi/2*(j+.5)/Nexct)),2);
+                        xexct = pow(cos(pi / 2 * (radius / Lexct)), 2);
+//				xexct=pow((cos(pi/2*((i+.5)*dx)/Lexct))*(cos(pi/2*((j+.5)*dy)/Lexct)),2);
+                        pany = pexct * xexct;
+                        exct->pNa[xy_index(i, j)] = pany;
+                        exct->pK[xy_index(i, j)] = pany;
+                        exct->pCl[xy_index(i, j)] = pany;
+                    } else {
+                        //pexct=0*RTFC/FC
+                        exct->pNa[xy_index(i, j)] = 0;
+                        exct->pK[xy_index(i, j)] = 0;
+                        exct->pCl[xy_index(i, j)] = 0;
+                    }
+                }
+            }
+        }
+    }
 //    printf("Number of excited points: %d\n",num_points);
 }
 
