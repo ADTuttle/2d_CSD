@@ -3,13 +3,6 @@
 #include <stdlib.h>
 #include "functions.h"
 
-const PetscInt Nx = 32;
-const PetscInt Ny = 32;
-PetscReal dx = Lx/Nx;
-PetscReal dy = Ly/Ny;
-PetscInt NA = Nx*Ny*Nv;//total number of unknowns
-PetscInt Nz = (Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny)); //number of nonzeros in Jacobian
-
 
 int main(int argc, char **argv)
 {
@@ -35,7 +28,7 @@ int main(int argc, char **argv)
         PetscLogStagePush(stage1);
     }
 
-    printf("\n\n\nGrid size: %dx%d, with %d ions, and %d compartments. For %f sec at step %f\n",Nx,Ny,Ni,Nc,Time,dt);
+    printf("\n\n\nGrid size: %dx%d, with %d ions, and %d compartments. For %f sec at step %f\n",user->Nx,user->Ny,Ni,Nc,Time,dt);
     PetscLogDouble tic,toc,full_tic,full_toc;
     //Create state_variables struct
     struct SimState *state_vars;
@@ -44,25 +37,25 @@ int main(int argc, char **argv)
     //Create Vector
     ierr = VecCreate(PETSC_COMM_WORLD,&current_state);CHKERRQ(ierr);
     ierr = VecSetType(current_state,VECSEQ); CHKERRQ(ierr);
-    ierr = VecSetSizes(current_state,PETSC_DECIDE,NA);CHKERRQ(ierr);
+    ierr = VecSetSizes(current_state,PETSC_DECIDE,user->NA);CHKERRQ(ierr);
 
     struct SimState *state_vars_past;
     state_vars_past=(struct SimState*)malloc(sizeof(struct SimState));
     //Create Vector
     ierr = VecCreate(PETSC_COMM_WORLD,&state_vars_past->v);CHKERRQ(ierr);
     ierr = VecSetType(state_vars_past->v,VECSEQ); CHKERRQ(ierr);
-    ierr = VecSetSizes(state_vars_past->v,PETSC_DECIDE,NA);CHKERRQ(ierr);
+    ierr = VecSetSizes(state_vars_past->v,PETSC_DECIDE,user->NA);CHKERRQ(ierr);
     //Initialize
     printf("Initialize Data Routines\n");
 
 
 
     //Data struct creation
-    ierr = init_simstate(current_state,state_vars); CHKERRQ(ierr);
-    ierr = init_simstate(state_vars_past->v, state_vars_past); CHKERRQ(ierr);
+    ierr = init_simstate(current_state,state_vars,user); CHKERRQ(ierr);
+    ierr = init_simstate(state_vars_past->v, state_vars_past,user); CHKERRQ(ierr);
     //In order to nicely copy into the past variable we leave this here.
     //Variable initiation
-    init(current_state,state_vars);
+    init(current_state,state_vars,user);
 
     ierr = extract_subarray(current_state,state_vars); CHKERRQ(ierr);
     printf("Init Value: c: %f,ph: %f,al: %f\n",state_vars->c[0],state_vars->phi[10],state_vars->alpha[25]);
@@ -94,7 +87,7 @@ int main(int argc, char **argv)
     init_arrays(user);
 
     //Set the constant variables
-    set_params(current_state,state_vars,con_vars,gate_vars,flux);
+    set_params(current_state,state_vars,con_vars,gate_vars,flux,user);
 
 
 
@@ -118,12 +111,12 @@ int main(int argc, char **argv)
     FILE *fptime;
     fptime = fopen("timing.txt","a");
     extract_subarray(current_state,state_vars);
-    write_data(fp,state_vars,numrecords,1);
-//    write_point(fp,state_vars,numrecords,1);
+    write_data(fp,user,numrecords,1);
+//    write_point(fp,user,numrecords,1);
     //Reset time step
     user->dt = dt;
     //Create the excitation
-    excitation(user->gexct,0);
+    excitation(user,0);
     int count = 0;
     PetscInt num_iters;
     SNESConvergedReason reason;
@@ -139,9 +132,9 @@ int main(int argc, char **argv)
         }
         //Update diffusion with past
         //compute diffusion coefficients
-        diff_coef(user->Dcs,state_vars_past->alpha,1);
+        diff_coef(user->Dcs,state_vars_past->alpha,1,user);
         //Bath diffusion
-        diff_coef(user->Dcb,state_vars_past->alpha,Batheps);
+        diff_coef(user->Dcb,state_vars_past->alpha,Batheps,user);
         restore_subarray(current_state,state_vars);
         //Newton update
         PetscTime(&tic);
@@ -158,20 +151,20 @@ int main(int argc, char **argv)
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
 
-        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,0);
+        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
         if(separate_vol) {
             //Update volume (this uses new c values for wflow)
 //            volume_update(user->state_vars, user->state_vars_past, user);
         }
         //Update Excitation
-        excitation(user->gexct,t);
+        excitation(user,t);
         count++;
         if(count%krecordfreq==0) {
             SNESGetIterationNumber(user->slvr->snes,&num_iters);
             SNESGetConvergedReason(user->slvr->snes,&reason);
             printf("Time: %f,Newton time: %f,iters:%d, Reason: %d\n",t, toc - tic,num_iters,reason);
-//            write_point(fp, state_vars,numrecords, 0);
-            write_data(fp, state_vars,numrecords, 0);
+//            write_point(fp, user,numrecords, 0);
+            write_data(fp, user,numrecords, 0);
         }
         SNESGetConvergedReason(user->slvr->snes,&reason);
         if(reason<0){

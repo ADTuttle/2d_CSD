@@ -118,20 +118,22 @@ PetscReal inwardrect(PetscReal ci,PetscReal ce,PetscReal phim)
   	PetscReal cKo = .003; //#3 mM is base extracellular potassium concentration
   	return sqrt(ce/cKo)*(1+exp(18.5/42.5))/(1+exp((RTFC*phim-Enernst+18.5)/42.5))*(1+exp((-118.6+EKdef)/44.1))/(1+exp((-118.6+RTFC*phim)/44.1));
 }
-PetscReal cz(const PetscReal *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt comp)
+PetscReal cz(const PetscReal *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt comp,struct AppCtx *user)
 {
 	//function to compute sum over i of c_i*z_i
 	PetscReal accumulate=0;
 	for(PetscInt ion=0;ion<Ni;ion++)
 	{
-		accumulate += zvals[ion]*cmat[c_index(x,y,comp,ion,Nx)];
+		accumulate += zvals[ion]*cmat[c_index(x,y,comp,ion,user->Nx)];
 	}
 	return accumulate;
 }
-void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale)
+void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct AppCtx* user)
 {
   //diffusion coefficients at all points, for all ions, in all compartments, in both x and y directions
 	PetscReal tortuosity=1.6;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
 	PetscReal alNcL,alNcR,alNcU;
   	for(PetscInt x=0;x<Nx;x++) {
 	  	for(PetscInt y=0;y<Ny;y++) {
@@ -181,11 +183,13 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale)
 	}
 }
 
-void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,PetscReal dtms,PetscInt firstpass)
+void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,PetscReal dtms,struct AppCtx *user,PetscInt firstpass)
 {
 	if(Profiling_on) {
 		PetscLogEventBegin(event[4], 0, 0, 0, 0);
 	}
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
 	if(firstpass)
 	{
 		//membrane potential in mV
@@ -324,7 +328,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,Pets
 	}
 }
 
-void excitation(struct ExctType *exct,PetscReal t)
+void excitation(struct AppCtx* user,PetscReal t)
 {
   //compute excitation conductance to trigger csd
   //Leak conductances in mS/cm^2
@@ -332,6 +336,11 @@ void excitation(struct ExctType *exct,PetscReal t)
   	PetscReal pexct,pany;
   	PetscReal xexct;
     PetscReal radius;
+    struct ExctType *exct = user->gexct;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+    PetscInt dx = user->dx;
+    PetscInt dy = user->dy;
     PetscInt num_points = 0;
     if(one_point_exct){
         for (PetscInt i = 0; i < Nx; i++) {
@@ -396,11 +405,19 @@ void excitation(struct ExctType *exct,PetscReal t)
 //    printf("Number of excited points: %d\n",num_points);
 }
 
-void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState *state_vars_past,struct GateType *gvars, struct ExctType *gexct,struct ConstVars *con_vars)
+void ionmflux(struct AppCtx* user)
 {
 	if(Profiling_on) {
 		PetscLogEventBegin(event[5], 0, 0, 0, 0);
 	}
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+    struct FluxData *flux = user->flux;
+    struct SimState *state_vars=user->state_vars;
+    struct SimState *state_vars_past = user->state_vars_past;
+    struct GateType *gvars = user->gate_vars;
+    struct ExctType *gexct = user->gexct;
+    struct ConstVars *con_vars = user->con_vars;
     //Variables to save to for ease of notation
     PetscReal vm,vmg,vmgp;
     PetscReal ci,cg,ce,cgp,cep;
@@ -520,7 +537,7 @@ void ionmflux(struct FluxData *flux,struct SimState *state_vars,struct SimState 
 		PetscLogEventEnd(event[5], 0, 0, 0, 0);
 	}
 }
-void wflowm(struct FluxData *flux,struct SimState *state_vars,struct ConstVars *con_vars)
+void wflowm(struct AppCtx *user)
 {
   //piw = sum of c over ions + ao/alpha
   // piw is the total number of ions in a compartment
@@ -529,6 +546,12 @@ void wflowm(struct FluxData *flux,struct SimState *state_vars,struct ConstVars *
 	if(Profiling_on) {
 		PetscLogEventBegin(event[6], 0, 0, 0, 0);
 	}
+    struct FluxData *flux = user->flux;
+    struct SimState *state_vars = user->state_vars;
+    struct ConstVars *con_vars = user->con_vars;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+
     PetscReal dwdpi,dwdal,piw,piwNc;
     for(PetscInt x=0;x<Nx;x++)
     {

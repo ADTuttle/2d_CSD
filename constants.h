@@ -34,10 +34,6 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 //#define Ly 0.5         //length of domain in cm (y)
 //#define  Nx  50     //number of grid points in the x direction
 //#define  Ny  50     //number of grid points in the y direction
-extern const PetscInt Nx;   //number of grid points in x and y
-extern const PetscInt Ny;   //Set through -Nx number and -Ny number
-extern PetscReal dx;
-extern PetscReal dy;
 //#define dx (Lx/Nx)       //grid size in x direction (in cm)
 //#define dy (Ly/Ny)        //grid size in y direction (in cm)
 
@@ -47,8 +43,6 @@ extern PetscReal dy;
 //#define  Nv  ((Ni+2)*Nc-1) //version if volume is included
 //#define  Nv  ((Ni+1)*Nc) //version if volume is excluded
 #define Nv  (((Ni+2)*Nc-1)*(!separate_vol)+((Ni+1)*Nc)*separate_vol)  //combining the above two with the separate_vol
-extern PetscInt NA;
-extern PetscInt Nz;
 //#define NA  (Nx*Ny*Nv)     //total number of unknowns
 //#define Nz  (Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny)) //number of nonzeros in Jacobian
 
@@ -192,6 +186,7 @@ struct Solver{
   	PetscMPIInt   size;
 };
 
+
 struct AppCtx{
     struct SimState *state_vars;
     struct SimState *state_vars_past;
@@ -203,6 +198,12 @@ struct AppCtx{
     PetscReal *Dcs;
     PetscReal *Dcb;
     PetscReal dt;
+    PetscReal dx;
+    PetscReal dy;
+    PetscInt Nx;
+    PetscInt Ny;
+    PetscInt NA;
+    PetscInt Nz;
 };
 PetscLogEvent event[10];
 

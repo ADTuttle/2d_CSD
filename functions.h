@@ -9,16 +9,16 @@
 #include <petscsys.h>
 #include <petsclog.h>
 //Function to initialize the state
-void init(Vec,struct SimState *);
+void init(Vec,struct SimState *,struct AppCtx*);
 //Solve until steady state (mostly to update gating_vars)
 void initialize_data(Vec,struct AppCtx*);
 
 //Set the paramaters based on the constants
-void set_params(Vec,struct SimState *,struct ConstVars*,struct GateType*,struct FluxData*);
+void set_params(Vec,struct SimState *,struct ConstVars*,struct GateType*,struct FluxData*,struct AppCtx*);
 
 //Data management functions
 void init_arrays(struct AppCtx*);
-PetscErrorCode init_simstate(Vec,struct SimState*);
+PetscErrorCode init_simstate(Vec,struct SimState*,struct AppCtx*);
 PetscErrorCode extract_subarray(Vec,struct SimState*);
 PetscErrorCode restore_subarray(Vec,struct SimState*);
 PetscErrorCode copy_simstate(Vec,struct SimState *state_vars_past);
@@ -30,20 +30,20 @@ void mcGoldman(struct FluxData *,int,double,int,double,double,double,int);
 //Conductance for potassium inward rectifier
 double inwardrect(double,double,double);
 //Returns of c_i*z_i
-double cz(const double *,const PetscInt *,int,int,int);
+double cz(const double *,const PetscInt *,int,int,int,struct AppCtx*);
 //Computes diffusion coef
-void diff_coef(double *,const PetscReal *,PetscReal);
+void diff_coef(double *,const PetscReal *,PetscReal,struct AppCtx*);
 //Calculate the ion fluxes and derivatives
-void ionmflux(struct FluxData *,struct SimState *,struct SimState *,struct GateType *, struct ExctType *,struct ConstVars *);
+void ionmflux(struct AppCtx*);
 //Water flow
-void wflowm(struct FluxData *,struct SimState *,struct ConstVars *);
+void wflowm(struct AppCtx*);
 
 //Update the gating variables
-void gatevars_update(struct GateType *,struct SimState *,PetscReal,int);
+void gatevars_update(struct GateType *,struct SimState *,PetscReal,struct AppCtx *,int);
 //Update Volume fraction
 void volume_update(struct SimState*,struct SimState*,struct AppCtx*);
 //Initial excitation
-void excitation(struct ExctType *,PetscReal);
+void excitation(struct AppCtx*,PetscReal);
 
 // Indexing functions
 PetscInt c_index(PetscInt,PetscInt,PetscInt,PetscInt,PetscInt);
@@ -57,13 +57,13 @@ PetscInt Ind_nx(PetscInt,PetscInt ,PetscInt ,PetscInt , PetscInt );
 //Create Petsc Structures
 
 PetscErrorCode initialize_petsc(struct Solver *,int, char **,struct AppCtx*);
-void Get_Nonzero_in_Rows(int *);
-PetscErrorCode initialize_jacobian(Mat);
+void Get_Nonzero_in_Rows(int *,struct AppCtx*);
+PetscErrorCode initialize_jacobian(Mat,struct AppCtx*);
 
 //Multigrid functions
 PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny);
 PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny);
-PetscErrorCode Initialize_PCMG(PC pc,Mat A);
+PetscErrorCode Initialize_PCMG(PC pc,Mat A,struct AppCtx*);
 
 //Newton Solver
 PetscErrorCode newton_solve(Vec,struct AppCtx*);
@@ -98,12 +98,12 @@ PetscReal array_diff_max(PetscReal *,PetscReal *,size_t);
 //Calc l2_norm of one array
 PetscReal l2_norm(PetscReal *,size_t);
 
-void print_all(PetscReal *, PetscReal *,struct ConstVars *,struct FluxData *, struct GateType *, struct SimState*, struct Solver *);
+void print_all(struct AppCtx*);
 const char* getfield(char* , int );
 void find_print(int, int, double, int iter);
 void compare_res(double *, int );
-void write_data(FILE *,struct SimState *,PetscInt,int );
-void write_point(FILE *,struct SimState *,PetscInt,int );
+void write_data(FILE *,struct AppCtx *,PetscInt,int );
+void write_point(FILE *,struct AppCtx *,PetscInt,int );
 void init_events(struct AppCtx *);
 
 

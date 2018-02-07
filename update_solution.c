@@ -98,10 +98,10 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
     }
     ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     //Compute membrane ionic flux relation quantitites
-    ionmflux(user->flux,user->state_vars,user->state_vars_past,user->gate_vars,user->gexct,user->con_vars);
+    ionmflux(user);
 
     //Compute membrane water flow related quantities
-    wflowm(user->flux,user->state_vars,user->con_vars);
+    wflowm(user);
 
 
     PetscReal *c = user->state_vars->c;
@@ -115,6 +115,10 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
     PetscReal dt = user->dt;
+    PetscReal dx = user->dx;
+    PetscReal dy = user->dy;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
 
     //Residual for concentration equations
     PetscReal Rcvx,Rcvy,Resc;
@@ -285,6 +289,10 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
     PetscReal dt = user->dt;
+    PetscReal dx = user->dx;
+    PetscReal dy = user->dy;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
     struct ConstVars *con_vars = user->con_vars;
 
     PetscInt ind = 0;
@@ -679,6 +687,10 @@ void volume_update(struct SimState *state_vars,struct SimState *state_vars_past,
     }
     int x,y,comp;
     PetscReal dt = user->dt;
+    PetscReal dx = user->dx;
+    PetscReal dy = user->dy;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
     for(int n=0;n<1;n++) {
         memcpy(state_vars_past->alpha, state_vars->alpha, sizeof(PetscReal) * Nx * Ny * (Nc - 1));
         //Forward Euler update
@@ -697,7 +709,7 @@ void volume_update(struct SimState *state_vars,struct SimState *state_vars_past,
         PetscReal res, Func, Deriv, max_res;
         for (int iter = 0; iter < 10; iter++) {
             max_res = 0;
-            wflowm(user->flux, user->state_vars, user->con_vars);
+            wflowm(user);
             for (x = 0; x < Nx; x++) {
                 for (y = 0; y < Ny; y++) {
                     for (comp = 0; comp < Nc - 1; comp++) {
@@ -741,13 +753,13 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
     ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     //Compute membrane ionic flux relation quantitites
 //        PetscTime(&tic);
-    ionmflux(user->flux,user->state_vars,user->state_vars_past,user->gate_vars,user->gexct,user->con_vars);
+    ionmflux(user);
 //        PetscTime(&toc);
 //        printf("Calc ion flux time: %.10e\n",toc-tic);
 
     //Compute membrane water flow related quantities
 //        PetscTime(&tic);
-    wflowm(user->flux,user->state_vars,user->con_vars);
+    wflowm(user);
 //        PetscTime(&toc);
 //        printf("Calc wflow: %.10e\n",toc-tic);
 
@@ -762,6 +774,10 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
     PetscReal dt = user->dt;
+    PetscReal dx = user->dx;
+    PetscReal dy = user->dy;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
 
     //Residual for concentration equations
     PetscReal Rcvx,Rcvy,Resc;
@@ -919,6 +935,10 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
     PetscReal dt = user->dt;
+    PetscReal dx = user->dx;
+    PetscReal dy = user->dy;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
     struct ConstVars *con_vars = user->con_vars;
 
     PetscInt ind = 0;
@@ -1281,11 +1301,11 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
     }
     ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     //Compute membrane ionic flux relation quantitites
-    ionmflux(user->flux,user->state_vars,user->state_vars_past,user->gate_vars,user->gexct,user->con_vars);
+    ionmflux(user);
 
 
     //Compute membrane water flow related quantities
-    wflowm(user->flux,user->state_vars,user->con_vars);
+    wflowm(user);
 
     PetscReal *c = user->state_vars->c;
     PetscReal *phi = user->state_vars->phi;
@@ -1298,6 +1318,10 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
     PetscReal dt = user->dt;
+    PetscReal dx = user->dx;
+    PetscReal dy = user->dy;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
 
     //Residual for concentration equations
     PetscReal Rcvx,Rcvy,Resc;
@@ -1388,12 +1412,12 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
             for(comp=0;comp<Nc-1;comp++)
             {
 
-                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,comp)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
                 ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
             }
             //Extracellular term
             comp=Nc-1;
-            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,comp)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
             ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
 
             //Residual for water flow
@@ -1453,6 +1477,10 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
     PetscReal dt = user->dt;
+    PetscReal dx = user->dx;
+    PetscReal dy = user->dy;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
     struct ConstVars *con_vars = user->con_vars;
 
     PetscInt ind = 0;
@@ -1687,10 +1715,10 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-cm[comp],INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
                 //Extra phi with intra-Volume
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni+1,comp,Nx),-cz(c,z,x,y,Nc-1),INSERT_VALUES);CHKERRQ(ierr);
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni+1,comp,Nx),-cz(c,z,x,y,Nc-1,user),INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
                 //Intra phi with Intra Vol
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni+1,comp,Nx),cz(c,z,x,y,comp),INSERT_VALUES);CHKERRQ(ierr);
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni+1,comp,Nx),cz(c,z,x,y,comp,user),INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
             }
         }
@@ -1750,11 +1778,11 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
     }
     ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     //Compute membrane ionic flux relation quantitites
-    ionmflux(user->flux,user->state_vars,user->state_vars_past,user->gate_vars,user->gexct,user->con_vars);
+    ionmflux(user);
 
 
     //Compute membrane water flow related quantities
-    wflowm(user->flux,user->state_vars,user->con_vars);
+    wflowm(user);
 
     PetscReal *c = user->state_vars->c;
     PetscReal *phi = user->state_vars->phi;
@@ -1767,6 +1795,10 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
     PetscReal dt = user->dt;
+    PetscReal dx = user->dx;
+    PetscReal dy = user->dy;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
 
     //Residual for concentration equations
     PetscReal Rcvx,Rcvy,Resc;
@@ -1857,12 +1889,12 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
             for(comp=0;comp<Nc-1;comp++)
             {
 
-                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,comp)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
                 ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
             }
             //Extracellular term
             comp=Nc-1;
-            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,comp)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
             ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
         }
     }
@@ -1914,6 +1946,10 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
     PetscReal dt = user->dt;
+    PetscReal dx = user->dx;
+    PetscReal dy = user->dy;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
     struct ConstVars *con_vars = user->con_vars;
 
     PetscInt ind = 0;

@@ -4,9 +4,17 @@
 #include <math.h>
 
 
-void print_all(PetscReal *Dcs, PetscReal *Dcb, struct ConstVars *con_vars, struct FluxData *flux, struct GateType *gvars,
-               struct SimState *state_vars, struct Solver *slvr)
+void print_all(struct AppCtx *user)
 {
+    PetscReal *Dcs = user->Dcs;
+    PetscReal *Dcb = user->Dcb;
+    struct ConstVars *con_vars = user->con_vars;
+    struct FluxData *flux = user->flux;
+    struct GateType *gvars = user->gate_vars;
+    struct SimState *state_vars = user->state_vars;
+    struct Solver *slvr = user->slvr;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
     printf("ConstVars:\n");
     printf("%f,%f,%f\n",1e6*con_vars->pNaKCl,1e6*con_vars->Imax,1e6*con_vars->pNaLeak);
     printf("%f,%f\n",1e6*con_vars->Imaxg,1e6*con_vars->pNaLeakg);
@@ -212,15 +220,18 @@ void compare_res(double *Res, int iter)
     return;
 }
 
-void write_data(FILE *fp,struct SimState *state_vars,PetscInt numrecords,int start)
+void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
 {
     if(Profiling_on) {
         PetscLogEventBegin(event[8], 0, 0, 0, 0);
     }
+    struct SimState *state_vars = user->state_vars;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
     if(!save_one_var) {
         if (start) {
             fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, numrecords, Nc, Ni);
-            write_data(fp, state_vars, numrecords,0);
+            write_data(fp, user, numrecords,0);
         } else {
             int ion, comp, x, y;
             for (ion = 0; ion < Ni; ion++) {
@@ -262,7 +273,7 @@ void write_data(FILE *fp,struct SimState *state_vars,PetscInt numrecords,int sta
     } else{
         if (start) {
             fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, (int) floor(numrecords), 0, 0);
-            write_data(fp, state_vars,numrecords, 0);
+            write_data(fp, user,numrecords, 0);
         } else {
             int ion, comp, x, y;
             comp = 0;
@@ -283,14 +294,17 @@ void write_data(FILE *fp,struct SimState *state_vars,PetscInt numrecords,int sta
         PetscLogEventEnd(event[8], 0, 0, 0, 0);
     }
 }
-void write_point(FILE *fp,struct SimState *state_vars,PetscInt numrecords,int start)
+void write_point(FILE *fp,struct AppCtx* user,PetscInt numrecords,int start)
 {
     if(Profiling_on) {
         PetscLogEventBegin(event[8], 0, 0, 0, 0);
     }
+    struct SimState *state_vars = user->state_vars;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
     if (start) {
         fprintf(fp, "%d,%d,%d,%d,%d,%d,%d,%d\n", Nx, Ny, numrecords, Nc, Ni,use_en_deriv,separate_vol,Linear_Diffusion);
-        write_point(fp, state_vars,numrecords, 0);
+        write_point(fp, user,numrecords, 0);
         } else {
             int ion, comp;
             int x =10;

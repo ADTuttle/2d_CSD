@@ -32,10 +32,11 @@ PetscInt Ind_nx(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp, PetscInt nx)
     return Nv*(nx*y+x)+ion*Nc+comp;
 }
 
-PetscErrorCode init_simstate(Vec state,struct SimState *state_vars)
+PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx *user)
 {
     PetscErrorCode ierr;
-
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
     //Setup indices
     int x,y,comp,ion;
     PetscInt c_ind[Nx*Ny*Nc*Ni];
@@ -137,8 +138,10 @@ PetscErrorCode copy_simstate(Vec current_state,struct SimState *state_vars_past)
     return ierr;
 }
 
-void init(Vec state,struct SimState *state_vars)
+void init(Vec state,struct SimState *state_vars,struct AppCtx*user)
 {
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
     extract_subarray(state,state_vars);
 	for(PetscInt x=0;x<Nx;x++)
 	{
@@ -169,7 +172,8 @@ void init(Vec state,struct SimState *state_vars)
 
 void init_arrays(struct AppCtx*user)
 {
-
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
     //Flux quantities
     user->flux->mflux = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
     user->flux->dfdci = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
@@ -208,8 +212,10 @@ void init_arrays(struct AppCtx*user)
     user->Dcs = (PetscReal*) malloc(Nx*Ny*Ni*Nc*2*sizeof(PetscReal));
     user->Dcb = (PetscReal*) malloc(Nx*Ny*Ni*Nc*2*sizeof(PetscReal));
 }
-void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars,struct GateType* gate_vars,struct FluxData *flux)
+void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars,struct GateType* gate_vars,struct FluxData *flux,struct AppCtx*user)
 {
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
     extract_subarray(state,state_vars);
 	//Everything that follows will asume spatially uniform
 	//At rest state
@@ -254,7 +260,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
     PetscReal NaKCl = -flux->mflux[c_index(0,0,1,2,Nx)]/2;
 
     //compute gating variables
-    gatevars_update(gate_vars,state_vars,0,1);
+    gatevars_update(gate_vars,state_vars,0,user,1);
 
     //compute K channel currents (neuron)
     PetscReal pKGHK = pKDR*gate_vars->gKDR[0]+pKA*gate_vars->gKA[0];
@@ -302,9 +308,9 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
       }
       con_vars->ao[k] = alpha[k]*(con_vars->ao[Nc-1]/alpha[Nc-1]+osmotic);
       //set average valence to ensure electroneutrality
-      con_vars->zo[k] = (-cz(c,z,0,0,k)*alpha[k]+cmphi[k])/con_vars->ao[k];
+      con_vars->zo[k] = (-cz(c,z,0,0,k,user)*alpha[k]+cmphi[k])/con_vars->ao[k];
     }
-    con_vars->zo[Nc-1] = (-cz(c,z,0,0,Nc-1)*alpha[Nc-1]-cmphi[Nc-1])/con_vars->ao[Nc-1];
+    con_vars->zo[Nc-1] = (-cz(c,z,0,0,Nc-1,user)*alpha[Nc-1]-cmphi[Nc-1])/con_vars->ao[Nc-1];
     //Copy the point data to vectors.
     //Only needed for uniform data
     for(PetscInt x=0;x<Nx;x++)
@@ -353,6 +359,9 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 void initialize_data(Vec current_state,struct AppCtx *user)
 {
 
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+
 	PetscReal convtol = 1e-11;
     extract_subarray(current_state,user->state_vars);
 	PetscReal tol = convtol*array_max(user->state_vars->c,(size_t)Nx*Ny*Nc*Ni);
@@ -361,11 +370,11 @@ void initialize_data(Vec current_state,struct AppCtx *user)
   	cp = (PetscReal *)malloc(sizeof(PetscReal)*Nx*Ny*Ni*Nc);
     //Compute Gating variables
     //compute gating variables
-    gatevars_update(user->gate_vars,user->state_vars,0,1);
+    gatevars_update(user->gate_vars,user->state_vars,0,user,1);
     restore_subarray(current_state,user->state_vars);
 
   	//Initialize and compute the excitation (it's zeros here)
-  	excitation(user->gexct,texct+1);
+  	excitation(user,texct+1);
   	PetscInt k = 0;
     user->dt = 0.1;
 //  	PetscReal dt_temp = 0.1;
@@ -383,9 +392,9 @@ void initialize_data(Vec current_state,struct AppCtx *user)
             volume_update(user->state_vars, user->state_vars_past, user);
         }
         //compute diffusion coefficients
-        diff_coef(user->Dcs,user->state_vars->alpha,1);
+        diff_coef(user->Dcs,user->state_vars->alpha,1,user);
         //Bath diffusion
-        diff_coef(user->Dcb,user->state_vars->alpha,Batheps);
+        diff_coef(user->Dcb,user->state_vars->alpha,Batheps,user);
         restore_subarray(current_state,user->state_vars);
 
 //    	newton_solve(current_state,user);
@@ -393,7 +402,7 @@ void initialize_data(Vec current_state,struct AppCtx *user)
 
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
-        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,0);
+        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
 
         //Update Excitation
     	rsd = array_diff_max(user->state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/user->dt;
@@ -423,16 +432,24 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
   	ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
     //    Get Nx, Ny, and dt from options if possible
 
-    PetscOptionsGetInt(NULL,NULL,"-Nx",&Nx,NULL);
-    PetscOptionsGetInt(NULL,NULL,"-Ny",&Ny,NULL);
+    user->Nx = 32;
+    user->Ny = 32;
+
+    PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);
+    PetscOptionsGetInt(NULL,NULL,"-Ny",&user->Ny,NULL);
     PetscOptionsGetReal(NULL,NULL,"-Nt",&user->dt,NULL);
 
-    PetscReal dx = Lx/Nx;
-    PetscReal dy = Ly/Ny;
-    PetscInt NA = Nx*Ny*Nv;//total number of unknowns
-    PetscInt Nz = (Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny)); //number of nonzeros in Jacobian
 
-    printf("Nx:%d,dx:%f,NA:%d\n",Nx,dx,NA);
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+
+    user->dx = Lx/Nx;
+    user->dy = Ly/Ny;
+    user->NA = Nx*Ny*Nv;//total number of unknowns
+    user->Nz = (Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny)); //number of nonzeros in Jacobian
+
+    PetscInt NA = user->NA;
+    PetscInt Nz = user->Nz;
 
 
   	//Create Vectors
@@ -444,7 +461,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
   	//Create Matrix
     //Get number of nonzeros in each row
     int nnz[NA];
-    Get_Nonzero_in_Rows(nnz);
+    Get_Nonzero_in_Rows(nnz,user);
     //Construct matrix using that
   	// ierr = MatCreateSeqAIJ(PETSC_COMM_WORLD,NA,NA,5*Nv,nnz,&slvr->A);CHKERRQ(ierr);
     ierr = MatCreate(PETSC_COMM_WORLD,&slvr->A);CHKERRQ(ierr);
@@ -457,7 +474,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
     //Initialize Space
 
-    ierr = initialize_jacobian(slvr->A); CHKERRQ(ierr);
+    ierr = initialize_jacobian(slvr->A,user); CHKERRQ(ierr);
     ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
 
   	//Create Solver Contexts
@@ -581,8 +598,11 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
   return ierr;
 }
 
-void Get_Nonzero_in_Rows(int *nnz)
+void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user)
 {
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+    PetscInt NA = user->NA;
     //Make sure nnz is initialized to zero
     for(int i=0;i<NA;i++)
     {
@@ -846,14 +866,16 @@ void Get_Nonzero_in_Rows(int *nnz)
             }
         }
     }
-    printf("Nz: %d, ind: %d\n",Nz,ind);
+    printf("Nz: %d, ind: %d\n",user->Nz,ind);
     return;
 }
 
 
-PetscErrorCode initialize_jacobian(Mat Jac) {
+PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
     printf("Initializing Jacobian Memory\n");
     PetscErrorCode ierr;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
     PetscInt ind = 0;
     PetscInt x,y,ion,comp;
 
@@ -2084,7 +2106,7 @@ PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny)
     return ierr;
 }
 
-PetscErrorCode Initialize_PCMG(PC pc,Mat A)
+PetscErrorCode Initialize_PCMG(PC pc,Mat A,struct AppCtx*user)
 {
     PetscErrorCode  ierr;
 
@@ -2092,8 +2114,8 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A)
     PC coarse_pc,spc;
 
     PetscInt nlevels = 3;
-    PetscInt nx = Nx;
-    PetscInt ny = Ny;
+    PetscInt nx = user->Nx;
+    PetscInt ny = user->Ny;
     Mat R,P;
 
     ierr = PCSetType(pc,PCMG); CHKERRQ(ierr);
