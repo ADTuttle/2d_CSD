@@ -434,6 +434,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
     user->Nx = 32;
     user->Ny = 32;
+    user->dt =0.01;
 
     PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);
     PetscOptionsGetInt(NULL,NULL,"-Ny",&user->Ny,NULL);

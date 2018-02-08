@@ -13,7 +13,6 @@ int main(int argc, char **argv)
     slvr = (struct Solver*)malloc(sizeof(struct Solver));
     struct AppCtx *user;
     user = (struct AppCtx*)malloc(sizeof(struct AppCtx));
-    user->dt =0.01;
     ierr = initialize_petsc(slvr,argc,argv,user);CHKERRQ(ierr);
     PetscReal dt = user->dt;
     PetscInt Nt = (PetscInt) floor(Time/dt);
@@ -168,6 +167,11 @@ int main(int argc, char **argv)
         }
         SNESGetConvergedReason(user->slvr->snes,&reason);
         if(reason<0){
+            // Failure Close
+            PetscTime(&full_toc);
+            fclose(fp);
+            fprintf(fptime,"%d,%d,%d,%d,%f,%f\n",0,count,user->Nx,user->Ny,user->dt,full_toc-full_tic);
+            fclose(fptime);
             fprintf(stderr, "Netwon Iteration did not converge! Stopping at %f...\n",t);
             exit(EXIT_FAILURE); /* indicate failure.*/}
 
@@ -175,7 +179,7 @@ int main(int argc, char **argv)
     PetscTime(&full_toc);
     //Close
     fclose(fp);
-    fprintf(fptime,"%d,%f\n",count,full_toc-full_tic);
+    fprintf(fptime,"%d,%d,%d,%d,%f,%f\n",1,count,user->Nx,user->Ny,user->dt,full_toc-full_tic);
     fclose(fptime);
     printf("Finished Running. Full solve time: %.10e\n",full_toc-full_tic);
 
