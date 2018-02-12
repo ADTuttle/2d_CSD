@@ -870,7 +870,7 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
                 Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x,y,comp,ion,Nx)]*dt;
                 //Add bath variables
 
-                Resc -= sqrt(pow(Dcb[c_index(x,y,comp,ion,Nx)*2],2)+pow(Dcb[c_index(x,y,comp,ion,Nx)*2+1],2))*(cp[c_index(x,y,comp,ion,Nx)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion,Nx)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp,Nx)]-z[ion]*phibath)*dt;
+                Resc -= sqrt(pow(Dcb[c_index(x,y,comp,ion,Nx)*2],2)+pow(Dcb[c_index(x,y,comp,ion,Nx)*2+1],2))*(cp[c_index(x,y,comp,ion,Nx)]+user->bath->Ion[c_index(x,y,Nc-1,ion,Nx)])/2.0*(log(c[c_index(x,y,comp,ion,Nx)])-log(user->bath->Ion[c_index(x,y,Nc-1,ion,Nx)])+z[ion]*phi[phi_index(x,y,comp,Nx)]-z[ion]*user->bath->Phi[xy_index(x,y,Nx)])*dt;
                 ierr = VecSetValue(Res,Ind_1(x,y,ion,comp,Nx),Resc,INSERT_VALUES);CHKERRQ(ierr);
 
                 //Save values for voltage
@@ -899,7 +899,7 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
             //Add bath contribution
             for(ion=0;ion<Ni;ion++){
 
-                ResphN -=z[ion]*sqrt(pow(Dcb[c_index(x,y,comp,ion,Nx)*2],2)+pow(Dcb[c_index(x,y,comp,ion,Nx)*2+1],2))*(cp[c_index(x,y,comp,ion,Nx)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion,Nx)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp,Nx)]-z[ion]*phibath)*dt;
+                ResphN -=z[ion]*sqrt(pow(Dcb[c_index(x,y,comp,ion,Nx)*2],2)+pow(Dcb[c_index(x,y,comp,ion,Nx)*2+1],2))*(cp[c_index(x,y,comp,ion,Nx)]+user->bath->Ion[c_index(x,y,Nc-1,ion,Nx)])/2.0*(log(c[c_index(x,y,comp,ion,Nx)])-log(user->bath->Ion[c_index(x,y,Nc-1,ion,Nx)])+z[ion]*phi[phi_index(x,y,comp,Nx)]-z[ion]*user->bath->Phi[xy_index(x,y,Nx)])*dt;
             }
             ResphN += Rphx[comp] - RphxRight[comp] + Rphy[comp] - RphyUp[comp];
             ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),ResphN,INSERT_VALUES); CHKERRQ(ierr);
@@ -1173,10 +1173,10 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 }
                 //Add bath contributions
                 Ftmpx=sqrt(pow(Dcb[c_index(x,y,Nc-1,ion,Nx)*2],2)+pow(Dcb[c_index(x,y,Nc-1,ion,Nx)*2+1],2));
-                Ac -= Ftmpx*(cp[c_index(x,y,Nc-1,ion,Nx)]+cbath[ion])/(2*c[c_index(x,y,Nc-1,ion,Nx)])*dt;
-                Aphi -= Ftmpx*(cp[c_index(x,y,Nc-1,ion,Nx)]+cbath[ion])*z[ion]/2*dt;
+                Ac -= Ftmpx*(cp[c_index(x,y,Nc-1,ion,Nx)]+user->bath->Ion[c_index(x,y,Nc-1,ion,Nx)])/(2*c[c_index(x,y,Nc-1,ion,Nx)])*dt;
+                Aphi -= Ftmpx*(cp[c_index(x,y,Nc-1,ion,Nx)]+user->bath->Ion[c_index(x,y,Nc-1,ion,Nx)])*z[ion]/2*dt;
 
-                Avolt -=z[ion]*Ftmpx*(cp[c_index(x,y,Nc-1,ion,Nx)]+cbath[ion])/(2*c[c_index(x,y,Nc-1,ion,Nx)])*dt;
+                Avolt -=z[ion]*Ftmpx*(cp[c_index(x,y,Nc-1,ion,Nx)]+user->bath->Ion[c_index(x,y,Nc-1,ion,Nx)])/(2*c[c_index(x,y,Nc-1,ion,Nx)])*dt;
 
                 //Insert extracell to extracell parts
                 // c with c
@@ -1267,7 +1267,7 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
             //Bath terms
             for(ion=0;ion<Ni;ion++) {
                 Ftmpx = sqrt(pow(Dcb[c_index(x,y,Nc-1,ion,Nx)*2],2)+pow(Dcb[c_index(x,y,Nc-1,ion,Nx)*2+1],2));
-                AvoltN -= z[ion]*Ftmpx*(cp[c_index(x,y,Nc-1,ion,Nx)]+cbath[ion])*z[ion]/2*dt;
+                AvoltN -= z[ion]*Ftmpx*(cp[c_index(x,y,Nc-1,ion,Nx)]+user->bath->Ion[c_index(x,y,Nc-1,ion,Nx)])*z[ion]/2*dt;
             }
             //extra-phi with extra-phi
             ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni,comp,Nx),AvoltN,INSERT_VALUES);CHKERRQ(ierr);
@@ -1794,6 +1794,7 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
     PetscReal *Dcs = user->Dcs;
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
+    struct BathType *bath = user->bath;
     PetscReal dt = user->dt;
     PetscReal dx = user->dx;
     PetscReal dy = user->dy;
@@ -1874,7 +1875,7 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
                 Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x,y,comp,ion,Nx)]*dt;
                 //Add bath variables
 
-                Resc -= sqrt(pow(Dcb[c_index(x,y,comp,ion,Nx)*2],2)+pow(Dcb[c_index(x,y,comp,ion,Nx)*2+1],2))*(cp[c_index(x,y,comp,ion,Nx)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion,Nx)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp,Nx)]-z[ion]*phibath)*dt;
+                Resc -= sqrt(pow(Dcb[c_index(x,y,comp,ion,Nx)*2],2)+pow(Dcb[c_index(x,y,comp,ion,Nx)*2+1],2))*(cp[c_index(x,y,comp,ion,Nx)]+bath->Ion[c_index(x,y,Nc-1,ion,Nx)])/2.0*(log(c[c_index(x,y,comp,ion,Nx)])-log(bath->Ion[c_index(x,y,Nc-1,ion,Nx)])+z[ion]*phi[phi_index(x,y,comp,Nx)]-z[ion]*bath->Phi[xy_index(x,y,Nx)])*dt;
                 ierr = VecSetValue(Res,Ind_1(x,y,ion,comp,Nx),Resc,INSERT_VALUES);CHKERRQ(ierr);
 
             }
@@ -1951,6 +1952,7 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
     struct ConstVars *con_vars = user->con_vars;
+    struct BathType *bath = user->bath;
 
     PetscInt ind = 0;
     PetscInt x,y,ion,comp;
@@ -2121,8 +2123,8 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                 }
                 //Add bath contributions
                 Ftmpx=sqrt(pow(Dcb[c_index(x,y,Nc-1,ion,Nx)*2],2)+pow(Dcb[c_index(x,y,Nc-1,ion,Nx)*2+1],2));
-                Ac -= Ftmpx*(cp[c_index(x,y,Nc-1,ion,Nx)]+cbath[ion])/(2*c[c_index(x,y,Nc-1,ion,Nx)])*dt;
-                Aphi -= Ftmpx*(cp[c_index(x,y,Nc-1,ion,Nx)]+cbath[ion])*z[ion]/2*dt;
+                Ac -= Ftmpx*(cp[c_index(x,y,Nc-1,ion,Nx)]+bath->Ion[c_index(x,y,Nc-1,ion,Nx)])/(2*c[c_index(x,y,Nc-1,ion,Nx)])*dt;
+                Aphi -= Ftmpx*(cp[c_index(x,y,Nc-1,ion,Nx)]+bath->Ion[c_index(x,y,Nc-1,ion,Nx)])*z[ion]/2*dt;
 
                 //Insert extracell to extracell parts
                 // c with c

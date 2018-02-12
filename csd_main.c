@@ -72,6 +72,8 @@ int main(int argc, char **argv)
     //Create Excitation
     struct ExctType *gexct;
     gexct = (struct ExctType*)malloc(sizeof(struct ExctType));
+    struct BathType *bath;
+    bath = (struct BathType*)malloc(sizeof(struct BathType));
     //Pass data structs over to AppCtx
 
     user->slvr = slvr;
@@ -81,6 +83,7 @@ int main(int argc, char **argv)
     user->gexct=gexct;
     user->state_vars_past=state_vars_past;
     user->state_vars=state_vars;
+    user->bath = bath;
 
     //Init misc. array sizes
     init_arrays(user);
@@ -115,7 +118,8 @@ int main(int argc, char **argv)
     //Reset time step
     user->dt = dt;
     //Create the excitation
-    excitation(user,0);
+    excitation(user,texct+1);
+    bath_excitation(user,0);
     int count = 0;
     PetscInt num_iters;
     SNESConvergedReason reason;
@@ -156,7 +160,8 @@ int main(int argc, char **argv)
 //            volume_update(user->state_vars, user->state_vars_past, user);
         }
         //Update Excitation
-        excitation(user,t);
+//        excitation(user,t);
+        bath_excitation(user,t);
         count++;
         if(count%krecordfreq==0) {
             SNESGetIterationNumber(user->slvr->snes,&num_iters);

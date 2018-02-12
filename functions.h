@@ -44,6 +44,7 @@ void gatevars_update(struct GateType *,struct SimState *,PetscReal,struct AppCtx
 void volume_update(struct SimState*,struct SimState*,struct AppCtx*);
 //Initial excitation
 void excitation(struct AppCtx*,PetscReal);
+void bath_excitation(struct AppCtx* , PetscReal );
 
 // Indexing functions
 PetscInt c_index(PetscInt,PetscInt,PetscInt,PetscInt,PetscInt);

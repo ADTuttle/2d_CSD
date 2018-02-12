@@ -158,10 +158,10 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct AppCtx*
 			    	Dc[c_index(x,y,Nc-1,ion,Nx)*2] = scale*D[ion]/2*(alNcL+alNcR)/(tortuosity*tortuosity);
 			    }
 			    //diffusion coefficients in neuronal compartment equal to 0
-			    Dc[c_index(x,y,0,ion,Nx)*2] = 0.0 ;
+			    Dc[c_index(x,y,0,ion,Nx)*2] =1e-4*scale*D[ion]*alphao[al_index(0,0,0,Nx)]/pow(tortuosity,2); ;
 			    //diffusion coefficients in glial compartment proportional to default volume fraction
-			    Dc[c_index(x,y,1,ion,Nx)*2] = 0*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
-//                Dc[c_index(x,y,1,ion,Nx)*2] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
+//			    Dc[c_index(x,y,1,ion,Nx)*2] = 0.01*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
+                Dc[c_index(x,y,1,ion,Nx)*2] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
 			    //diffusion coefficients in y direction
 			    if(y==(Ny-1)) {
 			    	//Boundary is zero
@@ -173,10 +173,10 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct AppCtx*
 
 				}
 				//diffusion coefficients in neuronal compartment equal to 0
-			    Dc[c_index(x,y,0,ion,Nx)*2+1] = 0.0;
+			    Dc[c_index(x,y,0,ion,Nx)*2+1] = 1e-4*scale*D[ion]*alphao[al_index(0,0,0,Nx)]/pow(tortuosity,2);;
 			    //diffusion coefficients in glial compartment proportional to default volume fraction
-//			    Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
-                Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.001*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
+			    Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
+//                Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.01*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
 
 		  	}
 		}
@@ -404,7 +404,45 @@ void excitation(struct AppCtx* user,PetscReal t)
     }
 //    printf("Number of excited points: %d\n",num_points);
 }
+void bath_excitation(struct AppCtx* user, PetscReal t)
+{
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+    PetscReal dx = user->dx;
+    PetscReal dy = user->dy;
 
+//    PetscReal phibath = -0/RTFC; //Voltage of outside bath
+//    PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
+    PetscInt numexcite = 0;
+    PetscReal radius;
+    for(int x=0; x<Nx; x++) {
+        for(int y=0;y<Ny;y++){
+            radius = sqrt(pow((x + 0.5) * dx, 2) + pow((y + 0.5) * dy , 2));
+            if(radius<Lexct&&t<texct){
+//            if(x==0&&y==0&&t<texct){
+                //We only use extracellular(for ease of coding reasons)
+                user->bath->Ion[c_index(x,y,Nc-1,0,Nx)] = cbath[0]*(1+0e4*pow(sin(pi*t/texct)*cos(pi/2*radius/Lexct),2)); //Na
+                user->bath->Ion[c_index(x,y,Nc-1,1,Nx)] = 52*1e-3;//cbath[1]*(1+0e4*pow(sin(pi*t/texct)*cos(pi/2*radius/Lexct),2)); // K
+                user->bath->Ion[c_index(x,y,Nc-1,2,Nx)] = cbath[2]*(1+0e3*pow(sin(pi*t/texct)*cos(pi/2*radius/Lexct),2)); // Cl
+                user->bath->Phi[xy_index(x,y,Nx)] = (-0/RTFC);
+                numexcite++;
+//                user->state_vars->c[c_index(x,y,Nc-1,2,Nx)]+=(8*cbath[2]*pow(sin(pi*t/texct)*cos(pi/2*radius/Lexct),2));
+//                user->state_vars->c[c_index(x,y,Nc-1,2,Nx)]*=(3e1*pow(cos(pi/2*radius/Lexct),2));
+//                user->state_vars->phi[phi_index(x,y,0,Nx)]*=(1+70*pow(sin(pi*t/texct)*cos(pi/2*radius/Lexct),2))*RTFC/FC;
+
+            }else{
+                //We only use extracellular(for ease of coding reasons)
+                user->bath->Ion[c_index(x,y,Nc-1,0,Nx)] = cbath[0]; //Na
+                user->bath->Ion[c_index(x,y,Nc-1,1,Nx)] = cbath[1]; // K
+                user->bath->Ion[c_index(x,y,Nc-1,2,Nx)] = cbath[2]; // Cl
+                user->bath->Phi[xy_index(x,y,Nx)] = phibath;
+            }
+        }
+
+    }
+//printf("Number of points excited: %d\n",numexcite);
+
+}
 void ionmflux(struct AppCtx* user)
 {
 	if(Profiling_on) {

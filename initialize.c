@@ -202,6 +202,9 @@ void init_arrays(struct AppCtx*user)
     user->gexct->pK = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gexct->pCl = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
 
+    //Bath Vars
+    user->bath->Ion = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
+    user->bath->Phi = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     //Constant params
     user->con_vars->ao = (PetscReal*) malloc(Nc*sizeof(PetscReal));
     user->con_vars->zo = (PetscReal*) malloc(Nc*sizeof(PetscReal));

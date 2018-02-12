@@ -69,9 +69,9 @@ static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
 #define pmax  (1e-1/3)          //max value for excitation
 //#define pmax  50          //max value for excitation
 //#define texct 2         //time for excitation
-#define texct 0.05         //time for excitation
-//#define Lexct 0.05          //Length of region for excitation in each direction
-#define Lexct 0.025          //Length of region for excitation in each direction
+#define texct 5.0         //time for excitation
+#define Lexct 0.05          //Length of region for excitation in each direction
+//#define Lexct 0.025          //Length of region for excitation in each direction
 
 //initial state setup
 #define rest_state  1        //if true, membrane parameters are set so that the initial voltages and concentrations are at a rest state
@@ -109,7 +109,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 //Glial KIR from Steinberg et al 2005
 #define pKIR  (.13*RTFC/FC)        //conductance in mS/cm^2 converted to mmol/cm^2/s
-#define pKLeakadjust  1.0       //parameter for varying glial permeability
+#define pKLeakadjust  (1.0)       //parameter for varying glial permeability
 
 //pump current, parameters from Yao, Huang, Miura, 2011
 #define mK  2e-3                 //pump current constant in mmol/cm^3=mol/l
@@ -163,6 +163,10 @@ struct ExctType{
 	PetscReal *pK;
 	PetscReal *pCl;
 };
+struct BathType{
+	PetscReal *Ion;
+	PetscReal *Phi;
+};
 
 struct ConstVars{
 	PetscReal pNaKCl;
@@ -196,6 +200,7 @@ struct AppCtx{
     struct GateType *gate_vars;
     struct ExctType *gexct;
     struct ConstVars *con_vars;
+	struct BathType *bath;
     PetscReal *Dcs;
     PetscReal *Dcb;
     PetscReal dt;
