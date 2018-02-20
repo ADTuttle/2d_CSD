@@ -9,12 +9,12 @@
 
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
-#define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
+#define details 1 //if true, will show how many iterations were necessary for each newton solve, and the residual
 #define mid_points_exct 1
-#define one_point_exct 1 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
-#define Profiling_on 1 //Turns timing of functions on/off.
+#define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
+#define Profiling_on 0 //Turns timing of functions on/off.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define trecordstep 0.1 //determines how often to record
+#define trecordstep 0.1//0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 
 //basic ion extern constants
@@ -25,7 +25,7 @@ static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
 //grid parameters
-#define Time 20.0   //total simulated time in seconds
+#define Time 0.1   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -47,7 +47,7 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 //#define Nz  (Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny)) //number of nonzeros in Jacobian
 
 //Newton solve parameters
-#define  itermax  10      //maximum Newton iterations allowed
+#define  itermax  20      //maximum Newton iterations allowed
 #define  reltol  1e-11    //relative tolerance
 
 
@@ -70,8 +70,8 @@ static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
 //#define pmax  50          //max value for excitation
 //#define texct 2         //time for excitation
 #define texct 0.05         //time for excitation
-//#define Lexct 0.05          //Length of region for excitation in each direction
-#define Lexct 0.025          //Length of region for excitation in each direction
+#define Lexct 0.05          //Length of region for excitation in each direction
+//#define Lexct 0.025          //Length of region for excitation in each direction
 
 //initial state setup
 #define rest_state  1        //if true, membrane parameters are set so that the initial voltages and concentrations are at a rest state

@@ -112,12 +112,16 @@ int main(int argc, char **argv)
     extract_subarray(current_state,state_vars);
     write_data(fp,user,numrecords,1);
 //    write_point(fp,user,numrecords,1);
+    FILE *fpflux;
+    fpflux = fopen("flux_csd.txt","w");
+    measure_flux(fpflux,user,numrecords,1);
+
     //Reset time step
     user->dt = dt;
     //Create the excitation
     excitation(user,0);
     int count = 0;
-    PetscInt num_iters;
+    PetscInt num_iters,ksp_iters_old,ksp_iters_new;
     SNESConvergedReason reason;
     PetscTime(&full_tic);
     for(PetscReal t=dt;t<=Time;t+=dt)
@@ -137,16 +141,19 @@ int main(int argc, char **argv)
         restore_subarray(current_state,state_vars);
         //Newton update
         PetscTime(&tic);
-//        newton_solve(current_state,user);
         SNESSolve(user->slvr->snes,NULL,current_state);
         PetscTime(&toc);
 
 
+        SNESGetIterationNumber(user->slvr->snes,&num_iters);
+        SNESGetConvergedReason(user->slvr->snes,&reason);
+        KSPGetTotalIterations(user->slvr->ksp,&ksp_iters_new);
         if(details) {
-            SNESGetIterationNumber(user->slvr->snes,&num_iters);
-            SNESGetConvergedReason(user->slvr->snes,&reason);
-            printf("Newton time: %f,iters:%d, Reason: %d\n", toc - tic,num_iters,reason);
+            printf("Newton time: %f,SNesiters:%d, Reason: %d, KSPIters: %d\n", toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
+
         }
+        ksp_iters_old = ksp_iters_new;
+
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
 
@@ -159,13 +166,11 @@ int main(int argc, char **argv)
         excitation(user,t);
         count++;
         if(count%krecordfreq==0) {
-            SNESGetIterationNumber(user->slvr->snes,&num_iters);
-            SNESGetConvergedReason(user->slvr->snes,&reason);
             printf("Time: %f,Newton time: %f,iters:%d, Reason: %d\n",t, toc - tic,num_iters,reason);
 //            write_point(fp, user,numrecords, 0);
             write_data(fp, user,numrecords, 0);
+            measure_flux(fpflux,user,numrecords,0);
         }
-        SNESGetConvergedReason(user->slvr->snes,&reason);
         if(reason<0){
             // Failure Close
             PetscTime(&full_toc);
@@ -181,6 +186,7 @@ int main(int argc, char **argv)
     fclose(fp);
     fprintf(fptime,"%d,%d,%d,%d,%f,%f\n",1,count,user->Nx,user->Ny,user->dt,full_toc-full_tic);
     fclose(fptime);
+    fclose(fpflux);
     printf("Finished Running. Full solve time: %.10e\n",full_toc-full_tic);
 
     if(Profiling_on) {

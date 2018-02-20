@@ -432,13 +432,13 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
   	ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
     //    Get Nx, Ny, and dt from options if possible
 
-    user->Nx = 32;
-    user->Ny = 32;
+    user->Nx = 128;
+    user->Ny = 128;
     user->dt =0.01;
 
     PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);
     PetscOptionsGetInt(NULL,NULL,"-Ny",&user->Ny,NULL);
-    PetscOptionsGetReal(NULL,NULL,"-Nt",&user->dt,NULL);
+    PetscOptionsGetReal(NULL,NULL,"-dt",&user->dt,NULL);
 
 
     PetscInt Nx = user->Nx;
@@ -543,21 +543,21 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
     //Gmres type methods
 //     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
-//    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
-//    /*
+    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
+    /*
     ierr = KSPSetType(slvr->ksp,KSPDGMRES); CHKERRQ(ierr);
 
     ierr = KSPGMRESSetRestart(slvr->ksp,40); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_eigen","10"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_max_eigen","100"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_force",""); CHKERRQ(ierr);
-//*/
+*/
 
 
 
     ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
     //Multigrid precond
-//    ierr = Initialize_PCMG(slvr->pc,slvr->A); CHKERRQ(ierr);
+    ierr = Initialize_PCMG(slvr->pc,slvr->A,user); CHKERRQ(ierr);
 
     //LU Direct solve
     /*
@@ -566,13 +566,13 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
      ierr = PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
     */
     // ILU Precond
-//    /*
+    /*
     ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
     ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
     ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
     ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     ierr = PCFactorSetMatOrderingType(slvr->pc,MATORDERINGNATURAL); CHKERRQ(ierr);
-//    */
+    */
 //     ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     PetscReal div_tol = 1e12;
 //    PetscReal abs_tol = 1e-13;
@@ -2114,7 +2114,7 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A,struct AppCtx*user)
     KSP coarse_ksp,sksp;
     PC coarse_pc,spc;
 
-    PetscInt nlevels = 3;
+    PetscInt nlevels = 5;
     PetscInt nx = user->Nx;
     PetscInt ny = user->Ny;
     Mat R,P;
@@ -2243,21 +2243,21 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A,struct AppCtx*user)
         ierr = KSPSetType(sksp,KSPGMRES); CHKERRQ(ierr);
 //        ierr = KSPSetType(sksp,KSPPREONLY); CHKERRQ(ierr);
         //Smoother Precond
-//        /*
+        /*
         ierr = PCSetType(spc,PCSOR); CHKERRQ(ierr);
 //        ierr = PCSORSetSymmetric(spc,SOR_LOCAL_BACKWARD_SWEEP); CHKERRQ(ierr);
         ierr = PCSORSetSymmetric(spc,SOR_LOCAL_FORWARD_SWEEP); CHKERRQ(ierr);
         ierr = PCSORSetIterations(spc,2,2); CHKERRQ(ierr);
         ierr = PCSORSetOmega(spc,1.0);
-//         */
+         */
 //        ierr = PCSetType(spc, PCJACOBI);CHKERRQ(ierr);
 //        ierr = PCJacobiSetType(spc,PC_JACOBI_ROWMAX); CHKERRQ(ierr);
-        /*
+//        /*
         ierr = PCSetType(spc, PCASM); CHKERRQ(ierr);
         ierr = PCASMSetType(spc,PC_ASM_BASIC); CHKERRQ(ierr);
         ierr = PCASMSetLocalType(spc,PC_COMPOSITE_ADDITIVE); CHKERRQ(ierr);
 //        ierr = PCASMSetLocalType(spc,PC_COMPOSITE_MULTIPLICATIVE); CHKERRQ(ierr);
-         */
+//         */
 
         /*
         ierr = PCSetType(spc,PCILU);CHKERRQ(ierr);

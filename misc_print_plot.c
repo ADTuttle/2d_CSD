@@ -280,11 +280,11 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
             for (y = 0; y < Ny; y++) {
                 for (x = 0; x < Nx; x++) {
                     if (x == Nx - 1 & y == Ny - 1) {
-                        fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
-//                        fprintf(fp, "%f\n", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
+//                        fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
+                        fprintf(fp, "%f\n", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
                     } else {
-                        fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
-//                        fprintf(fp, "%f,", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
+//                        fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
+                        fprintf(fp, "%f,", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
                     }
                 }
             }
@@ -328,6 +328,133 @@ void write_point(FILE *fp,struct AppCtx* user,PetscInt numrecords,int start)
         }
 
 
+}
+
+void measure_flux(FILE *fp, struct AppCtx* user,PetscInt numrecords,int start)
+{
+    struct SimState *state_vars= user->state_vars;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+    if (start) {
+        fprintf(fp, "%d,%d,%d,%d,%d,%d,%d,%d\n", Nx, Ny, numrecords, Nc, Ni, use_en_deriv, separate_vol,
+                Linear_Diffusion);
+        measure_flux(fp, user, numrecords, 0);
+    } else{
+        //compute diffusion coefficients
+        diff_coef(user->Dcs,state_vars->alpha,1,user);
+        //Bath diffusion
+        diff_coef(user->Dcb,state_vars->alpha,Batheps,user);
+
+        PetscReal *c = state_vars->c;
+        PetscReal *phi = state_vars->phi;
+        PetscReal *al = state_vars->alpha;
+        PetscReal *Dcs = user->Dcs;
+        PetscReal *Dcb = user->Dcb;
+        PetscReal dx = user->dx;
+        PetscReal dy = user->dy;
+
+        PetscReal Ftmp;
+
+        PetscReal Rcvx,RcvxRight,alNc;
+        PetscReal Rcvy,RcvyUp;
+
+        PetscReal Rphx,RphxRight;
+        PetscReal Rphy,RphyUp;
+
+        PetscReal RBath;
+
+        PetscInt x,y,comp,ion;
+
+        PetscReal Circ_Radius = 0.05;
+        PetscReal radius;
+
+        PetscReal Fluxc[Nc] = {0,0,0};
+        PetscReal Fluxph[Nc] = {0,0,0};
+        PetscReal Fluxbath[Nc] = {0,0,0};
+
+        int num_points=0;
+
+        for(x=0;x<Nx;x++){
+            for(y=0;y<Ny;y++){
+                radius = sqrt(pow((x + 0.5) * dx - Lx / 2, 2) + pow((y + 0.5) * dy - Lx / 2, 2));
+                if(radius<=Circ_Radius) {
+//                if(fabs((x+0.5)*dx-Lx/2)<=0.1 && fabs((y+0.5)*dy-Ly/2)<=0.1 ){
+                    num_points++;
+                    for(comp=0;comp<Nc;comp++) {
+                        //Reset values
+                        Rphx = 0;
+                        RphxRight = 0;
+                        Rphy = 0;
+                        RphyUp = 0;
+                        Rcvx = 0;
+                        RcvxRight = 0;
+                        Rcvy = 0;
+                        RcvyUp = 0;
+                        RBath = 0;
+                        //Sum over all ions
+                        for (ion = 0; ion < Ni; ion++) {
+                            if (x > 0) {
+                                //First difference term
+                                Ftmp = z[ion] * Dcs[c_index(x - 1, y, comp, ion, Nx) * 2] / (dx * dx);
+                                Rcvx += Ftmp * (c[c_index(x, y, comp, ion, Nx)] - c[c_index(x - 1, y, comp, ion, Nx)]);
+                                Rphx += Ftmp * z[ion] * c[c_index(x - 1, y, comp, ion, Nx)] *
+                                        (phi[phi_index(x, y, comp, Nx)] - phi[phi_index(x - 1, y, comp, Nx)]);
+                            }
+                            //Add Second right moving difference
+                            if (x < Nx - 1) {
+                                //Second difference term
+                                Ftmp = z[ion] * Dcs[c_index(x, y, comp, ion, Nx) * 2] / (dx * dx);
+                                RcvxRight +=
+                                        Ftmp * (c[c_index(x + 1, y, comp, ion, Nx)] - c[c_index(x, y, comp, ion, Nx)]);
+                                RphxRight += Ftmp * z[ion] * c[c_index(x, y, comp, ion, Nx)] *
+                                             (phi[phi_index(x + 1, y, comp, Nx)] - phi[phi_index(x, y, comp, Nx)]);
+                            }
+                            if (y > 0) {
+                                //Updown difference term
+                                Ftmp = z[ion] * Dcs[c_index(x, y - 1, comp, ion, Nx) * 2 + 1] / (dy * dy);
+                                Rcvy += Ftmp * (c[c_index(x, y, comp, ion, Nx)] - c[c_index(x, y - 1, comp, ion, Nx)]);
+                                Rphy += Ftmp * z[ion] * c[c_index(x, y - 1, comp, ion, Nx)] *
+                                        (phi[phi_index(x, y, comp, Nx)] - phi[phi_index(x, y - 1, comp, Nx)]);
+                            }
+                            //Next upward difference
+                            if (y < Ny - 1) {
+                                Ftmp = z[ion] * Dcs[c_index(x, y, comp, ion, Nx) * 2 + 1] / (dy * dy);
+                                RcvyUp +=
+                                        Ftmp * (c[c_index(x, y + 1, comp, ion, Nx)] - c[c_index(x, y, comp, ion, Nx)]);
+                                RcvyUp += Ftmp * z[ion] * c[c_index(x, y, comp, ion, Nx)] *
+                                          (phi[phi_index(x, y + 1, comp, Nx)] - phi[phi_index(x, y, comp, Nx)]);
+
+                            }
+                            if (comp == Nc - 1) {
+                            Ftmp = z[ion] * sqrt(pow(Dcb[c_index(x, y, comp, ion, Nx) * 2], 2) +
+                                                 pow(Dcb[c_index(x, y, comp, ion, Nx) * 2 + 1], 2));
+                            RBath -= Ftmp * (c[c_index(x, y, comp, ion, Nx)] - cbath[ion]);
+                            RBath -= Ftmp * (c[c_index(x, y, comp, ion, Nx)] + cbath[ion]) / 2.0 *
+                                     (z[ion] * phi[phi_index(x, y, comp, Nx)] - z[ion] * phibath);
+                            }
+                        }
+
+                        Fluxph[comp] += (Rphx - RphxRight + Rphy - RphyUp) * dx * dy;
+                        Fluxc[comp] += (Rcvx - RcvxRight + Rcvy - RcvyUp) * dx * dy;
+                        Fluxbath[comp] += RBath * dx * dy;
+                    }
+                }
+            }
+        }
+/*
+        for(comp=Nc-1;comp<Nc;comp++) {
+            printf("Comp: %d\n",comp);
+            printf("pts: %d,FluxC: %.10e, Fluxph: %.10e,FluxBath: %.10e\n", num_points, Fluxc[comp], Fluxph[comp], Fluxbath[comp]);
+            printf("Flux nobath: %.10e, Flux Tot: %.10e\n", Fluxc[comp] + Fluxph[comp], Fluxbath[comp] + Fluxc[comp] + Fluxph[comp]);
+        }
+        */
+        fprintf(fp,"%.10e,%.10e,%.10e\n",Fluxc[Nc-1], Fluxph[Nc-1], Fluxbath[Nc-1]);
+        /*
+        printf("All Comps:\n");
+        printf("FluxC: %.10e, Fluxph: %.10e,FluxBath: %.10e\n", Fluxc[0]+Fluxc[1]+Fluxc[2], Fluxph[0]+Fluxph[1]+Fluxph[2], Fluxbath[2]);
+        printf("Flux nobath: %.10e, Flux Tot: %.10e\n", Fluxc[0]+Fluxc[1]+Fluxc[2]+Fluxph[0]+Fluxph[1]+Fluxph[2], Fluxbath[2]+Fluxc[0]+Fluxc[1]+Fluxc[2]+Fluxph[0]+Fluxph[1]+Fluxph[2]);
+    */
+    }
 }
 void init_events(struct AppCtx *user)
 {

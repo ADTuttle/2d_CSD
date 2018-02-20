@@ -122,8 +122,7 @@ PetscReal cz(const PetscReal *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,P
 {
 	//function to compute sum over i of c_i*z_i
 	PetscReal accumulate=0;
-	for(PetscInt ion=0;ion<Ni;ion++)
-	{
+	for(PetscInt ion=0;ion<Ni;ion++) {
 		accumulate += zvals[ion]*cmat[c_index(x,y,comp,ion,user->Nx)];
 	}
 	return accumulate;
@@ -161,7 +160,7 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct AppCtx*
 			    Dc[c_index(x,y,0,ion,Nx)*2] = 0.0 ;
 			    //diffusion coefficients in glial compartment proportional to default volume fraction
 			    Dc[c_index(x,y,1,ion,Nx)*2] = 0*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
-//                Dc[c_index(x,y,1,ion,Nx)*2] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
+//                Dc[c_index(x,y,1,ion,Nx)*2] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2); //0.25
 			    //diffusion coefficients in y direction
 			    if(y==(Ny-1)) {
 			    	//Boundary is zero
@@ -175,7 +174,7 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct AppCtx*
 				//diffusion coefficients in neuronal compartment equal to 0
 			    Dc[c_index(x,y,0,ion,Nx)*2+1] = 0.0;
 			    //diffusion coefficients in glial compartment proportional to default volume fraction
-//			    Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
+//			    Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2); //0.25
                 Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.001*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
 
 		  	}
@@ -339,8 +338,8 @@ void excitation(struct AppCtx* user,PetscReal t)
     struct ExctType *exct = user->gexct;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
-    PetscInt dx = user->dx;
-    PetscInt dy = user->dy;
+    PetscReal dx = user->dx;
+    PetscReal dy = user->dy;
     PetscInt num_points = 0;
     if(one_point_exct){
         for (PetscInt i = 0; i < Nx; i++) {
