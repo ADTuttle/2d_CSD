@@ -9,10 +9,8 @@ int main(int argc, char **argv)
 
     PetscErrorCode ierr;
     //Petsc Initialize
-    struct Solver *slvr;
-    slvr = (struct Solver*)malloc(sizeof(struct Solver));
-    struct AppCtx *user;
-    user = (struct AppCtx*)malloc(sizeof(struct AppCtx));
+    struct Solver *slvr = (struct Solver*)malloc(sizeof(struct Solver));
+    struct AppCtx *user = (struct AppCtx*)malloc(sizeof(struct AppCtx));
     ierr = initialize_petsc(slvr,argc,argv,user);CHKERRQ(ierr);
     PetscReal dt = user->dt;
     PetscInt Nt = (PetscInt) floor(Time/dt);
@@ -30,16 +28,14 @@ int main(int argc, char **argv)
     printf("\n\n\nGrid size: %dx%d, with %d ions, and %d compartments. For %f sec at step %f\n",user->Nx,user->Ny,Ni,Nc,Time,dt);
     PetscLogDouble tic,toc,full_tic,full_toc;
     //Create state_variables struct
-    struct SimState *state_vars;
-    state_vars=(struct SimState*)malloc(sizeof(struct SimState));
+    struct SimState *state_vars = (struct SimState*)malloc(sizeof(struct SimState));
     Vec current_state;
     //Create Vector
     ierr = VecCreate(PETSC_COMM_WORLD,&current_state);CHKERRQ(ierr);
     ierr = VecSetType(current_state,VECSEQ); CHKERRQ(ierr);
     ierr = VecSetSizes(current_state,PETSC_DECIDE,user->NA);CHKERRQ(ierr);
 
-    struct SimState *state_vars_past;
-    state_vars_past=(struct SimState*)malloc(sizeof(struct SimState));
+    struct SimState *state_vars_past = (struct SimState*)malloc(sizeof(struct SimState));
     //Create Vector
     ierr = VecCreate(PETSC_COMM_WORLD,&state_vars_past->v);CHKERRQ(ierr);
     ierr = VecSetType(state_vars_past->v,VECSEQ); CHKERRQ(ierr);
@@ -60,18 +56,14 @@ int main(int argc, char **argv)
     printf("Init Value: c: %f,ph: %f,al: %f\n",state_vars->c[0],state_vars->phi[10],state_vars->alpha[25]);
     ierr = restore_subarray(current_state,state_vars); CHKERRQ(ierr);
     //Create the constant ion channel vars
-    struct ConstVars *con_vars;
-    con_vars=(struct ConstVars*)malloc(sizeof(struct ConstVars));
+    struct ConstVars *con_vars = (struct ConstVars*)malloc(sizeof(struct ConstVars));
 
     //Create the gating variables
-    struct GateType *gate_vars;
-    gate_vars = (struct GateType*) malloc(sizeof(struct GateType));
+    struct GateType *gate_vars = (struct GateType*) malloc(sizeof(struct GateType));
     //Create the flux structure
-    struct FluxData *flux;
-    flux = (struct FluxData*) malloc(sizeof(struct FluxData));
+    struct FluxData *flux = (struct FluxData*) malloc(sizeof(struct FluxData));
     //Create Excitation
-    struct ExctType *gexct;
-    gexct = (struct ExctType*)malloc(sizeof(struct ExctType));
+    struct ExctType *gexct = (struct ExctType*)malloc(sizeof(struct ExctType));
     //Pass data structs over to AppCtx
 
     user->slvr = slvr;
@@ -152,7 +144,7 @@ int main(int argc, char **argv)
             printf("Newton time: %f,SNesiters:%d, Reason: %d, KSPIters: %d\n", toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
 
         }
-        ksp_iters_old = ksp_iters_new;
+
 
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
@@ -166,11 +158,12 @@ int main(int argc, char **argv)
         excitation(user,t);
         count++;
         if(count%krecordfreq==0) {
-            printf("Time: %f,Newton time: %f,iters:%d, Reason: %d\n",t, toc - tic,num_iters,reason);
+            printf("Time: %f,Newton time: %f,iters:%d, Reason: %d,KSPIters: %d\n",t, toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
 //            write_point(fp, user,numrecords, 0);
             write_data(fp, user,numrecords, 0);
             measure_flux(fpflux,user,numrecords,0);
         }
+        ksp_iters_old = ksp_iters_new;
         if(reason<0){
             // Failure Close
             PetscTime(&full_toc);

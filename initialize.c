@@ -461,7 +461,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
   	//Create Matrix
     //Get number of nonzeros in each row
-    int nnz[NA];
+    int *nnz = (int*) malloc(sizeof(int)*NA);
     Get_Nonzero_in_Rows(nnz,user);
     //Construct matrix using that
   	// ierr = MatCreateSeqAIJ(PETSC_COMM_WORLD,NA,NA,5*Nv,nnz,&slvr->A);CHKERRQ(ierr);
@@ -574,14 +574,15 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = PCFactorSetMatOrderingType(slvr->pc,MATORDERINGNATURAL); CHKERRQ(ierr);
     */
 //     ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
+    /*
     PetscReal div_tol = 1e12;
-//    PetscReal abs_tol = 1e-13;
-//    PetscReal rel_tol = 1e-10;
-    PetscReal abs_tol = 1e-12;
-    PetscReal rel_tol = 1e-8;
+    PetscReal abs_tol = 1e-16;
+    PetscReal rel_tol = 1e-14;
+//    PetscReal abs_tol = 1e-12;
+//    PetscReal rel_tol = 1e-8;
     ierr = KSPSetTolerances(slvr->ksp,rel_tol,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
     ierr = KSPSetNormType(slvr->ksp,KSP_NORM_UNPRECONDITIONED);CHKERRQ(ierr);
-//    */
+    */
 
     /*
         Set runtime options, e.g.,
@@ -591,12 +592,13 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     routines.
     */
     ierr = SNESSetFromOptions(slvr->snes);CHKERRQ(ierr);
-     ierr = KSPSetFromOptions(slvr->ksp);CHKERRQ(ierr);
-     ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
+    ierr = KSPSetFromOptions(slvr->ksp);CHKERRQ(ierr);
+    ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
 
 
+    free(nnz);
 
-  return ierr;
+    return ierr;
 }
 
 void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user)
@@ -2114,9 +2116,10 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A,struct AppCtx*user)
     KSP coarse_ksp,sksp;
     PC coarse_pc,spc;
 
-    PetscInt nlevels = 5;
+
     PetscInt nx = user->Nx;
     PetscInt ny = user->Ny;
+    PetscInt nlevels = (PetscInt) log2(nx);
     Mat R,P;
 
     ierr = PCSetType(pc,PCMG); CHKERRQ(ierr);
@@ -2237,27 +2240,28 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A,struct AppCtx*user)
 
 
         //Smoother KSP
-//        ierr = KSPSetType(sksp,KSPRICHARDSON); CHKERRQ(ierr);
-//        ierr = KSPRichardsonSetScale(sksp,1.0); CHKERRQ(ierr);
+        ierr = KSPSetType(sksp,KSPRICHARDSON); CHKERRQ(ierr);
+        ierr = KSPRichardsonSetScale(sksp,1.0); CHKERRQ(ierr);
 //        ierr = KSPSetType(sksp,KSPBCGS); CHKERRQ(ierr);
-        ierr = KSPSetType(sksp,KSPGMRES); CHKERRQ(ierr);
+//        ierr = KSPSetType(sksp,KSPGMRES); CHKERRQ(ierr);
 //        ierr = KSPSetType(sksp,KSPPREONLY); CHKERRQ(ierr);
         //Smoother Precond
-        /*
+//        /*
         ierr = PCSetType(spc,PCSOR); CHKERRQ(ierr);
 //        ierr = PCSORSetSymmetric(spc,SOR_LOCAL_BACKWARD_SWEEP); CHKERRQ(ierr);
+//        ierr = PCSORSetSymmetric(spc,SOR_LOCAL_SYMMETRIC_SWEEP); CHKERRQ(ierr);
         ierr = PCSORSetSymmetric(spc,SOR_LOCAL_FORWARD_SWEEP); CHKERRQ(ierr);
         ierr = PCSORSetIterations(spc,2,2); CHKERRQ(ierr);
         ierr = PCSORSetOmega(spc,1.0);
-         */
+//         */
 //        ierr = PCSetType(spc, PCJACOBI);CHKERRQ(ierr);
 //        ierr = PCJacobiSetType(spc,PC_JACOBI_ROWMAX); CHKERRQ(ierr);
-//        /*
+        /*
         ierr = PCSetType(spc, PCASM); CHKERRQ(ierr);
         ierr = PCASMSetType(spc,PC_ASM_BASIC); CHKERRQ(ierr);
         ierr = PCASMSetLocalType(spc,PC_COMPOSITE_ADDITIVE); CHKERRQ(ierr);
 //        ierr = PCASMSetLocalType(spc,PC_COMPOSITE_MULTIPLICATIVE); CHKERRQ(ierr);
-//         */
+         */
 
         /*
         ierr = PCSetType(spc,PCILU);CHKERRQ(ierr);
