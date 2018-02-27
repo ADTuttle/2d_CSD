@@ -168,6 +168,8 @@ void init(Vec state,struct SimState *state_vars,struct AppCtx*user)
 		}
 	}
     restore_subarray(state,state_vars);
+    VecSet(user->state_vars->v_fast,0);
+    VecSet(user->state_vars_past->v_fast,0);
 }
 
 void init_arrays(struct AppCtx*user)
@@ -364,6 +366,8 @@ void initialize_data(Vec current_state,struct AppCtx *user)
 
 	PetscReal convtol = 1e-11;
     extract_subarray(current_state,user->state_vars);
+    VecGetArray(user->state_vars->v_fast,&user->state_vars->phi_fast);
+    VecGetArray(user->state_vars_past->v_fast,&user->state_vars_past->phi_fast);
 	PetscReal tol = convtol*array_max(user->state_vars->c,(size_t)Nx*Ny*Nc*Ni);
   	PetscReal rsd = 1.0;
   	PetscReal *cp;
@@ -372,6 +376,8 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     //compute gating variables
     gatevars_update(user->gate_vars,user->state_vars,0,user,1);
     restore_subarray(current_state,user->state_vars);
+    VecRestoreArray(user->state_vars->v_fast,&user->state_vars->phi_fast);
+    VecRestoreArray(user->state_vars_past->v_fast,&user->state_vars_past->phi_fast);
 
   	//Initialize and compute the excitation (it's zeros here)
   	excitation(user,texct+1);
@@ -383,6 +389,8 @@ void initialize_data(Vec current_state,struct AppCtx *user)
   	while(rsd>tol && user->dt*k<10)
   	{
         extract_subarray(current_state,user->state_vars);
+        VecGetArray(user->state_vars->v_fast,&user->state_vars->phi_fast);
+        VecGetArray(user->state_vars_past->v_fast,&user->state_vars_past->phi_fast);
     	memcpy(cp,user->state_vars->c,sizeof(PetscReal)*Nx*Ny*Ni*Nc);
         //Save the "current" aka past state
         restore_subarray(user->state_vars_past->v,user->state_vars_past);
@@ -398,15 +406,23 @@ void initialize_data(Vec current_state,struct AppCtx *user)
         restore_subarray(current_state,user->state_vars);
 
 //    	newton_solve(current_state,user);
+        //Solve slow var
         SNESSolve(user->slvr->snes,NULL,current_state);
 
+        VecRestoreArray(user->state_vars->v_fast,&user->state_vars->phi_fast);
+        //Solve fast var
+        SNESSolve(user->fast_slvr->snes,NULL,user->state_vars->v_fast);
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
+
+        VecGetArray(user->state_vars->v_fast,&user->state_vars->phi_fast);
         gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
 
         //Update Excitation
     	rsd = array_diff_max(user->state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/user->dt;
         restore_subarray(current_state,user->state_vars);
+        VecRestoreArray(user->state_vars->v_fast,&user->state_vars->phi_fast);
+        VecRestoreArray(user->state_vars_past->v_fast,&user->state_vars_past->phi_fast);
         printf("Init_Data rsd: %.10e, Tol: %.10e\n",rsd,tol);
     	k++;
 	}
@@ -432,10 +448,10 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
   	ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
     //    Get Nx, Ny, and dt from options if possible
 
-    user->Nx = 128;
-    user->Ny = 128;
+    user->Nx = 32;
+    user->Ny = 32;
     user->dt =0.01;
-
+//    user->dt = 1.0/1000.0/2.0;
     PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);
     PetscOptionsGetInt(NULL,NULL,"-Ny",&user->Ny,NULL);
     PetscOptionsGetReal(NULL,NULL,"-dt",&user->dt,NULL);
@@ -481,9 +497,10 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
   	//Create Solver Contexts
     ierr = SNESCreate(PETSC_COMM_WORLD,&slvr->snes); CHKERRQ(ierr);
 
-    
+
 //    ierr = KSPCreate(PETSC_COMM_WORLD,&slvr->ksp);CHKERRQ(ierr);
     ierr = SNESGetKSP(slvr->snes,&slvr->ksp); CHKERRQ(ierr);
+    ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
 
     if(Linear_Diffusion){
         if(use_en_deriv){
@@ -532,6 +549,9 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
             CHKERRQ(ierr);
         }
     }
+
+    ierr = SNESSetFunction(slvr->snes,slvr->Res,calc_residual_slow,user); CHKERRQ(ierr);
+    ierr = SNESSetJacobian(slvr->snes,slvr->A,slvr->A,calc_jacobian_slow,user); CHKERRQ(ierr);
     //Set SNES types
     ierr = SNESSetType(slvr->snes,SNESNEWTONLS); CHKERRQ(ierr);
 //    ierr = SNESSetType(slvr->snes,SNESNEWTONTR); CHKERRQ(ierr);
@@ -543,21 +563,33 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
     //Gmres type methods
 //     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
-    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
-    /*
-    ierr = KSPSetType(slvr->ksp,KSPDGMRES); CHKERRQ(ierr);
-
-    ierr = KSPGMRESSetRestart(slvr->ksp,40); CHKERRQ(ierr);
-    ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_eigen","10"); CHKERRQ(ierr);
-    ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_max_eigen","100"); CHKERRQ(ierr);
-    ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_force",""); CHKERRQ(ierr);
-*/
 
 
+    if( Nx%2==0 && Nx>64){
+        printf("Using FGMRES+Multigrid(Richardson+SOR)\n");
+        ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
 
-    ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
-    //Multigrid precond
-    ierr = Initialize_PCMG(slvr->pc,slvr->A,user); CHKERRQ(ierr);
+        //Multigrid precond
+        ierr = Initialize_PCMG(slvr->pc,slvr->A,user); CHKERRQ(ierr);
+    }else {
+        printf("Using DGMRES+ILU\n");
+        //DGmres KSP
+        ierr = KSPSetType(slvr->ksp, KSPDGMRES);CHKERRQ(ierr);
+        ierr = KSPGMRESSetRestart(slvr->ksp, 40);CHKERRQ(ierr);
+        ierr = PetscOptionsSetValue(NULL, "-ksp_dgmres_eigen", "10");CHKERRQ(ierr);
+        ierr = PetscOptionsSetValue(NULL, "-ksp_dgmres_max_eigen", "100");CHKERRQ(ierr);
+        ierr = PetscOptionsSetValue(NULL, "-ksp_dgmres_force", "");CHKERRQ(ierr);
+
+        // ILU Precond
+        ierr = PCSetType(slvr->pc, PCILU);CHKERRQ(ierr);
+        ierr = PCFactorSetFill(slvr->pc, 3.0);CHKERRQ(ierr);
+        ierr = PCFactorSetLevels(slvr->pc, 1);CHKERRQ(ierr);
+        ierr = PCFactorSetAllowDiagonalFill(slvr->pc, PETSC_TRUE);CHKERRQ(ierr);
+        ierr = PCFactorSetMatOrderingType(slvr->pc, MATORDERINGNATURAL);CHKERRQ(ierr);
+    }
+
+
+
 
     //LU Direct solve
     /*
@@ -565,14 +597,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
      ierr = PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
     */
-    // ILU Precond
-    /*
-    ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
-    ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
-    ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
-    ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
-    ierr = PCFactorSetMatOrderingType(slvr->pc,MATORDERINGNATURAL); CHKERRQ(ierr);
-    */
+
 //     ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     /*
     PetscReal div_tol = 1e12;
@@ -601,6 +626,67 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     return ierr;
 }
 
+PetscErrorCode initialize_fast_petsc(struct Solver *slvr,int argc, char **argv,struct AppCtx *user)
+{
+    PetscErrorCode ierr;
+
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+
+
+    //Create Vectors
+    ierr = VecCreate(PETSC_COMM_WORLD,&slvr->Q);CHKERRQ(ierr);
+    ierr = VecSetType(slvr->Q,VECSEQ);CHKERRQ(ierr);
+    ierr = VecSetSizes(slvr->Q,PETSC_DECIDE,Nx*Ny*Nc);CHKERRQ(ierr);
+    ierr = VecDuplicate(slvr->Q,&slvr->Res);CHKERRQ(ierr);
+
+    //Create Matrix
+    ierr = MatCreate(PETSC_COMM_WORLD,&slvr->A);CHKERRQ(ierr);
+    ierr = MatSetType(slvr->A,MATSEQAIJ);CHKERRQ(ierr);
+    ierr = MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,Nx*Ny*Nc,Nx*Ny*Nc);CHKERRQ(ierr);
+    ierr = MatSeqAIJSetPreallocation(slvr->A,3,NULL);CHKERRQ(ierr);
+    // ierr = MatSetFromOptions(slvr->A);CHKERRQ(ierr);
+    ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
+
+
+    //Create Solver Contexts
+    ierr = SNESCreate(PETSC_COMM_WORLD,&slvr->snes); CHKERRQ(ierr);
+
+    ierr = SNESGetKSP(slvr->snes,&slvr->ksp); CHKERRQ(ierr);
+    ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
+
+    //Set Function eval
+    ierr = SNESSetFunction(slvr->snes, slvr->Res, calc_residual_fast, user);CHKERRQ(ierr);
+    //Set Jacobian eval
+    ierr = SNESSetJacobian(slvr->snes, slvr->A, slvr->A, calc_jacobian_fast, user);CHKERRQ(ierr);
+
+    //Set SNES types
+    ierr = SNESSetType(slvr->snes,SNESNEWTONLS); CHKERRQ(ierr);
+
+    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
+    //LU Direct solve
+
+    ierr = PCSetType(slvr->pc,PCLU);CHKERRQ(ierr);
+    ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
+    ierr = PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
+
+
+//     ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
+    /*
+    PetscReal div_tol = 1e12;
+    PetscReal abs_tol = 1e-16;
+    PetscReal rel_tol = 1e-14;
+//    PetscReal abs_tol = 1e-12;
+//    PetscReal rel_tol = 1e-8;
+    ierr = KSPSetTolerances(slvr->ksp,rel_tol,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
+    ierr = KSPSetNormType(slvr->ksp,KSP_NORM_UNPRECONDITIONED);CHKERRQ(ierr);
+    */
+    ierr = SNESSetFromOptions(slvr->snes);CHKERRQ(ierr);
+    ierr = KSPSetFromOptions(slvr->ksp);CHKERRQ(ierr);
+    ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
+
+    return ierr;
+}
 void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user)
 {
     PetscInt Nx = user->Nx;

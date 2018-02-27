@@ -10,12 +10,12 @@
 
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
-#define details 1 //if true, will show how many iterations were necessary for each newton solve, and the residual
+#define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
 #define mid_points_exct 1
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 #define Profiling_on 0 //Turns timing of functions on/off.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define trecordstep 0.1//0.5 //determines how often to record
+#define trecordstep 0.01//0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 
 //basic ion extern constants
@@ -26,7 +26,7 @@ static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
 //grid parameters
-#define Time 0.1   //total simulated time in seconds
+#define Time 1.0//0.1//10.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -38,6 +38,7 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 //#define dx (Lx/Nx)       //grid size in x direction (in cm)
 //#define dy (Ly/Ny)        //grid size in y direction (in cm)
 
+#define Nfast 2
 
 
 //number of variables to be solved for at each grid point
@@ -132,6 +133,9 @@ struct SimState{
     IS al_ind;
     IS phi_ind;
 
+    Vec v_fast;
+    PetscScalar *phi_fast;
+
 };
 
 struct FluxData{
@@ -193,6 +197,7 @@ struct AppCtx{
     struct SimState *state_vars;
     struct SimState *state_vars_past;
     struct Solver *slvr;
+    struct Solver *fast_slvr;
     struct FluxData *flux;
     struct GateType *gate_vars;
     struct ExctType *gexct;
@@ -200,6 +205,7 @@ struct AppCtx{
     PetscReal *Dcs;
     PetscReal *Dcb;
     PetscReal dt;
+    PetscReal dtf;
     PetscReal dx;
     PetscReal dy;
     PetscInt Nx;

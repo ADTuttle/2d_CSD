@@ -92,3 +92,5 @@ converge_runs/dt01/data_csd_128.txt
 converge_runs/dt01/data_csd_32.txt
 
 converge_runs/dt01/data_csd_64.txt
+
+flux_csd.txt

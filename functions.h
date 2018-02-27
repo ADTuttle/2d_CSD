@@ -57,6 +57,7 @@ PetscInt Ind_nx(PetscInt,PetscInt ,PetscInt ,PetscInt , PetscInt );
 //Create Petsc Structures
 
 PetscErrorCode initialize_petsc(struct Solver *,int, char **,struct AppCtx*);
+PetscErrorCode initialize_fast_petsc(struct Solver *,int, char **,struct AppCtx*);
 void Get_Nonzero_in_Rows(int *,struct AppCtx*);
 PetscErrorCode initialize_jacobian(Mat,struct AppCtx*);
 
@@ -67,6 +68,7 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A,struct AppCtx*);
 
 //Newton Solver
 PetscErrorCode newton_solve(Vec,struct AppCtx*);
+PetscErrorCode update_fast_vars(struct SimState *,struct SimState *, struct AppCtx *,PetscReal);
 //Calculate residuals and jacobians
 
 //Nonlinear discretizations
@@ -90,6 +92,14 @@ PetscErrorCode calc_jacobian_linear_algebraic(SNES, Vec, Mat,Mat, void*); //void
 PetscErrorCode calc_residual_linear_deriv(SNES,Vec,Vec,void*); //void is masked AppCtx
 PetscErrorCode calc_jacobian_linear_deriv(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
 
+//Multirate discretizations
+//Derivative of CC with no volume
+//Fast eqns
+PetscErrorCode calc_residual_fast(SNES,Vec,Vec,void*); //void is masked AppCtx
+PetscErrorCode calc_jacobian_fast(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
+//Slow eqns
+PetscErrorCode calc_residual_slow(SNES,Vec,Vec,void*); //void is masked AppCtx
+PetscErrorCode calc_jacobian_slow(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
 
 //Find abs. max value of an array
 PetscReal array_max(PetscReal *,size_t);

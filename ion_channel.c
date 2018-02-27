@@ -272,6 +272,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,Pets
 			{
 				//membrane potential in mV
 				v = (state_vars->phi[phi_index(x,y,0,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)])*RTFC;
+                v += (state_vars->phi_fast[phi_index(x,y,0,Nx)]-state_vars->phi_fast[phi_index(x,y,Nc-1,Nx)])*RTFC;
 
 				//compute current NaT
 		  		//gating variables mNaT
@@ -430,8 +431,11 @@ void ionmflux(struct AppCtx* user)
         for(PetscInt y=0;y<Ny;y++)
         {
             vm = state_vars->phi[phi_index(x,y,0,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)];
+            vm += state_vars->phi_fast[phi_index(x,y,0,Nx)]-state_vars->phi_fast[phi_index(x,y,Nc-1,Nx)]; //add fast
             vmg = state_vars->phi[phi_index(x,y,1,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)];
+            vmg += state_vars->phi_fast[phi_index(x,y,1,Nx)]-state_vars->phi_fast[phi_index(x,y,Nc-1,Nx)]; //add fast
             vmgp = state_vars_past->phi[phi_index(x,y,1,Nx)]-state_vars_past->phi[phi_index(x,y,Nc-1,Nx)];
+            vmgp += state_vars->phi_fast[phi_index(x,y,1,Nx)]-state_vars->phi_fast[phi_index(x,y,Nc-1,Nx)]; //add fast
 
             //Compute Na Channel currents
             ci = state_vars->c[c_index(x,y,0,0,Nx)];
