@@ -119,9 +119,14 @@ int main(int argc, char **argv)
     fptime = fopen("timing.txt","a");
     extract_subarray(current_state,state_vars,1);
     write_data(fp,user,numrecords,1);
+
+
 //    write_point(fp,user,numrecords,1);
     FILE *fpflux;
     fpflux = fopen("flux_csd.txt","w");
+    FILE *fp_fast = fopen("data_fastcsd.txt","w");
+    write_fast(fp_fast,user,numrecords*Nfast-(Nfast-1),1);
+
     measure_flux(fpflux,user,numrecords,1);
 
     //Reset time step
@@ -145,7 +150,7 @@ int main(int argc, char **argv)
         diff_coef(user->Dcb,state_vars_past->alpha,Batheps,user);
 
         //update the fast variables
-        update_fast_vars(state_vars,state_vars_past,user,t);
+        update_fast_vars(fp_fast,state_vars,state_vars_past,user,t);
 
         if(separate_vol) {
             //Update volume(uses past c values for wflow)
@@ -168,8 +173,13 @@ int main(int argc, char **argv)
             printf("Newton time: %f,SNesiters:%d, Reason: %d, KSPIters: %d\n", toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
 
         }
+        //Reconfigured split, setting phi_fast to zero
+        recombine(state_vars,user);
+
         //Update Excitation
-        excitation(user,t);
+//        excitation(user,t);
+//        VecView(state_vars->v,PETSC_VIEWER_STDOUT_SELF);
+
         count++;
         if(count%krecordfreq==0) {
             printf("\nTime: %f,Newton time: %f,iters:%d, Reason: %d,KSPIters: %d\n\n",t, toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
@@ -194,6 +204,7 @@ int main(int argc, char **argv)
     PetscTime(&full_toc);
     //Close
     fclose(fp);
+    fclose(fp_fast);
     fprintf(fptime,"%d,%d,%d,%d,%f,%f\n",1,count,user->Nx,user->Ny,user->dt,full_toc-full_tic);
     fclose(fptime);
     fclose(fpflux);
@@ -213,7 +224,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
-PetscErrorCode update_fast_vars(struct SimState *state_vars,struct SimState *state_vars_past, struct AppCtx *user,PetscReal t)
+PetscErrorCode update_fast_vars(FILE *fp_fast,struct SimState *state_vars,struct SimState *state_vars_past, struct AppCtx *user,PetscReal t)
 {
     PetscErrorCode ierr=0;
     PetscInt num_iters;
@@ -235,26 +246,36 @@ PetscErrorCode update_fast_vars(struct SimState *state_vars,struct SimState *sta
         SNESGetIterationNumber(user->fast_slvr->snes,&num_iters);
         SNESGetConvergedReason(user->fast_slvr->snes,&reason);
 
-        VecAXPY(state_vars_past->v_fast,-1.0,state_vars->v_fast);
-        VecNorm(state_vars->v_fast,NORM_INFINITY,&max_new);
-        VecNorm(state_vars_past->v_fast,NORM_INFINITY,&max_old);
-        printf("difference:%.10e, new:%.10e,diff/new: %.10e\n",max_old,max_new,max_old/max_new);
         //Update gating variables
         extract_subarray(state_vars->v,state_vars,1);
-        printf("Fast Newton time: %f,iters:%d, Reason: %d\n",toc - tic,num_iters,reason);
-        printf("phi:%.10e, c: %.10e\n",state_vars->phi_fast[phi_index(user->Nx/2,user->Ny/2,0,user->Nx)],state_vars->c[c_index(user->Nx/2,user->Ny/2,0,0,user->Nx)]);
+
+
         gatevars_update(user->gate_vars,user->state_vars,user->dtf*1e3,user,0);
+
+        write_fast(fp_fast, user,-10, 0);
         restore_subarray(state_vars->v,state_vars,1);
 
         //update the excitation
         excitation(user,t-user->dt+user->dtf*nfast);
 
+        recombine(state_vars,user);
+
+
+
+//        VecView(state_vars->v_fast,PETSC_VIEWER_STDOUT_SELF);
+
         if(reason<0){
+            extract_subarray(state_vars->v,state_vars,1);
+            printf("Fast Newton time: %f,iters:%d, Reason: %d\n",toc - tic,num_iters,reason);
+            printf("phi:%.10e, c: %.10e\n",state_vars->phi_fast[phi_index(user->Nx/2,user->Ny/2,0,user->Nx)],state_vars->c[c_index(user->Nx/2,user->Ny/2,0,0,user->Nx)]);
+
             // Failure Close
             printf("Fast Netwon Solve did not converge! Stopping at %f...\n",t-user->dt+user->dtf*nfast);
             fprintf(stderr, "Fast Netwon Solve did not converge! Stopping at %f...\n",t-user->dt+user->dtf*nfast);
             exit(EXIT_FAILURE); /* indicate failure.*/}
 
     }
+    printf("Fast Newton time: %f,iters:%d, Reason: %d\n",toc - tic,num_iters,reason);
+
     return ierr;
 }

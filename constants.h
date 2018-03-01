@@ -38,7 +38,7 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 //#define dx (Lx/Nx)       //grid size in x direction (in cm)
 //#define dy (Ly/Ny)        //grid size in y direction (in cm)
 
-#define Nfast 2
+#define Nfast 20
 
 
 //number of variables to be solved for at each grid point
@@ -68,7 +68,7 @@ static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
 #define phibath (-0/RTFC) //Voltage of outside bath
 
 //excitation parameters
-#define pmax  (1e-1/3)          //max value for excitation
+#define pmax   (1e-1/3)          //max value for excitation
 //#define pmax  50          //max value for excitation
 //#define texct 2         //time for excitation
 #define texct 0.05         //time for excitation
@@ -99,7 +99,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
-#define pNaT  0                 //1e-4%0%1e-3%if set to 0, recovery possible
+#define pNaT  1e-4//0                 //1e-4%0%1e-3%if set to 0, recovery possible
 #define pNaP  2e-5
 #define pKDR  1e-3
 #define pKA  1e-4

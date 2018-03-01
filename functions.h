@@ -68,7 +68,7 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A,struct AppCtx*);
 
 //Newton Solver
 PetscErrorCode newton_solve(Vec,struct AppCtx*);
-PetscErrorCode update_fast_vars(struct SimState *,struct SimState *, struct AppCtx *,PetscReal);
+PetscErrorCode update_fast_vars(FILE*,struct SimState *,struct SimState *, struct AppCtx *,PetscReal);
 //Calculate residuals and jacobians
 
 //Nonlinear discretizations
@@ -114,8 +114,10 @@ void find_print(int, int, double, int iter);
 void compare_res(double *, int );
 void write_data(FILE *,struct AppCtx *,PetscInt,int );
 void write_point(FILE *,struct AppCtx *,PetscInt,int );
+void write_fast(FILE *,struct AppCtx *,PetscInt,int );
 void measure_flux(FILE *,struct AppCtx *,PetscInt,int );
 void init_events(struct AppCtx *);
 
+void recombine(struct SimState*, struct AppCtx*);
 
 #endif

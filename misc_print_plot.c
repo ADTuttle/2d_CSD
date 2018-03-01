@@ -251,9 +251,9 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
                 for (y = 0; y < Ny; y++) {
                     for (x = 0; x < Nx; x++) {
                         if (x == Nx - 1 & y == Ny - 1) {
-                            fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, comp,Nx)] * RTFC);
+                            fprintf(fp, "%f\n", (state_vars->phi[phi_index(x, y, comp,Nx)]+state_vars->phi_fast[phi_index(x, y, comp,Nx)]) * RTFC);
                         } else {
-                            fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, comp,Nx)] * RTFC);
+                            fprintf(fp, "%f,", (state_vars->phi[phi_index(x, y, comp,Nx)]+state_vars->phi_fast[phi_index(x, y, comp,Nx)]) * RTFC);
                         }
                     }
                 }
@@ -458,6 +458,84 @@ void measure_flux(FILE *fp, struct AppCtx* user,PetscInt numrecords,int start)
         printf("Flux nobath: %.10e, Flux Tot: %.10e\n", Fluxc[0]+Fluxc[1]+Fluxc[2]+Fluxph[0]+Fluxph[1]+Fluxph[2], Fluxbath[2]+Fluxc[0]+Fluxc[1]+Fluxc[2]+Fluxph[0]+Fluxph[1]+Fluxph[2]);
     */
     }
+}
+void write_fast(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
+{
+    int save_one = 1;
+    if(Profiling_on) {
+        PetscLogEventBegin(event[8], 0, 0, 0, 0);
+    }
+    struct SimState *state_vars = user->state_vars;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+    if(!save_one) {
+        if (start) {
+            fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, numrecords, Nc, Ni);
+            write_fast(fp, user, numrecords,0);
+        } else {
+            int ion, comp, x, y;
+            for (ion = 0; ion < Ni; ion++) {
+                for (comp = 0; comp < Nc; comp++) {
+                    for (y = 0; y < Ny; y++) {
+                        for (x = 0; x < Nx; x++) {
+                            if (x == Nx - 1 & y == Ny - 1) {
+                                fprintf(fp, "%f\n", state_vars->c_fast[c_index(x, y, comp, ion,Nx)]);
+                            } else {
+                                fprintf(fp, "%f,", state_vars->c_fast[c_index(x, y, comp, ion,Nx)]);
+                            }
+                        }
+                    }
+                }
+            }
+            for (comp = 0; comp < Nc; comp++) {
+                for (y = 0; y < Ny; y++) {
+                    for (x = 0; x < Nx; x++) {
+                        if (x == Nx - 1 & y == Ny - 1) {
+                            fprintf(fp, "%f\n", state_vars->phi_fast[phi_index(x, y, comp,Nx)] * RTFC);
+                        } else {
+                            fprintf(fp, "%f,", state_vars->phi_fast[phi_index(x, y, comp,Nx)] * RTFC);
+                        }
+                    }
+                }
+            }
+            for (comp = 0; comp < Nc - 1; comp++) {
+                for (y = 0; y < Ny; y++) {
+                    for (x = 0; x < Nx; x++) {
+                        if (x == Nx - 1 & y == Ny - 1) {
+                            fprintf(fp, "%f\n", state_vars->alpha[al_index(x, y, comp,Nx)]);
+                        } else {
+                            fprintf(fp, "%f,", state_vars->alpha[al_index(x, y, comp,Nx)]);
+                        }
+                    }
+                }
+            }
+        }
+    } else{
+        if (start) {
+            fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, (int) floor(numrecords), 0, 0);
+            write_fast(fp, user,numrecords, 0);
+        } else {
+            int ion, comp, x, y;
+            comp = 0;
+            for (y = 0; y < Ny; y++) {
+                for (x = 0; x < Nx; x++) {
+                    if (x == Nx - 1 & y == Ny - 1) {
+//                        fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
+//                        fprintf(fp, "%f\n", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
+                        fprintf(fp, "%f\n", state_vars->phi_fast[phi_index(x,y,0,Nx)]);
+                    } else {
+//                        fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
+//                        fprintf(fp, "%f,", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
+                        fprintf(fp, "%f,", state_vars->phi_fast[phi_index(x,y,0,Nx)]);
+                    }
+                }
+            }
+        }
+    }
+    if(Profiling_on) {
+        PetscLogEventEnd(event[8], 0, 0, 0, 0);
+    }
+
 }
 void init_events(struct AppCtx *user)
 {

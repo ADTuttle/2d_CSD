@@ -1,6 +1,25 @@
 #include "constants.h"
 #include "functions.h"
 
+void recombine(struct SimState* state_vars,struct AppCtx *user){
+    extract_subarray(state_vars->v,state_vars,1);
+
+    PetscInt x,y,comp;
+    PetscInt Nx = user->Nx;
+    for(x=0;x<Nx;x++){
+        for ( y = 0; y < user->Ny; y++) {
+            for (comp = 0; comp < Nc; ++comp) {
+                state_vars->phi[phi_index(x,y,comp,Nx)]+=state_vars->phi_fast[phi_index(x,y,comp,Nx)];
+                state_vars->phi_fast[phi_index(x,y,comp,Nx)]=0;
+            }
+
+        }
+
+    }
+
+    restore_subarray(state_vars->v,state_vars,1);
+}
+
 PetscErrorCode calc_residual_slow_old(SNES snes,Vec current_state,Vec Res,void *ctx)
 {
     //Residual equation using derivative of the charge-capacitance relation
