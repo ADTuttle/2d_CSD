@@ -500,7 +500,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
     user->Nx = 50;
     user->Ny = 50;
-    user->dt =0.01;
+    user->dt =0.1;
 //    user->dt = 1.0/1000.0/2.0;
     PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);
     PetscOptionsGetInt(NULL,NULL,"-Ny",&user->Ny,NULL);
@@ -712,11 +712,8 @@ PetscErrorCode initialize_fast_petsc(struct Solver *slvr,int argc, char **argv,s
 
     //Set SNES types
     ierr = SNESSetType(slvr->snes,SNESNEWTONLS); CHKERRQ(ierr);
-//    ierr = SNESSetType(slvr->snes,SNESKSPONLY); CHKERRQ(ierr);
-//    ierr = SNESSetType(slvr->snes,SNESTEST); CHKERRQ(ierr);
-//    ierr = SNESSetType(slvr->snes,SNESNGMRES); CHKERRQ(ierr);
-//    ierr = SNESSetType(slvr->snes,SNESNASM); CHKERRQ(ierr);
     ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
+//    ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
     //LU Direct solve
 
 //    /*
@@ -731,7 +728,7 @@ PetscErrorCode initialize_fast_petsc(struct Solver *slvr,int argc, char **argv,s
     ierr = PCFactorSetLevels(slvr->pc, 1);CHKERRQ(ierr);
     ierr = PCFactorSetAllowDiagonalFill(slvr->pc, PETSC_TRUE);CHKERRQ(ierr);
     ierr = PCFactorSetMatOrderingType(slvr->pc, MATORDERINGNATURAL);CHKERRQ(ierr);
-    */
+ */
 //     ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     /*
     PetscReal div_tol = 1e12;

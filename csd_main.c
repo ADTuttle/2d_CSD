@@ -176,10 +176,6 @@ int main(int argc, char **argv)
         //Reconfigured split, setting phi_fast to zero
         recombine(state_vars,user);
 
-        //Update Excitation
-//        excitation(user,t);
-//        VecView(state_vars->v,PETSC_VIEWER_STDOUT_SELF);
-
         count++;
         if(count%krecordfreq==0) {
             printf("\nTime: %f,Newton time: %f,iters:%d, Reason: %d,KSPIters: %d\n\n",t, toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
@@ -229,9 +225,9 @@ PetscErrorCode update_fast_vars(FILE *fp_fast,struct SimState *state_vars,struct
     PetscErrorCode ierr=0;
     PetscInt num_iters;
     SNESConvergedReason reason;
-    PetscLogDouble tic,toc;
+    PetscLogDouble tic,toc,fulltic,fulltoc;
 
-    PetscReal max_old,max_new;
+    PetscTime(&fulltic);
     //Fast time steps
     for(PetscInt nfast=1;nfast<=Nfast;nfast++){
 
@@ -260,10 +256,6 @@ PetscErrorCode update_fast_vars(FILE *fp_fast,struct SimState *state_vars,struct
 
         recombine(state_vars,user);
 
-
-
-//        VecView(state_vars->v_fast,PETSC_VIEWER_STDOUT_SELF);
-
         if(reason<0){
             extract_subarray(state_vars->v,state_vars,1);
             printf("Fast Newton time: %f,iters:%d, Reason: %d\n",toc - tic,num_iters,reason);
@@ -275,7 +267,8 @@ PetscErrorCode update_fast_vars(FILE *fp_fast,struct SimState *state_vars,struct
             exit(EXIT_FAILURE); /* indicate failure.*/}
 
     }
-    printf("Fast Newton time: %f,iters:%d, Reason: %d\n",toc - tic,num_iters,reason);
+    PetscTime(&fulltoc);
+    printf("Fast Solve total: %f,Newton time: %f,iters:%d, Reason: %d\n",fulltoc-fulltic,toc - tic,num_iters,reason);
 
     return ierr;
 }
