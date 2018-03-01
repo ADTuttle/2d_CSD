@@ -134,6 +134,9 @@ struct SimState{
     IS phi_ind;
 
     Vec v_fast;
+    Vec c_fast_vec;
+    Vec phi_fast_vec;
+    PetscScalar *c_fast;
     PetscScalar *phi_fast;
 
 };

@@ -19,9 +19,9 @@ void set_params(Vec,struct SimState *,struct ConstVars*,struct GateType*,struct 
 //Data management functions
 void init_arrays(struct AppCtx*);
 PetscErrorCode init_simstate(Vec,struct SimState*,struct AppCtx*);
-PetscErrorCode extract_subarray(Vec,struct SimState*);
-PetscErrorCode restore_subarray(Vec,struct SimState*);
-PetscErrorCode copy_simstate(Vec,struct SimState *state_vars_past);
+PetscErrorCode extract_subarray(Vec,struct SimState*, int);
+PetscErrorCode restore_subarray(Vec,struct SimState*, int);
+PetscErrorCode copy_simstate(Vec,struct SimState *state_vars_past,int);
 
 //Linear current-voltage flux relation
 void mclin(struct FluxData *,int,double,int,double,double,double,int);

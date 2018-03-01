@@ -189,10 +189,10 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,Pets
 	}
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
-	if(firstpass)
-	{
+	if(firstpass) {
 		//membrane potential in mV
 		PetscReal v = (state_vars->phi[phi_index(0,0,0,Nx)]-state_vars->phi[phi_index(0,0,Nc-1,Nx)])*RTFC;
+        v += (state_vars->phi_fast[phi_index(0,0,0,Nx)]-state_vars->phi_fast[phi_index(0,0,Nc-1,Nx)])*RTFC;
 		//Iniitialize the poPetscInt gating variables
 		//Cause we assume a uniform start
 		PetscReal alpha,beta;
@@ -263,8 +263,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,Pets
   			gate_vars->gKA[i] = gate_vars->gKA[0];
 
   		}
-    } else //if it's not the firstpass, then we actually have values in v.
-	{
+    } else{ //if it's not the firstpass, then we actually have values in v.
 		PetscReal v, alpha,beta;
 		for(PetscInt x=0;x<Nx;x++)
 		{
@@ -435,12 +434,12 @@ void ionmflux(struct AppCtx* user)
             vmg = state_vars->phi[phi_index(x,y,1,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)];
             vmg += state_vars->phi_fast[phi_index(x,y,1,Nx)]-state_vars->phi_fast[phi_index(x,y,Nc-1,Nx)]; //add fast
             vmgp = state_vars_past->phi[phi_index(x,y,1,Nx)]-state_vars_past->phi[phi_index(x,y,Nc-1,Nx)];
-            vmgp += state_vars->phi_fast[phi_index(x,y,1,Nx)]-state_vars->phi_fast[phi_index(x,y,Nc-1,Nx)]; //add fast
+            vmgp += state_vars_past->phi_fast[phi_index(x,y,1,Nx)]-state_vars_past->phi_fast[phi_index(x,y,Nc-1,Nx)]; //add fast
 
             //Compute Na Channel currents
-            ci = state_vars->c[c_index(x,y,0,0,Nx)];
-            cg = state_vars->c[c_index(x,y,1,0,Nx)];
-            ce = state_vars->c[c_index(x,y,Nc-1,0,Nx)];
+            ci = state_vars->c[c_index(x,y,0,0,Nx)]+state_vars->c_fast[c_index(x,y,0,0,Nx)];
+            cg = state_vars->c[c_index(x,y,1,0,Nx)]+state_vars->c_fast[c_index(x,y,1,0,Nx)];
+            ce = state_vars->c[c_index(x,y,Nc-1,0,Nx)]+state_vars->c_fast[c_index(x,y,Nc-1,0,Nx)];
 
             //Neurons
             pGHK = pNaT*gvars->gNaT[xy_index(x,y,Nx)]+pNaP*gvars->gNaP[xy_index(x,y,Nx)];
@@ -453,9 +452,9 @@ void ionmflux(struct AppCtx* user)
             mclin(flux,c_index(x,y,1,0,Nx),con_vars->pNaLeakg,1,cg,ce,vmg,0);
 
             // Compute K channel Currents
-            ci = state_vars->c[c_index(x,y,0,1,Nx)];
-            cg = state_vars->c[c_index(x,y,1,1,Nx)];
-            ce = state_vars->c[c_index(x,y,Nc-1,1,Nx)];
+            ci = state_vars->c[c_index(x,y,0,1,Nx)]+state_vars->c_fast[c_index(x,y,0,1,Nx)];
+            cg = state_vars->c[c_index(x,y,1,1,Nx)]+state_vars->c_fast[c_index(x,y,1,1,Nx)];
+            ce = state_vars->c[c_index(x,y,Nc-1,1,Nx)]+state_vars->c_fast[c_index(x,y,Nc-1,1,Nx)];
 
             //Neurons
             pGHK = pKDR*gvars->gKDR[xy_index(x,y,Nx)]+pKA*gvars->gKA[xy_index(x,y,Nx)];
@@ -464,16 +463,16 @@ void ionmflux(struct AppCtx* user)
             mclin(flux,c_index(x,y,0,1,Nx),pLin,1,ci,ce,vm,1);
 
             // Glial K Leak(using past)
-            cgp = state_vars_past->c[c_index(x,y,1,1,Nx)];
-            cep = state_vars_past->c[c_index(x,y,Nc-1,1,Nx)];
+            cgp = state_vars_past->c[c_index(x,y,1,1,Nx)]+state_vars_past->c_fast[c_index(x,y,1,1,Nx)];
+            cep = state_vars_past->c[c_index(x,y,Nc-1,1,Nx)]+state_vars_past->c_fast[c_index(x,y,Nc-1,1,Nx)];
 
             pLin = pKIR*inwardrect(cgp,cep,vmgp)*pKLeakadjust;
             mclin(flux,c_index(x,y,1,1,Nx),pLin,1,cg,ce,vmg,0);
 
             //Compute Cl Channel Current
-            ci = state_vars->c[c_index(x,y,0,2,Nx)];
-            cg = state_vars->c[c_index(x,y,1,2,Nx)];
-            ce = state_vars->c[c_index(x,y,Nc-1,2,Nx)];
+            ci = state_vars->c[c_index(x,y,0,2,Nx)]+state_vars->c_fast[c_index(x,y,0,2,Nx)];
+            cg = state_vars->c[c_index(x,y,1,2,Nx)]+state_vars->c_fast[c_index(x,y,1,2,Nx)];
+            ce = state_vars->c[c_index(x,y,Nc-1,2,Nx)]+state_vars->c_fast[c_index(x,y,Nc-1,2,Nx)];
 
             //Neurons
             pLin = pClLeak+gexct->pCl[xy_index(x,y,Nx)]; //add excitation
@@ -485,8 +484,8 @@ void ionmflux(struct AppCtx* user)
             //Pump Currents(all past values)
 
             //Neurons
-            Na = state_vars_past->c[c_index(x,y,0,0,Nx)];
-            K = state_vars_past->c[c_index(x,y,Nc-1,1,Nx)];
+            Na = state_vars_past->c[c_index(x,y,0,0,Nx)]+state_vars_past->c_fast[c_index(x,y,0,0,Nx)];
+            K = state_vars_past->c[c_index(x,y,Nc-1,1,Nx)]+state_vars_past->c_fast[c_index(x,y,Nc-1,1,Nx)];
 
             Ipump = npump*con_vars->Imax/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
 
@@ -495,7 +494,7 @@ void ionmflux(struct AppCtx* user)
             flux->mflux[c_index(x,y,0,1,Nx)]-=2*Ipump; //K part
 
             //Glia
-            Na = state_vars_past->c[c_index(x,y,1,0,Nx)];
+            Na = state_vars_past->c[c_index(x,y,1,0,Nx)]+state_vars_past->c_fast[c_index(x,y,1,0,Nx)];
             //K is the same(extracellular)
             Ipump = glpump*con_vars->Imaxg/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
             //Add to flux(it's explicit so no derivatives)
@@ -504,13 +503,13 @@ void ionmflux(struct AppCtx* user)
 
             //NaKCl Cotransporter
             //I'm going to reuse variables names...
-            Na = state_vars_past->c[c_index(x,y,1,0,Nx)];//glia Na
-            K = state_vars_past->c[c_index(x,y,1,1,Nx)]; // glia K.
-            cgp = state_vars_past->c[c_index(x,y,1,2,Nx)]; //glia Cl
+            Na = state_vars_past->c[c_index(x,y,1,0,Nx)]+state_vars_past->c_fast[c_index(x,y,1,0,Nx)];//glia Na
+            K = state_vars_past->c[c_index(x,y,1,1,Nx)]+state_vars_past->c_fast[c_index(x,y,1,1,Nx)]; // glia K.
+            cgp = state_vars_past->c[c_index(x,y,1,2,Nx)]+state_vars_past->c_fast[c_index(x,y,1,2,Nx)]; //glia Cl
 
-            cep = state_vars_past->c[c_index(x,y,Nc-1,0,Nx)];//Ext Na
-            ce = state_vars_past->c[c_index(x,y,Nc-1,1,Nx)]; // Ext K.
-            ci = state_vars_past->c[c_index(x,y,Nc-1,2,Nx)]; //Ext Cl
+            cep = state_vars_past->c[c_index(x,y,Nc-1,0,Nx)]+state_vars_past->c_fast[c_index(x,y,Nc-1,0,Nx)];//Ext Na
+            ce = state_vars_past->c[c_index(x,y,Nc-1,1,Nx)]+state_vars_past->c_fast[c_index(x,y,Nc-1,1,Nx)]; // Ext K.
+            ci = state_vars_past->c[c_index(x,y,Nc-1,2,Nx)]+state_vars_past->c_fast[c_index(x,y,Nc-1,2,Nx)]; //Ext Cl
 
             NaKCl = con_vars->pNaKCl*log(Na*K*pow(cgp,2)/(cep*ce*pow(ci,2)));
             //Add to flux
@@ -564,7 +563,7 @@ void wflowm(struct AppCtx *user)
             piwNc = 0;
             for(PetscInt ion=0;ion<Ni;ion++)
             {
-                piwNc +=state_vars->c[c_index(x,y,Nc-1,ion,Nx)];
+                piwNc +=state_vars->c[c_index(x,y,Nc-1,ion,Nx)]+state_vars->c_fast[c_index(x,y,Nc-1,ion,Nx)];
             }
             piwNc +=con_vars->ao[al_index(0,0,Nc-1,Nx)]/(1-state_vars->alpha[al_index(x,y,0,Nx)]-state_vars->alpha[al_index(x,y,1,Nx)]);
             for(PetscInt comp = 0;comp<Nc-1;comp++)
@@ -572,7 +571,7 @@ void wflowm(struct AppCtx *user)
                 piw = 0;
                 for(PetscInt ion=0;ion<Ni;ion++)
                 {
-                    piw +=state_vars->c[c_index(x,y,comp,ion,Nx)];
+                    piw +=state_vars->c[c_index(x,y,comp,ion,Nx)]+state_vars->c_fast[c_index(x,y,comp,ion,Nx)];
                 }
                 piw +=con_vars->ao[al_index(0,0,comp,Nx)]/state_vars->alpha[al_index(x,y,comp,Nx)];
                 //ao, zeta1, and zetalpha are currently constant in space

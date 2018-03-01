@@ -20,9 +20,9 @@ int main(int argc, char **argv)
     PetscInt numrecords = (PetscInt)floor(Time/trecordstep);
     PetscInt krecordfreq = (PetscInt)floor(trecordstep/dt);
 
-    PetscReal atol;
-    atol=1e-19;
-    SNESSetTolerances(user->fast_slvr->snes,atol,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT);
+//    PetscReal atol;
+//    atol=1e-19;
+//    SNESSetTolerances(user->fast_slvr->snes,atol,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT);
 
     if(Profiling_on) {
         PetscLogStage stage1;
@@ -52,8 +52,8 @@ int main(int argc, char **argv)
     //Create Vector
     ierr = VecCreate(PETSC_COMM_WORLD,&state_vars->v_fast);CHKERRQ(ierr);
     ierr = VecSetType(state_vars->v_fast,VECSEQ); CHKERRQ(ierr);
-    ierr = VecSetSizes(state_vars->v_fast,PETSC_DECIDE,user->Nx*user->Ny*Nc);CHKERRQ(ierr);
-    ierr = VecDuplicate(state_vars->v_fast,&state_vars_past->v_fast);
+    ierr = VecSetSizes(state_vars->v_fast,PETSC_DECIDE,user->Nx*user->Ny*Nc*(Ni+1));CHKERRQ(ierr);
+    ierr = VecDuplicate(state_vars->v_fast,&state_vars_past->v_fast); CHKERRQ(ierr);
 
     user->state_vars_past=state_vars_past;
     user->state_vars=state_vars;
@@ -70,9 +70,9 @@ int main(int argc, char **argv)
     //Variable initiation
     init(current_state,state_vars,user);
 
-    ierr = extract_subarray(current_state,state_vars); CHKERRQ(ierr);
+    ierr = extract_subarray(current_state,state_vars,1); CHKERRQ(ierr);
     printf("Init Value: c: %f,ph: %f,al: %f\n",state_vars->c[0],state_vars->phi[10],state_vars->alpha[25]);
-    ierr = restore_subarray(current_state,state_vars); CHKERRQ(ierr);
+    ierr = restore_subarray(current_state,state_vars,1); CHKERRQ(ierr);
     //Create the constant ion channel vars
     struct ConstVars *con_vars = (struct ConstVars*)malloc(sizeof(struct ConstVars));
 
@@ -117,12 +117,8 @@ int main(int argc, char **argv)
     fp = fopen("data_csd.txt","w");
     FILE *fptime;
     fptime = fopen("timing.txt","a");
-    extract_subarray(current_state,state_vars);
-    // Makesure phi_fast is available
-    ierr = VecGetArray(state_vars->v_fast,&state_vars->phi_fast); CHKERRQ(ierr);
+    extract_subarray(current_state,state_vars,1);
     write_data(fp,user,numrecords,1);
-    // Makesure phi_fast is available
-    ierr = VecRestoreArray(state_vars->v_fast,&state_vars->phi_fast); CHKERRQ(ierr);
 //    write_point(fp,user,numrecords,1);
     FILE *fpflux;
     fpflux = fopen("flux_csd.txt","w");
@@ -139,33 +135,32 @@ int main(int argc, char **argv)
     for(PetscReal t=dt;t<=Time;t+=dt)
     {
         //Save the "current" aka past state
-        ierr = restore_subarray(user->state_vars_past->v,user->state_vars_past); CHKERRQ(ierr);
-        ierr = copy_simstate(current_state,user->state_vars_past); CHKERRQ(ierr);
+        ierr = restore_subarray(state_vars_past->v,state_vars_past,1); CHKERRQ(ierr);
+        ierr = copy_simstate(current_state,state_vars_past,1); CHKERRQ(ierr);
 
-        update_fast_vars(state_vars,state_vars_past,user,t);
-
-        if(separate_vol) {
-            //Update volume(uses past c values for wflow)
-            extract_subarray(state_vars->v,state_vars);
-            extract_subarray(state_vars_past->v,state_vars_past);
-            volume_update(user->state_vars, user->state_vars_past, user);
-        }
         //Update diffusion with past
         //compute diffusion coefficients
         diff_coef(user->Dcs,state_vars_past->alpha,1,user);
         //Bath diffusion
         diff_coef(user->Dcb,state_vars_past->alpha,Batheps,user);
-        restore_subarray(current_state,state_vars);
 
-        // Makesure phi_fast is available
-        ierr = VecGetArray(state_vars->v_fast,&state_vars->phi_fast); CHKERRQ(ierr);
+        //update the fast variables
+        update_fast_vars(state_vars,state_vars_past,user,t);
+
+        if(separate_vol) {
+            //Update volume(uses past c values for wflow)
+            extract_subarray(current_state,state_vars,1);
+            extract_subarray(state_vars_past->v,state_vars_past,1);
+            volume_update(user->state_vars, user->state_vars_past, user);
+            restore_subarray(current_state,state_vars,1);
+        }
+
+
         //Newton update
         PetscTime(&tic);
         SNESSolve(user->slvr->snes,NULL,current_state);
         PetscTime(&toc);
 
-        //Return fast variable
-        VecRestoreArray(state_vars->v_fast,&state_vars->phi_fast); CHKERRQ(ierr);
         SNESGetIterationNumber(user->slvr->snes,&num_iters);
         SNESGetConvergedReason(user->slvr->snes,&reason);
         KSPGetTotalIterations(user->slvr->ksp,&ksp_iters_new);
@@ -177,14 +172,12 @@ int main(int argc, char **argv)
         excitation(user,t);
         count++;
         if(count%krecordfreq==0) {
-            printf("Time: %f,Newton time: %f,iters:%d, Reason: %d,KSPIters: %d\n",t, toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
-            extract_subarray(state_vars->v,state_vars);
-            VecGetArray(state_vars->v_fast,&state_vars->phi_fast); CHKERRQ(ierr);
+            printf("\nTime: %f,Newton time: %f,iters:%d, Reason: %d,KSPIters: %d\n\n",t, toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
+            extract_subarray(state_vars->v,state_vars,1);
 //            write_point(fp, user,numrecords, 0);
             write_data(fp, user,numrecords, 0);
             measure_flux(fpflux,user,numrecords,0);
-            restore_subarray(state_vars->v,state_vars);
-            VecRestoreArray(state_vars->v_fast,&state_vars->phi_fast); CHKERRQ(ierr);
+            restore_subarray(state_vars->v,state_vars,1);
         }
         ksp_iters_old = ksp_iters_new;
 
@@ -222,34 +215,46 @@ int main(int argc, char **argv)
 
 PetscErrorCode update_fast_vars(struct SimState *state_vars,struct SimState *state_vars_past, struct AppCtx *user,PetscReal t)
 {
-    PetscErrorCode ierr;
-
+    PetscErrorCode ierr=0;
     PetscInt num_iters;
     SNESConvergedReason reason;
     PetscLogDouble tic,toc;
-    //Fast time steps
-    for(PetscInt nfast=0;nfast<Nfast;nfast++){
 
-        //Save the past state
-        ierr = VecRestoreArray(state_vars->v_fast,&state_vars->phi_fast); CHKERRQ(ierr);
-        ierr = VecCopy(state_vars->v_fast,state_vars_past->v_fast); CHKERRQ(ierr);
-        ierr = VecGetArray(state_vars_past->v_fast,&state_vars_past->phi_fast); CHKERRQ(ierr);
+    PetscReal max_old,max_new;
+    //Fast time steps
+    for(PetscInt nfast=1;nfast<=Nfast;nfast++){
+
+        //Save the "current" aka past state
+        ierr = restore_subarray(user->state_vars_past->v_fast,user->state_vars_past,2); CHKERRQ(ierr);
+        ierr = copy_simstate(state_vars->v_fast,state_vars_past,2); CHKERRQ(ierr);
+
 
         PetscTime(&tic);
         SNESSolve(user->fast_slvr->snes,NULL,state_vars->v_fast);
         PetscTime(&toc);
         SNESGetIterationNumber(user->fast_slvr->snes,&num_iters);
         SNESGetConvergedReason(user->fast_slvr->snes,&reason);
-        printf("Fast Newton time: %f,iters:%d, Reason: %d\n",toc - tic,num_iters,reason);
+
+        VecAXPY(state_vars_past->v_fast,-1.0,state_vars->v_fast);
+        VecNorm(state_vars->v_fast,NORM_INFINITY,&max_new);
+        VecNorm(state_vars_past->v_fast,NORM_INFINITY,&max_old);
+        printf("difference:%.10e, new:%.10e,diff/new: %.10e\n",max_old,max_new,max_old/max_new);
         //Update gating variables
-        ierr = VecGetArray(state_vars->v_fast,&state_vars->phi_fast); CHKERRQ(ierr);
-        ierr = VecRestoreArray(state_vars_past->v_fast,&state_vars_past->phi_fast); CHKERRQ(ierr);
-        extract_subarray(state_vars->v,state_vars);
+        extract_subarray(state_vars->v,state_vars,1);
+        printf("Fast Newton time: %f,iters:%d, Reason: %d\n",toc - tic,num_iters,reason);
+        printf("phi:%.10e, c: %.10e\n",state_vars->phi_fast[phi_index(user->Nx/2,user->Ny/2,0,user->Nx)],state_vars->c[c_index(user->Nx/2,user->Ny/2,0,0,user->Nx)]);
         gatevars_update(user->gate_vars,user->state_vars,user->dtf*1e3,user,0);
-        restore_subarray(state_vars->v,state_vars);
+        restore_subarray(state_vars->v,state_vars,1);
 
         //update the excitation
         excitation(user,t-user->dt+user->dtf*nfast);
+
+        if(reason<0){
+            // Failure Close
+            printf("Fast Netwon Solve did not converge! Stopping at %f...\n",t-user->dt+user->dtf*nfast);
+            fprintf(stderr, "Fast Netwon Solve did not converge! Stopping at %f...\n",t-user->dt+user->dtf*nfast);
+            exit(EXIT_FAILURE); /* indicate failure.*/}
+
     }
     return ierr;
 }

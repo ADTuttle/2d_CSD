@@ -71,20 +71,46 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx
     else{
         state_vars->alpha = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*(Nc-1));
     }
-    extract_subarray(state,state_vars);
+    extract_subarray(state,state_vars,1);
     return ierr;
 }
-PetscErrorCode extract_subarray(Vec state,struct SimState *state_vars)
+PetscErrorCode extract_subarray(Vec state,struct SimState *state_vars,int option)
 {
     if(Profiling_on) {
         PetscLogEventBegin(event[2], 0, 0, 0, 0);
     }
     PetscErrorCode ierr;
-    ierr = VecGetSubVector(state,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
-    ierr = VecGetArray(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
 
-    ierr = VecGetSubVector(state,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
-    ierr = VecGetArray(state_vars->phi_vec,&state_vars->phi); CHKERRQ(ierr);
+    //If option=2 then we are extracting a slow variable
+    //If option=1 then we are extraction a fast variable
+    if(option==2) {
+        //Get Slow vars
+        ierr = VecGetSubVector(state_vars->v, state_vars->c_ind, &state_vars->c_vec);CHKERRQ(ierr);
+        ierr = VecGetArray(state_vars->c_vec, &state_vars->c);CHKERRQ(ierr);
+
+        ierr = VecGetSubVector(state_vars->v, state_vars->phi_ind, &state_vars->phi_vec);CHKERRQ(ierr);
+        ierr = VecGetArray(state_vars->phi_vec, &state_vars->phi);CHKERRQ(ierr);
+        //Get Fast variables
+        ierr = VecGetSubVector(state, state_vars->c_ind, &state_vars->c_fast_vec);CHKERRQ(ierr);
+        ierr = VecGetArray(state_vars->c_fast_vec, &state_vars->c_fast);CHKERRQ(ierr);
+
+        ierr = VecGetSubVector(state, state_vars->phi_ind, &state_vars->phi_fast_vec);CHKERRQ(ierr);
+        ierr = VecGetArray(state_vars->phi_fast_vec, &state_vars->phi_fast);CHKERRQ(ierr);
+    } else {
+        //Get Slow vars
+        ierr = VecGetSubVector(state, state_vars->c_ind, &state_vars->c_vec);CHKERRQ(ierr);
+        ierr = VecGetArray(state_vars->c_vec, &state_vars->c);CHKERRQ(ierr);
+
+        ierr = VecGetSubVector(state, state_vars->phi_ind, &state_vars->phi_vec);CHKERRQ(ierr);
+        ierr = VecGetArray(state_vars->phi_vec, &state_vars->phi);CHKERRQ(ierr);
+        //Get Fast variables
+        ierr = VecGetSubVector(state_vars->v_fast, state_vars->c_ind, &state_vars->c_fast_vec);CHKERRQ(ierr);
+        ierr = VecGetArray(state_vars->c_fast_vec, &state_vars->c_fast);CHKERRQ(ierr);
+
+        ierr = VecGetSubVector(state_vars->v_fast, state_vars->phi_ind, &state_vars->phi_fast_vec);CHKERRQ(ierr);
+        ierr = VecGetArray(state_vars->phi_fast_vec, &state_vars->phi_fast);CHKERRQ(ierr);
+    }
+
     if(!separate_vol) {
         ierr = VecGetSubVector(state, state_vars->al_ind, &state_vars->al_vec);
         CHKERRQ(ierr);
@@ -99,19 +125,44 @@ PetscErrorCode extract_subarray(Vec state,struct SimState *state_vars)
 
 }
 
-PetscErrorCode restore_subarray(Vec state,struct SimState *state_vars)
+PetscErrorCode restore_subarray(Vec state,struct SimState *state_vars,int option)
 {
     if(Profiling_on) {
         PetscLogEventBegin(event[3], 0, 0, 0, 0);
     }
     PetscErrorCode ierr;
 
-    ierr = VecRestoreArray(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
-    ierr = VecRestoreSubVector(state,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
+    //If option=2 then we are extracting a slow variable
+    //If option=1 then we are extraction a fast variable
+    if(option==2) {
+        ierr = VecRestoreArray(state_vars->c_vec, &state_vars->c);CHKERRQ(ierr);
+        ierr = VecRestoreSubVector(state_vars->v, state_vars->c_ind, &state_vars->c_vec);CHKERRQ(ierr);
 
 
-    ierr = VecRestoreArray(state_vars->phi_vec,&state_vars->phi); CHKERRQ(ierr);
-    ierr = VecRestoreSubVector(state,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
+        ierr = VecRestoreArray(state_vars->phi_vec, &state_vars->phi);CHKERRQ(ierr);
+        ierr = VecRestoreSubVector(state_vars->v, state_vars->phi_ind, &state_vars->phi_vec);CHKERRQ(ierr);
+
+        ierr = VecRestoreArray(state_vars->c_fast_vec, &state_vars->c_fast);CHKERRQ(ierr);
+        ierr = VecRestoreSubVector(state, state_vars->c_ind, &state_vars->c_fast_vec);CHKERRQ(ierr);
+
+
+        ierr = VecRestoreArray(state_vars->phi_fast_vec, &state_vars->phi_fast);CHKERRQ(ierr);
+        ierr = VecRestoreSubVector(state, state_vars->phi_ind, &state_vars->phi_fast_vec);CHKERRQ(ierr);
+    } else{
+        ierr = VecRestoreArray(state_vars->c_vec, &state_vars->c);CHKERRQ(ierr);
+        ierr = VecRestoreSubVector(state, state_vars->c_ind, &state_vars->c_vec);CHKERRQ(ierr);
+
+
+        ierr = VecRestoreArray(state_vars->phi_vec, &state_vars->phi);CHKERRQ(ierr);
+        ierr = VecRestoreSubVector(state, state_vars->phi_ind, &state_vars->phi_vec);CHKERRQ(ierr);
+
+        ierr = VecRestoreArray(state_vars->c_fast_vec, &state_vars->c_fast);CHKERRQ(ierr);
+        ierr = VecRestoreSubVector(state_vars->v_fast, state_vars->c_ind, &state_vars->c_fast_vec);CHKERRQ(ierr);
+
+
+        ierr = VecRestoreArray(state_vars->phi_fast_vec, &state_vars->phi_fast);CHKERRQ(ierr);
+        ierr = VecRestoreSubVector(state_vars->v_fast, state_vars->phi_ind, &state_vars->phi_fast_vec);CHKERRQ(ierr);
+    }
 
     if(!separate_vol) {
         ierr = VecRestoreArray(state_vars->al_vec, &state_vars->alpha);
@@ -123,6 +174,8 @@ PetscErrorCode restore_subarray(Vec state,struct SimState *state_vars)
 
     state_vars->c = NULL;
     state_vars->phi = NULL;
+    state_vars->c_fast = NULL;
+    state_vars->phi_fast = NULL;
     if(Profiling_on) {
         PetscLogEventEnd(event[3], 0, 0, 0, 0);
     }
@@ -130,11 +183,16 @@ PetscErrorCode restore_subarray(Vec state,struct SimState *state_vars)
     return ierr;
 
 }
-PetscErrorCode copy_simstate(Vec current_state,struct SimState *state_vars_past)
+PetscErrorCode copy_simstate(Vec current_state,struct SimState *state_vars_past,int option)
 {
     PetscErrorCode ierr;
-    ierr = VecCopy(current_state,state_vars_past->v); CHKERRQ(ierr);
-    ierr = extract_subarray(state_vars_past->v,state_vars_past); CHKERRQ(ierr);
+    if(option==2){
+        ierr = VecCopy(current_state, state_vars_past->v_fast);CHKERRQ(ierr);
+        ierr = extract_subarray(state_vars_past->v_fast, state_vars_past,option);CHKERRQ(ierr);
+    } else {
+        ierr = VecCopy(current_state, state_vars_past->v);CHKERRQ(ierr);
+        ierr = extract_subarray(state_vars_past->v, state_vars_past,option);CHKERRQ(ierr);
+    }
     return ierr;
 }
 
@@ -142,7 +200,7 @@ void init(Vec state,struct SimState *state_vars,struct AppCtx*user)
 {
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
-    extract_subarray(state,state_vars);
+    extract_subarray(state,state_vars,1);
 	for(PetscInt x=0;x<Nx;x++)
 	{
 		for(PetscInt y=0;y<Ny;y++)
@@ -167,7 +225,7 @@ void init(Vec state,struct SimState *state_vars,struct AppCtx*user)
 
 		}
 	}
-    restore_subarray(state,state_vars);
+    restore_subarray(state,state_vars,1);
     VecSet(user->state_vars->v_fast,0);
     VecSet(user->state_vars_past->v_fast,0);
 }
@@ -218,7 +276,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 {
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
-    extract_subarray(state,state_vars);
+    extract_subarray(state,state_vars,1);
 	//Everything that follows will asume spatially uniform
 	//At rest state
 	PetscReal c[Ni*Nc];
@@ -352,7 +410,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 
     con_vars->S = 1;  //Indicates whether zetaalpha is the stiffness (true) or 1/stiffness (false)
 
-    restore_subarray(state,state_vars);
+    restore_subarray(state,state_vars,1);
 
 
     return;
@@ -365,9 +423,7 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     PetscInt Ny = user->Ny;
 
 	PetscReal convtol = 1e-11;
-    extract_subarray(current_state,user->state_vars);
-    VecGetArray(user->state_vars->v_fast,&user->state_vars->phi_fast);
-    VecGetArray(user->state_vars_past->v_fast,&user->state_vars_past->phi_fast);
+    extract_subarray(current_state,user->state_vars,1);
 	PetscReal tol = convtol*array_max(user->state_vars->c,(size_t)Nx*Ny*Nc*Ni);
   	PetscReal rsd = 1.0;
   	PetscReal *cp;
@@ -375,9 +431,7 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     //Compute Gating variables
     //compute gating variables
     gatevars_update(user->gate_vars,user->state_vars,0,user,1);
-    restore_subarray(current_state,user->state_vars);
-    VecRestoreArray(user->state_vars->v_fast,&user->state_vars->phi_fast);
-    VecRestoreArray(user->state_vars_past->v_fast,&user->state_vars_past->phi_fast);
+    restore_subarray(current_state,user->state_vars,1);
 
   	//Initialize and compute the excitation (it's zeros here)
   	excitation(user,texct+1);
@@ -388,13 +442,13 @@ void initialize_data(Vec current_state,struct AppCtx *user)
   	
   	while(rsd>tol && user->dt*k<10)
   	{
-        extract_subarray(current_state,user->state_vars);
-        VecGetArray(user->state_vars->v_fast,&user->state_vars->phi_fast);
-        VecGetArray(user->state_vars_past->v_fast,&user->state_vars_past->phi_fast);
+        extract_subarray(current_state,user->state_vars,1);
     	memcpy(cp,user->state_vars->c,sizeof(PetscReal)*Nx*Ny*Ni*Nc);
         //Save the "current" aka past state
-        restore_subarray(user->state_vars_past->v,user->state_vars_past);
-        copy_simstate(current_state,user->state_vars_past);
+        restore_subarray(user->state_vars_past->v,user->state_vars_past,1);
+        copy_simstate(user->state_vars->v_fast,user->state_vars_past,2);
+        restore_subarray(user->state_vars_past->v,user->state_vars_past,2);
+        copy_simstate(current_state,user->state_vars_past,1);
         if(separate_vol) {
             //Update volume
             volume_update(user->state_vars, user->state_vars_past, user);
@@ -403,26 +457,22 @@ void initialize_data(Vec current_state,struct AppCtx *user)
         diff_coef(user->Dcs,user->state_vars->alpha,1,user);
         //Bath diffusion
         diff_coef(user->Dcb,user->state_vars->alpha,Batheps,user);
-        restore_subarray(current_state,user->state_vars);
+        restore_subarray(current_state,user->state_vars,1);
 
 //    	newton_solve(current_state,user);
+        //Solve fast var
+        SNESSolve(user->fast_slvr->snes,NULL,user->state_vars->v_fast);
         //Solve slow var
         SNESSolve(user->slvr->snes,NULL,current_state);
 
-        VecRestoreArray(user->state_vars->v_fast,&user->state_vars->phi_fast);
-        //Solve fast var
-        SNESSolve(user->fast_slvr->snes,NULL,user->state_vars->v_fast);
-        //Update gating variables
-        extract_subarray(current_state,user->state_vars);
 
-        VecGetArray(user->state_vars->v_fast,&user->state_vars->phi_fast);
+        //Update gating variables
+        extract_subarray(current_state,user->state_vars,1);
         gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
 
         //Update Excitation
     	rsd = array_diff_max(user->state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/user->dt;
-        restore_subarray(current_state,user->state_vars);
-        VecRestoreArray(user->state_vars->v_fast,&user->state_vars->phi_fast);
-        VecRestoreArray(user->state_vars_past->v_fast,&user->state_vars_past->phi_fast);
+        restore_subarray(current_state,user->state_vars,1);
         printf("Init_Data rsd: %.10e, Tol: %.10e\n",rsd,tol);
     	k++;
 	}
@@ -448,8 +498,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
   	ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
     //    Get Nx, Ny, and dt from options if possible
 
-    user->Nx = 32;
-    user->Ny = 32;
+    user->Nx = 50;
+    user->Ny = 50;
     user->dt =0.01;
 //    user->dt = 1.0/1000.0/2.0;
     PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);
@@ -637,14 +687,14 @@ PetscErrorCode initialize_fast_petsc(struct Solver *slvr,int argc, char **argv,s
     //Create Vectors
     ierr = VecCreate(PETSC_COMM_WORLD,&slvr->Q);CHKERRQ(ierr);
     ierr = VecSetType(slvr->Q,VECSEQ);CHKERRQ(ierr);
-    ierr = VecSetSizes(slvr->Q,PETSC_DECIDE,Nx*Ny*Nc);CHKERRQ(ierr);
+    ierr = VecSetSizes(slvr->Q,PETSC_DECIDE,Nx*Ny*Nc*(Ni+1));CHKERRQ(ierr);
     ierr = VecDuplicate(slvr->Q,&slvr->Res);CHKERRQ(ierr);
 
     //Create Matrix
     ierr = MatCreate(PETSC_COMM_WORLD,&slvr->A);CHKERRQ(ierr);
     ierr = MatSetType(slvr->A,MATSEQAIJ);CHKERRQ(ierr);
-    ierr = MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,Nx*Ny*Nc,Nx*Ny*Nc);CHKERRQ(ierr);
-    ierr = MatSeqAIJSetPreallocation(slvr->A,3,NULL);CHKERRQ(ierr);
+    ierr = MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,Nx*Ny*Nc*(Ni+1),Nx*Ny*Nc*(Ni+1));CHKERRQ(ierr);
+    ierr = MatSeqAIJSetPreallocation(slvr->A,12,NULL);CHKERRQ(ierr);
     // ierr = MatSetFromOptions(slvr->A);CHKERRQ(ierr);
     ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
 
@@ -662,15 +712,26 @@ PetscErrorCode initialize_fast_petsc(struct Solver *slvr,int argc, char **argv,s
 
     //Set SNES types
     ierr = SNESSetType(slvr->snes,SNESNEWTONLS); CHKERRQ(ierr);
-
+//    ierr = SNESSetType(slvr->snes,SNESKSPONLY); CHKERRQ(ierr);
+//    ierr = SNESSetType(slvr->snes,SNESTEST); CHKERRQ(ierr);
+//    ierr = SNESSetType(slvr->snes,SNESNGMRES); CHKERRQ(ierr);
+//    ierr = SNESSetType(slvr->snes,SNESNASM); CHKERRQ(ierr);
     ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
     //LU Direct solve
 
+//    /*
     ierr = PCSetType(slvr->pc,PCLU);CHKERRQ(ierr);
     ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
     ierr = PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
-
-
+//    */
+    /*
+    // ILU Precond
+    ierr = PCSetType(slvr->pc, PCILU);CHKERRQ(ierr);
+    ierr = PCFactorSetFill(slvr->pc, 3.0);CHKERRQ(ierr);
+    ierr = PCFactorSetLevels(slvr->pc, 1);CHKERRQ(ierr);
+    ierr = PCFactorSetAllowDiagonalFill(slvr->pc, PETSC_TRUE);CHKERRQ(ierr);
+    ierr = PCFactorSetMatOrderingType(slvr->pc, MATORDERINGNATURAL);CHKERRQ(ierr);
+    */
 //     ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     /*
     PetscReal div_tol = 1e12;
