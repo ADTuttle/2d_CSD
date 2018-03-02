@@ -38,7 +38,7 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 //#define dx (Lx/Nx)       //grid size in x direction (in cm)
 //#define dy (Ly/Ny)        //grid size in y direction (in cm)
 
-#define Nfast 50
+#define Nfast 20
 
 //number of variables to be solved for at each grid point
 //#define  Nv  ((Ni+2)*Nc-1) //version if volume is included
@@ -206,6 +206,7 @@ struct AppCtx{
     struct ConstVars *con_vars;
     PetscReal *Dcs;
     PetscReal *Dcb;
+    PetscReal *rsd;
     PetscReal dt;
     PetscReal dtf;
     PetscReal dx;

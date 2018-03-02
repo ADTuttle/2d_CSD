@@ -237,14 +237,17 @@ PetscErrorCode update_fast_vars(FILE *fp_fast,struct SimState *state_vars,struct
 
 
         PetscTime(&tic);
-        SNESSolve(user->fast_slvr->snes,NULL,state_vars->v_fast);
+//        SNESSolve(user->fast_slvr->snes,NULL,state_vars->v_fast);
+        Point_Solve(state_vars,state_vars_past,user);
         PetscTime(&toc);
         SNESGetIterationNumber(user->fast_slvr->snes,&num_iters);
         SNESGetConvergedReason(user->fast_slvr->snes,&reason);
 
+
         //Update gating variables
         extract_subarray(state_vars->v,state_vars,1);
-
+//        printf("Nfast: %d,Solve time: %f\n",nfast,toc - tic);
+//        printf("phi:%.10e, c: %.10e\n",state_vars->phi_fast[phi_index(user->Nx/2,user->Ny/2,0,user->Nx)],state_vars->c[c_index(user->Nx/2,user->Ny/2,0,0,user->Nx)]);
 
         gatevars_update(user->gate_vars,user->state_vars,user->dtf*1e3,user,0);
 

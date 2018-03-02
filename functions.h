@@ -100,6 +100,11 @@ PetscErrorCode calc_jacobian_fast(SNES, Vec, Mat,Mat, void*); //void is masked A
 //Slow eqns
 PetscErrorCode calc_residual_slow(SNES,Vec,Vec,void*); //void is masked AppCtx
 PetscErrorCode calc_jacobian_slow(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
+PetscErrorCode point_jacobian_fast(Mat ,int ,int, void *ctx);//point-wise solve
+PetscErrorCode point_residual_fast(Vec ,int ,int, void *ctx);//point-wise solve
+PetscErrorCode Point_Solve(struct SimState* ,struct SimState *,struct AppCtx*);
+
+void point_ionmflux(PetscInt , PetscInt ,struct AppCtx* );
 
 //Find abs. max value of an array
 PetscReal array_max(PetscReal *,size_t);

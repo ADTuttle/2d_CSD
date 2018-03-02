@@ -271,6 +271,9 @@ void init_arrays(struct AppCtx*user)
     //Diffusion in ctx
     user->Dcs = (PetscReal*) malloc(Nx*Ny*Ni*Nc*2*sizeof(PetscReal));
     user->Dcb = (PetscReal*) malloc(Nx*Ny*Ni*Nc*2*sizeof(PetscReal));
+
+    //Fast Solver residual
+    user->rsd = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
 }
 void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars,struct GateType* gate_vars,struct FluxData *flux,struct AppCtx*user)
 {
@@ -461,7 +464,8 @@ void initialize_data(Vec current_state,struct AppCtx *user)
 
 //    	newton_solve(current_state,user);
         //Solve fast var
-        SNESSolve(user->fast_slvr->snes,NULL,user->state_vars->v_fast);
+//        SNESSolve(user->fast_slvr->snes,NULL,user->state_vars->v_fast);
+        Point_Solve(user->state_vars,user->state_vars_past,user);
         //Solve slow var
         SNESSolve(user->slvr->snes,NULL,current_state);
 
@@ -500,7 +504,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
     user->Nx = 50;
     user->Ny = 50;
-    user->dt =0.1;
+    user->dt =0.01;
 //    user->dt = 1.0/1000.0/2.0;
     PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);
     PetscOptionsGetInt(NULL,NULL,"-Ny",&user->Ny,NULL);
@@ -687,13 +691,15 @@ PetscErrorCode initialize_fast_petsc(struct Solver *slvr,int argc, char **argv,s
     //Create Vectors
     ierr = VecCreate(PETSC_COMM_WORLD,&slvr->Q);CHKERRQ(ierr);
     ierr = VecSetType(slvr->Q,VECSEQ);CHKERRQ(ierr);
-    ierr = VecSetSizes(slvr->Q,PETSC_DECIDE,Nx*Ny*Nc*(Ni+1));CHKERRQ(ierr);
+//    ierr = VecSetSizes(slvr->Q,PETSC_DECIDE,Nx*Ny*Nc*(Ni+1));CHKERRQ(ierr);
+    ierr = VecSetSizes(slvr->Q,PETSC_DECIDE,Nc*(Ni+1));CHKERRQ(ierr);
     ierr = VecDuplicate(slvr->Q,&slvr->Res);CHKERRQ(ierr);
 
     //Create Matrix
     ierr = MatCreate(PETSC_COMM_WORLD,&slvr->A);CHKERRQ(ierr);
     ierr = MatSetType(slvr->A,MATSEQAIJ);CHKERRQ(ierr);
-    ierr = MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,Nx*Ny*Nc*(Ni+1),Nx*Ny*Nc*(Ni+1));CHKERRQ(ierr);
+//    ierr = MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,Nx*Ny*Nc*(Ni+1),Nx*Ny*Nc*(Ni+1));CHKERRQ(ierr);
+    ierr = MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,Nc*(Ni+1),Nc*(Ni+1));CHKERRQ(ierr);
     ierr = MatSeqAIJSetPreallocation(slvr->A,12,NULL);CHKERRQ(ierr);
     // ierr = MatSetFromOptions(slvr->A);CHKERRQ(ierr);
     ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
@@ -730,15 +736,7 @@ PetscErrorCode initialize_fast_petsc(struct Solver *slvr,int argc, char **argv,s
     ierr = PCFactorSetMatOrderingType(slvr->pc, MATORDERINGNATURAL);CHKERRQ(ierr);
  */
 //     ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
-    /*
-    PetscReal div_tol = 1e12;
-    PetscReal abs_tol = 1e-16;
-    PetscReal rel_tol = 1e-14;
-//    PetscReal abs_tol = 1e-12;
-//    PetscReal rel_tol = 1e-8;
-    ierr = KSPSetTolerances(slvr->ksp,rel_tol,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
-    ierr = KSPSetNormType(slvr->ksp,KSP_NORM_UNPRECONDITIONED);CHKERRQ(ierr);
-    */
+
     ierr = SNESSetFromOptions(slvr->snes);CHKERRQ(ierr);
     ierr = KSPSetFromOptions(slvr->ksp);CHKERRQ(ierr);
     ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
