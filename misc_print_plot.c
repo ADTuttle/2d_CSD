@@ -512,24 +512,28 @@ void write_fast(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
         }
     } else{
         if (start) {
-            fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, (int) floor(numrecords), 0, 0);
+//            fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, (int) floor(numrecords), 0, 0);
+            fprintf(fp, "%d,%d,%d,%d,%d\n", 1, 1, (int) floor(numrecords), 0, 0);
             write_fast(fp, user,numrecords, 0);
         } else {
             int ion, comp, x, y;
+            x=Nx/2;y=Ny/2;
             comp = 0;
-            for (y = 0; y < Ny; y++) {
-                for (x = 0; x < Nx; x++) {
-                    if (x == Nx - 1 & y == Ny - 1) {
+//            for (y = 0; y < Ny; y++) {
+//                for (x = 0; x < Nx; x++) {
+//                    if (x == Nx - 1 & y == Ny - 1) {
 //                        fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
 //                        fprintf(fp, "%f\n", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
-                        fprintf(fp, "%f\n", state_vars->phi_fast[phi_index(x,y,0,Nx)]);
-                    } else {
+//                        fprintf(fp, "%f\n", (state_vars->phi_fast[phi_index(x,y,0,Nx)])*RTFC);
+                        fprintf(fp, "%f\n", (state_vars->phi[phi_index(x,y,0,Nx)]-state_vars->phi[phi_index(x,y,2,Nx)])*RTFC);
+//                    } else {
 //                        fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
 //                        fprintf(fp, "%f,", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
-                        fprintf(fp, "%f,", state_vars->phi_fast[phi_index(x,y,0,Nx)]);
-                    }
-                }
-            }
+//                        fprintf(fp, "%f,", (state_vars->phi_fast[phi_index(x,y,0,Nx)])*RTFC);
+//                        fprintf(fp, "%f,", (state_vars->phi[phi_index(x,y,0,Nx)]-state_vars->phi[phi_index(x,y,2,Nx)])*RTFC);
+//                    }
+//                }
+//            }
         }
     }
     if(Profiling_on) {

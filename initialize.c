@@ -460,12 +460,13 @@ void initialize_data(Vec current_state,struct AppCtx *user)
         diff_coef(user->Dcs,user->state_vars->alpha,1,user);
         //Bath diffusion
         diff_coef(user->Dcb,user->state_vars->alpha,Batheps,user);
+
+        ionmflux(user);
         restore_subarray(current_state,user->state_vars,1);
 
 //    	newton_solve(current_state,user);
         //Solve fast var
 //        SNESSolve(user->fast_slvr->snes,NULL,user->state_vars->v_fast);
-        Point_Solve(user->state_vars,user->state_vars_past,user);
         //Solve slow var
         SNESSolve(user->slvr->snes,NULL,current_state);
 
@@ -502,8 +503,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
   	ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
     //    Get Nx, Ny, and dt from options if possible
 
-    user->Nx = 50;
-    user->Ny = 50;
+    user->Nx = 32;
+    user->Ny = 32;
     user->dt =0.01;
 //    user->dt = 1.0/1000.0/2.0;
     PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);

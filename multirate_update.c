@@ -13,8 +13,8 @@ void recombine(struct SimState* state_vars,struct AppCtx *user){
                 state_vars->phi_fast[phi_index(x,y,comp,Nx)]=0;
 
                 for(ion=0;ion<Ni;++ion){
-                    state_vars->c[phi_index(x,y,comp,Nx)]+=state_vars->c_fast[phi_index(x,y,comp,Nx)];
-                    state_vars->c_fast[phi_index(x,y,comp,Nx)]=0;
+                    state_vars->c[c_index(x,y,comp,ion,Nx)]+=state_vars->c_fast[c_index(x,y,comp,ion,Nx)];
+                    state_vars->c_fast[c_index(x,y,comp,ion,Nx)]=0;
                 }
             }
 
@@ -1249,77 +1249,106 @@ point_jacobian_fast(Mat Jac,int x,int y, void *ctx)
     return ierr;
 }
 
-PetscErrorCode Point_Solve(struct SimState* state_vars,struct SimState *state_vars_past,struct AppCtx* user)
+PetscErrorCode Point_Solve(struct SimState* state_vars,struct SimState *state_vars_past,struct AppCtx* user,PetscInt x,PetscInt y,PetscReal t)
 {
     PetscErrorCode ierr;
 
-    extract_subarray(state_vars->v_fast,state_vars,2);
-
-    PetscInt x,y,ion,comp;
+    PetscInt ion,comp;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
 
+    PetscReal cutoff = 5e0; //in mV
+    PetscReal Vm_update;
+    int accepted_step=0;
+    PetscInt Max_step = 256;
+
+    PetscInt NSteps = Nfast;
+
+    PetscInt steps=0;
+
     struct Solver *slvr = user->fast_slvr;
 
-    PetscReal tol = 1e-16;
-    PetscInt iter=0;
-    PetscReal *rsd = user->rsd;
-    for (int i = 0; i < Nx*Ny; ++i) {
-        rsd[i]=tol+1;
-    }
-    int at_least_one_update=1;
+    PetscReal rsd;
+
+    PetscReal tol = reltol;//1e-16;
+    PetscInt iter;
     PetscReal *temp;
 
-    PetscInt num_update;
-    while(at_least_one_update && iter<itermax) {
+    while(steps<NSteps) {
+        iter = 0;
+        rsd = tol+1;
 
-        at_least_one_update = 0;
-        num_update = 0;
-        for(x=0;x<Nx;x++){
-            for(y=0;y<Ny;y++){
-                if(rsd[xy_index(x,y,Nx)]>tol) {
-                    num_update++;
-                    point_ionmflux(x,y,user);
-                    ierr = point_residual_fast(slvr->Res, x, y, user);
-                    CHKERRQ(ierr);
+        //Update point
+        while ( iter < itermax) {
 
-                    VecNorm(slvr->Res, NORM_INFINITY, &rsd[xy_index(x,y,Nx)]);
+            point_ionmflux(x, y, user);
+            ierr = point_residual_fast(slvr->Res, x, y, user);CHKERRQ(ierr);
 
-                    if (rsd[xy_index(x,y,Nx)]>tol) {
+            VecNorm(slvr->Res, NORM_INFINITY, &rsd);
 
-                        ierr = point_jacobian_fast(slvr->A, x, y, user);
-                        CHKERRQ(ierr);
-
-                        ierr = KSPSolve(slvr->ksp, slvr->Res, slvr->Q);
-                        CHKERRQ(ierr);
-                        VecGetArray(slvr->Q, &temp);
-
-                        for (comp = 0; comp < Nc; comp++) {
-                            for (ion = 0; ion < Ni; ion++) {
-                                state_vars->c_fast[c_index(x, y, comp, ion, Nx)] -= temp[Ind_1(0, 0, ion, comp, Nx)];
-                            }
-                            state_vars->phi_fast[phi_index(x, y, comp, Nx)] -= temp[Ind_1(0, 0, Ni, comp, Nx)];
-                        }
-
-                        VecRestoreArray(slvr->Q, &temp);
-                        at_least_one_update=1;
-                    }
-                }
-
+            if (rsd < tol) {
+                break;
             }
 
+            ierr = point_jacobian_fast(slvr->A, x, y, user);CHKERRQ(ierr);
+
+            ierr = KSPSolve(slvr->ksp, slvr->Res, slvr->Q);CHKERRQ(ierr);
+
+            VecGetArray(slvr->Q, &temp);
+
+            for (comp = 0; comp < Nc; comp++) {
+                for (ion = 0; ion < Ni; ion++) {
+                    state_vars->c_fast[c_index(x, y, comp, ion, Nx)] -= temp[Ind_1(0, 0, ion, comp, Nx)];
+                }
+                state_vars->phi_fast[phi_index(x, y, comp, Nx)] -= temp[Ind_1(0, 0, Ni, comp, Nx)];
+            }
+
+            VecRestoreArray(slvr->Q, &temp);
+
+
+            iter++;
         }
-//        printf("Iter:%d,Percent Updated:%f\n",iter,((double)num_update)/(Nx*Ny));
-//        printf("iter:%d,max point residual is: %.10e\n",iter,array_max(rsd,Nx*Ny));
-        iter++;
+        if (iter == itermax) {
+            printf("Max iterations reached, residual is: %.10e at (%d,%d)\n", rsd,x,y);
+            fprintf(stderr, "Pointwise fast Netwon Solve did not converge! Stopping...\n");
+            exit(EXIT_FAILURE); /* indicate failure.*/
+        }
+
+        //If Update is below cutoff
+        Vm_update = (state_vars->phi_fast[phi_index(x,y,0,Nx)]-state_vars->phi_fast[phi_index(x,y,Nc-1,Nx)])*RTFC;
+//        printf("Update:%.10e,Iters:%d,Nsteps:%d,step:%d\n",Vm_update,iter,NSteps,steps);
+        if(fabs(Vm_update)<cutoff||accepted_step||NSteps>=Max_step) {
+            steps++;
+            accepted_step=1;
+            //Step the gating variables
+            gatevars_update_point(user->gate_vars, state_vars, user->dtf * 1e3, user, x, y);
+            //update the excitation
+            excitation_point(user, t - user->dt + user->dtf * steps, x, y);
+            //Recombine to reset the size of the fast variables
+            for (comp = 0; comp < Nc; ++comp) {
+                state_vars->phi[phi_index(x,y,comp,Nx)]+=state_vars->phi_fast[phi_index(x,y,comp,Nx)];
+                state_vars->phi_fast[phi_index(x,y,comp,Nx)]=0;
+
+                for(ion=0;ion<Ni;++ion){
+                    state_vars->c[c_index(x,y,comp,ion,Nx)]+=state_vars->c_fast[c_index(x,y,comp,ion,Nx)];
+                    state_vars->c_fast[c_index(x,y,comp,ion,Nx)]=0;
+                }
+            }
+        } else{
+            //If we aren't below cutoff. Half the time step.
+            user->dtf = user->dtf/2;
+            NSteps = 2*NSteps;
+        }
+
+
+
     }
 
-    if(iter==itermax){
-        printf("Max iterations reached, max point residual is: %.10e\n",array_max(rsd,Nx*Ny));
-        fprintf(stderr, "Pointwise fast Netwon Solve did not converge! Stopping...\n");
-        exit(EXIT_FAILURE); /* indicate failure.*/
-    }
+//    printf("Update:%.10e,Iters:%d,Nsteps:%d,step:%d\n",Vm_update,iter,NSteps,steps);
+//    printf("NumSteps: %d\n",NSteps);
+    //Reset fast time step
+    user->dtf = user->dt/Nfast;
 
-    restore_subarray(state_vars->v_fast,state_vars,2);
+
     return ierr;
 }

@@ -219,7 +219,42 @@ int main(int argc, char **argv)
     PetscFinalize();
     return 0;
 }
+PetscErrorCode update_fast_vars(FILE *fp_fast,struct SimState *state_vars,struct SimState *state_vars_past, struct AppCtx *user,PetscReal t)
+{
+    PetscErrorCode ierr=0;
+    PetscLogDouble tic,toc;
 
+    PetscInt x,y;
+
+
+        PetscTime(&tic);
+
+        extract_subarray(state_vars_past->v,state_vars_past,1);
+        extract_subarray(state_vars->v,state_vars,1);
+        for(x=0;x<user->Nx;x++) {
+            for (y = 0; y < user->Ny; y++) {
+
+                Point_Solve(state_vars, state_vars_past, user,x,y,t);
+            }
+        }
+
+        PetscTime(&toc);
+
+        //Update gating variables
+//        printf("Nfast: %d,Solve time: %f\n",nfast,toc - tic);
+//        printf("phi:%.10e, c: %.10e\n",state_vars->phi_fast[phi_index(user->Nx/2,user->Ny/2,0,user->Nx)],state_vars->c[c_index(user->Nx/2,user->Ny/2,0,0,user->Nx)]);
+
+        write_fast(fp_fast, user,-10, 0);
+
+        restore_subarray(state_vars->v,state_vars,1);
+        restore_subarray(state_vars_past->v,state_vars_past,1);
+
+
+    printf("Fast Solve total: %f\n",toc - tic);
+
+    return ierr;
+}
+/*
 PetscErrorCode update_fast_vars(FILE *fp_fast,struct SimState *state_vars,struct SimState *state_vars_past, struct AppCtx *user,PetscReal t)
 {
     PetscErrorCode ierr=0;
@@ -243,7 +278,7 @@ PetscErrorCode update_fast_vars(FILE *fp_fast,struct SimState *state_vars,struct
         SNESGetIterationNumber(user->fast_slvr->snes,&num_iters);
         SNESGetConvergedReason(user->fast_slvr->snes,&reason);
 
-
+        recombine(state_vars,user);
         //Update gating variables
         extract_subarray(state_vars->v,state_vars,1);
 //        printf("Nfast: %d,Solve time: %f\n",nfast,toc - tic);
@@ -252,6 +287,7 @@ PetscErrorCode update_fast_vars(FILE *fp_fast,struct SimState *state_vars,struct
         gatevars_update(user->gate_vars,user->state_vars,user->dtf*1e3,user,0);
 
         write_fast(fp_fast, user,-10, 0);
+
         restore_subarray(state_vars->v,state_vars,1);
 
         //update the excitation
@@ -267,7 +303,7 @@ PetscErrorCode update_fast_vars(FILE *fp_fast,struct SimState *state_vars,struct
             // Failure Close
             printf("Fast Netwon Solve did not converge! Stopping at %f...\n",t-user->dt+user->dtf*nfast);
             fprintf(stderr, "Fast Netwon Solve did not converge! Stopping at %f...\n",t-user->dt+user->dtf*nfast);
-            exit(EXIT_FAILURE); /* indicate failure.*/}
+            exit(EXIT_FAILURE); }
 
     }
     PetscTime(&fulltoc);
@@ -275,3 +311,4 @@ PetscErrorCode update_fast_vars(FILE *fp_fast,struct SimState *state_vars,struct
 
     return ierr;
 }
+*/

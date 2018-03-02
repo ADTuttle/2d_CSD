@@ -720,4 +720,133 @@ void point_ionmflux(PetscInt x, PetscInt y,struct AppCtx* user)
     }
 }
 
+void gatevars_update_point(struct GateType *gate_vars,struct SimState *state_vars,PetscReal dtms,struct AppCtx *user,PetscInt x, PetscInt y)
+{
+    if(Profiling_on) {
+        PetscLogEventBegin(event[4], 0, 0, 0, 0);
+    }
+    PetscInt Nx = user->Nx;
+
+    PetscReal v, alpha,beta;
+
+    //membrane potential in mV
+    v = (state_vars->phi[phi_index(x,y,0,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)])*RTFC;
+    v += (state_vars->phi_fast[phi_index(x,y,0,Nx)]-state_vars->phi_fast[phi_index(x,y,Nc-1,Nx)])*RTFC;
+
+    //compute current NaT
+    //gating variables mNaT
+    alpha = xoverexpminusone(v,0.32,51.9,0.25,1); //0.32*(Vm+51.9)./(1-exp(-0.25*(Vm+51.9)))
+    beta = xoverexpminusone(v,0.28,24.89,0.2,0); //0.28*(Vm+24.89)./(exp(0.2*(Vm+24.89))-1)
+    gate_vars->mNaT[xy_index(x,y,Nx)] = (gate_vars->mNaT[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+
+    //gating variable hNaT
+    alpha = 0.128*exp(-(0.056*v+2.94));
+    beta = 4/(exp(-(0.2*v+6))+1);
+    gate_vars->hNaT[xy_index(x,y,Nx)] = alpha/(alpha+beta);
+    gate_vars->hNaT[xy_index(x,y,Nx)] = (gate_vars->hNaT[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+
+    gate_vars->gNaT[xy_index(x,y,Nx)] = pow(gate_vars->mNaT[xy_index(x,y,Nx)],3)*gate_vars->hNaT[xy_index(x,y,Nx)];
+    //compute current NaP
+    //gating variable mNaP
+    alpha = 1/(1+exp(-(0.143*v+5.67)))/6;
+    beta = 1.0/6.0-alpha; //1./(1+exp(0.143*Vm+5.67))/6
+    gate_vars->mNaP[xy_index(x,y,Nx)] = (gate_vars->mNaP[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+
+    //gating variable hNaP
+    alpha = 5.12e-6*exp(-(0.056*v+2.94));
+    beta = 1.6e-4/(1+exp(-(0.2*v+8)));
+    gate_vars->hNaP[xy_index(x,y,Nx)] = (gate_vars->hNaP[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+
+    gate_vars->gNaP[xy_index(x,y,Nx)] = pow(gate_vars->mNaP[xy_index(x,y,Nx)],2)*gate_vars->hNaP[xy_index(x,y,Nx)];
+
+    //compute KDR current
+    //gating variable mKDR
+    alpha = xoverexpminusone(v,0.016,34.9,0.2,1); //0.016*(Vm+34.9)./(1-exp(-0.2*(Vm+34.9)))
+    beta = 0.25*exp(-(0.025*v+1.25));
+    gate_vars->mKDR[xy_index(x,y,Nx)] = (gate_vars->mKDR[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+
+    gate_vars->gKDR[xy_index(x,y,Nx)] = pow(gate_vars->mKDR[xy_index(x,y,Nx)],2);
+
+    //compute KA current
+    //gating variable mKA
+    alpha = xoverexpminusone(v,0.02,56.9,0.1,1); //0.02*(Vm+56.9)./(1-exp(-0.1*(Vm+56.9)))
+    beta = xoverexpminusone(v,0.0175,29.9,0.1,0); //0.0175*(Vm+29.9)./(exp(0.1*(Vm+29.9))-1)
+    gate_vars->mKA[xy_index(x,y,Nx)] = (gate_vars->mKA[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+
+    //gating variable hKA
+    alpha = 0.016*exp(-(0.056*v+4.61));
+    beta = 0.5/(exp(-(0.2*v+11.98))+1);
+    gate_vars->hKA[xy_index(x,y,Nx)] = (gate_vars->hKA[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+
+    gate_vars->gKA[xy_index(x,y,Nx)] = pow(gate_vars->mKA[xy_index(x,y,Nx)],2)*gate_vars->hKA[xy_index(x,y,Nx)];
+
+    if(Profiling_on) {
+        PetscLogEventEnd(event[4], 0, 0, 0, 0);
+    }
+}
+void excitation_point(struct AppCtx* user,PetscReal t,PetscInt i,PetscInt j)
+{
+    //compute excitation conductance to trigger csd
+    //Leak conductances in mS/cm^2
+    //all units converted to mmol/cm^2/sec
+    PetscReal pexct,pany;
+    PetscReal xexct;
+    PetscReal radius;
+    struct ExctType *exct = user->gexct;
+    PetscInt Nx = user->Nx;
+    PetscReal dx = user->dx;
+    PetscReal dy = user->dy;
+    if(one_point_exct){
+        if (t < texct && i==0 && j==0) {
+            pany = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
+            exct->pNa[xy_index(i, j,Nx)] = pany;
+            exct->pK[xy_index(i, j,Nx)] = pany;
+            exct->pCl[xy_index(i, j,Nx)] = pany;
+        }else {
+            //pexct=0*RTFC/FC
+            exct->pNa[xy_index(i, j,Nx)] = 0;
+            exct->pK[xy_index(i, j,Nx)] = 0;
+            exct->pCl[xy_index(i, j,Nx)] = 0;
+        }
+
+
+    }else {
+        if (mid_points_exct) {
+            radius = sqrt(pow((i + 0.5) * dx - Lx / 2, 2) + pow((j + 0.5) * dy - Lx / 2, 2));
+            if (t < texct && radius < Lexct) {
+                pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
+                xexct = pow(cos(pi / 2 * (radius / Lexct)), 2);
+                pany = pexct * xexct;
+                exct->pNa[xy_index(i, j,Nx)] = pany;
+                exct->pK[xy_index(i, j,Nx)] = pany;
+                exct->pCl[xy_index(i, j,Nx)] = pany;
+            } else {
+                //pexct=0*RTFC/FC
+                exct->pNa[xy_index(i, j,Nx)] = 0;
+                exct->pK[xy_index(i, j,Nx)] = 0;
+                exct->pCl[xy_index(i, j,Nx)] = 0;
+            }
+        } else {
+            radius = sqrt(pow((i + 0.5) * dx, 2) + pow((j + 0.5) * dy, 2));
+            if (t < texct && radius < Lexct) {
+                pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
+//	    		xexct=pow((cos(pi/2*(i+.5)/Nexct))*(cos(pi/2*(j+.5)/Nexct)),2);
+                xexct = pow(cos(pi / 2 * (radius / Lexct)), 2);
+//				xexct=pow((cos(pi/2*((i+.5)*dx)/Lexct))*(cos(pi/2*((j+.5)*dy)/Lexct)),2);
+                pany = pexct * xexct;
+                exct->pNa[xy_index(i, j,Nx)] = pany;
+                exct->pK[xy_index(i, j,Nx)] = pany;
+                exct->pCl[xy_index(i, j,Nx)] = pany;
+            } else {
+                //pexct=0*RTFC/FC
+                exct->pNa[xy_index(i, j,Nx)] = 0;
+                exct->pK[xy_index(i, j,Nx)] = 0;
+                exct->pCl[xy_index(i, j,Nx)] = 0;
+            }
+        }
+    }
+
+//    printf("Number of excited points: %d\n",num_points);
+}
+
 
