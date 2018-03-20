@@ -122,6 +122,7 @@ void compare_res(double *, int );
 void write_data(FILE *,struct AppCtx *,PetscInt,int );
 void write_point(FILE *,struct AppCtx *,PetscInt,int );
 void write_fast(FILE *,struct AppCtx *,PetscInt,int );
+void record_fast_timestep(FILE *,struct AppCtx *,PetscInt,int );
 void measure_flux(FILE *,struct AppCtx *,PetscInt,int );
 void init_events(struct AppCtx *);
 

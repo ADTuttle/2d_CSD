@@ -541,6 +541,32 @@ void write_fast(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
     }
 
 }
+void record_fast_timestep(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
+{
+    if(Profiling_on) {
+        PetscLogEventBegin(event[8], 0, 0, 0, 0);
+    }
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+        if (start) {
+            fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, (int) floor(numrecords)-1, 0, 0);
+        } else {
+            int ion, comp, x, y;
+            for (y = 0; y < Ny; y++) {
+                for (x = 0; x < Nx; x++) {
+                    if (x == Nx - 1 & y == Ny - 1) {
+                        fprintf(fp, "%f\n", user->timestep[xy_index(x, y,Nx)]);
+                    } else {
+                        fprintf(fp, "%f,", user->timestep[xy_index(x, y,Nx)]);
+                    }
+                }
+            }
+        }
+    if(Profiling_on) {
+        PetscLogEventEnd(event[8], 0, 0, 0, 0);
+    }
+
+}
 void init_events(struct AppCtx *user)
 {
     PetscLogDefaultBegin();

@@ -274,6 +274,9 @@ void init_arrays(struct AppCtx*user)
 
     //Fast Solver residual
     user->rsd = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+
+    //Timestep recording variable
+    user->timestep = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
 }
 void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars,struct GateType* gate_vars,struct FluxData *flux,struct AppCtx*user)
 {

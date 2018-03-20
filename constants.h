@@ -215,6 +215,7 @@ struct AppCtx{
     PetscInt Ny;
     PetscInt NA;
     PetscInt Nz;
+    PetscReal *timestep;
 };
 PetscLogEvent event[10];
 

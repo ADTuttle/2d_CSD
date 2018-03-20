@@ -1251,7 +1251,7 @@ point_jacobian_fast(Mat Jac,int x,int y, void *ctx)
 
 PetscErrorCode Point_Solve(struct SimState* state_vars,struct SimState *state_vars_past,struct AppCtx* user,PetscInt x,PetscInt y,PetscReal t)
 {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
 
     PetscInt ion,comp;
     PetscInt Nx = user->Nx;
@@ -1259,7 +1259,7 @@ PetscErrorCode Point_Solve(struct SimState* state_vars,struct SimState *state_va
 
     PetscReal cutoff = 5e0; //in mV
     PetscReal Vm_update;
-    int accepted_step=0;
+    int accepted_step = 0;
     PetscInt Max_step = 256;
 
     PetscInt NSteps = Nfast;
@@ -1316,14 +1316,29 @@ PetscErrorCode Point_Solve(struct SimState* state_vars,struct SimState *state_va
 
         //If Update is below cutoff
         Vm_update = (state_vars->phi_fast[phi_index(x,y,0,Nx)]-state_vars->phi_fast[phi_index(x,y,Nc-1,Nx)])*RTFC;
-//        printf("Update:%.10e,Iters:%d,Nsteps:%d,step:%d\n",Vm_update,iter,NSteps,steps);
-        if(fabs(Vm_update)<cutoff||accepted_step||NSteps>=Max_step) {
+        if(NSteps>Nfast) {
+            printf("Update:%.10e,Iters:%d,Nsteps:%d,step:%d\n", Vm_update, iter, NSteps, steps);
+            printf("Vm:%.10e\n",(state_vars->phi[phi_index(x,y,0,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)])*RTFC);
+        }
+//       Check if we are either below cutoff, already accepted a step, or reached the max
+        if(fabs(Vm_update)<cutoff || accepted_step || NSteps>=Max_step) {
             steps++;
             accepted_step=1;
             //Step the gating variables
             gatevars_update_point(user->gate_vars, state_vars, user->dtf * 1e3, user, x, y);
             //update the excitation
             excitation_point(user, t - user->dt + user->dtf * steps, x, y);
+
+            /*
+            //Save past variables
+            for (comp = 0; comp < Nc; ++comp) {
+                state_vars_past->phi_fast[phi_index(x,y,comp,Nx)]=state_vars->phi_fast[phi_index(x,y,comp,Nx)];
+                for(ion=0;ion<Ni;++ion){
+                    state_vars_past->c_fast[c_index(x,y,comp,ion,Nx)]=state_vars->c_fast[c_index(x,y,comp,ion,Nx)];
+                }
+            }
+             */
+//            /*
             //Recombine to reset the size of the fast variables
             for (comp = 0; comp < Nc; ++comp) {
                 state_vars->phi[phi_index(x,y,comp,Nx)]+=state_vars->phi_fast[phi_index(x,y,comp,Nx)];
@@ -1334,6 +1349,7 @@ PetscErrorCode Point_Solve(struct SimState* state_vars,struct SimState *state_va
                     state_vars->c_fast[c_index(x,y,comp,ion,Nx)]=0;
                 }
             }
+//             */
         } else{
             //If we aren't below cutoff. Half the time step.
             user->dtf = user->dtf/2;
@@ -1345,7 +1361,11 @@ PetscErrorCode Point_Solve(struct SimState* state_vars,struct SimState *state_va
     }
 
 //    printf("Update:%.10e,Iters:%d,Nsteps:%d,step:%d\n",Vm_update,iter,NSteps,steps);
-//    printf("NumSteps: %d\n",NSteps);
+    if(NSteps>Nfast) {
+        printf("(%d,%d), NumSteps: %d\n", x, y, NSteps);
+    }
+    //Record the fast time step
+    user->timestep[xy_index(x,y,Nx)] = user->dtf;
     //Reset fast time step
     user->dtf = user->dt/Nfast;
 

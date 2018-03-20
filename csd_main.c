@@ -120,6 +120,10 @@ int main(int argc, char **argv)
     extract_subarray(current_state,state_vars,1);
     write_data(fp,user,numrecords,1);
 
+    FILE *ftime;
+    ftime = fopen("time_step.txt","w");
+    record_fast_timestep(ftime,user,numrecords,1);
+
 
 //    write_point(fp,user,numrecords,1);
     FILE *fpflux;
@@ -151,6 +155,8 @@ int main(int argc, char **argv)
 
         //update the fast variables
         update_fast_vars(fp_fast,state_vars,state_vars_past,user,t);
+        //record time step
+        record_fast_timestep(ftime,user,numrecords,0);
 
         if(separate_vol) {
             //Update volume(uses past c values for wflow)
@@ -201,6 +207,7 @@ int main(int argc, char **argv)
     //Close
     fclose(fp);
     fclose(fp_fast);
+    fclose(ftime);
     fprintf(fptime,"%d,%d,%d,%d,%f,%f\n",1,count,user->Nx,user->Ny,user->dt,full_toc-full_tic);
     fclose(fptime);
     fclose(fpflux);
