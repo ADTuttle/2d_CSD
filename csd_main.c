@@ -33,13 +33,14 @@ int main(int argc, char **argv)
     //Create Vector
     ierr = VecCreate(PETSC_COMM_WORLD,&current_state);CHKERRQ(ierr);
     ierr = VecSetType(current_state,VECSEQ); CHKERRQ(ierr);
-    ierr = VecSetSizes(current_state,PETSC_DECIDE,user->NA);CHKERRQ(ierr);
+    ierr = VecSetSizes(current_state,PETSC_DECIDE,user->Nx*user->Ny*Nv);CHKERRQ(ierr);
 
     struct SimState *state_vars_past = (struct SimState*)malloc(sizeof(struct SimState));
     //Create Vector
     ierr = VecCreate(PETSC_COMM_WORLD,&state_vars_past->v);CHKERRQ(ierr);
     ierr = VecSetType(state_vars_past->v,VECSEQ); CHKERRQ(ierr);
-    ierr = VecSetSizes(state_vars_past->v,PETSC_DECIDE,user->NA);CHKERRQ(ierr);
+    ierr = VecSetSizes(state_vars_past->v,PETSC_DECIDE,user->Nx*user->Ny*Nv);CHKERRQ(ierr);
+
     //Initialize
     printf("Initialize Data Routines\n");
 
@@ -64,6 +65,12 @@ int main(int argc, char **argv)
     struct FluxData *flux = (struct FluxData*) malloc(sizeof(struct FluxData));
     //Create Excitation
     struct ExctType *gexct = (struct ExctType*)malloc(sizeof(struct ExctType));
+
+    //Create small grid variables
+    struct SimState *grid_vars = (struct SimState*)malloc(sizeof(struct SimState));
+    struct SimState *grid_vars_past = (struct SimState*)malloc(sizeof(struct SimState));
+    struct GateType *grid_gate_vars = (struct GateType*) malloc(sizeof(struct GateType));
+
     //Pass data structs over to AppCtx
 
     user->slvr = slvr;
@@ -73,6 +80,9 @@ int main(int argc, char **argv)
     user->gexct=gexct;
     user->state_vars_past=state_vars_past;
     user->state_vars=state_vars;
+    user->grid_gate_vars = grid_gate_vars;
+    user->grid_vars_past = grid_vars_past;
+    user->grid_vars = grid_vars;
 
     //Init misc. array sizes
     init_arrays(user);
@@ -133,7 +143,7 @@ int main(int argc, char **argv)
         restore_subarray(current_state,state_vars);
         //Newton update
         PetscTime(&tic);
-        SNESSolve(user->slvr->snes,NULL,current_state);
+        Update_Solution(current_state,t,user);
         PetscTime(&toc);
 
 

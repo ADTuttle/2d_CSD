@@ -92,3 +92,9 @@ converge_runs/dt01/data_csd_128.txt
 converge_runs/dt01/data_csd_32.txt
 
 converge_runs/dt01/data_csd_64.txt
+
+cmake-build-debug/data_fastcsd.txt
+
+cmake-build-debug/time_step.txt
+
+flux_csd.txt

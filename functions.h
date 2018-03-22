@@ -91,6 +91,19 @@ PetscErrorCode calc_residual_linear_deriv(SNES,Vec,Vec,void*); //void is masked 
 PetscErrorCode calc_jacobian_linear_deriv(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
 
 
+//Functions used in Grid solves
+void grid_wflowm(struct AppCtx *);
+void grid_ionmflux(struct AppCtx* );
+void gatevars_update_grid(struct GateType *,struct SimState *,PetscReal ,struct AppCtx * );
+void excitation_grid(struct AppCtx* ,PetscReal ,PetscInt, PetscInt);
+
+PetscErrorCode Grid_Residual(Vec ,PetscInt ,PetscInt ,void *);
+PetscErrorCode Grid_Jacobian(Mat ,PetscInt ,PetscInt ,void *);
+PetscErrorCode Update_Grid(PetscInt ,PetscInt,PetscReal ,struct AppCtx *);
+PetscErrorCode Update_Solution(Vec,PetscReal t,struct AppCtx *);
+PetscErrorCode Newton_Solve_Grid(PetscInt, PetscInt,struct AppCtx *);
+
+
 //Find abs. max value of an array
 PetscReal array_max(PetscReal *,size_t);
 // abs. max, but for difference

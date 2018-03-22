@@ -38,7 +38,7 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 //#define dx (Lx/Nx)       //grid size in x direction (in cm)
 //#define dy (Ly/Ny)        //grid size in y direction (in cm)
 
-
+#define width_size  1
 
 //number of variables to be solved for at each grid point
 //#define  Nv  ((Ni+2)*Nc-1) //version if volume is included
@@ -192,9 +192,12 @@ struct Solver{
 struct AppCtx{
     struct SimState *state_vars;
     struct SimState *state_vars_past;
+    struct SimState *grid_vars;
+    struct SimState *grid_vars_past;
     struct Solver *slvr;
     struct FluxData *flux;
     struct GateType *gate_vars;
+    struct GateType *grid_gate_vars;
     struct ExctType *gexct;
     struct ConstVars *con_vars;
     PetscReal *Dcs;

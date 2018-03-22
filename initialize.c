@@ -74,6 +74,7 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx
     extract_subarray(state,state_vars);
     return ierr;
 }
+
 PetscErrorCode extract_subarray(Vec state,struct SimState *state_vars)
 {
     if(Profiling_on) {
@@ -174,6 +175,8 @@ void init_arrays(struct AppCtx*user)
 {
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt nx = 2*width_size+1;
+    PetscInt ny = 2*width_size+1;
     //Flux quantities
     user->flux->mflux = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
     user->flux->dfdci = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
@@ -211,6 +214,49 @@ void init_arrays(struct AppCtx*user)
     //Diffusion in ctx
     user->Dcs = (PetscReal*) malloc(Nx*Ny*Ni*Nc*2*sizeof(PetscReal));
     user->Dcb = (PetscReal*) malloc(Nx*Ny*Ni*Nc*2*sizeof(PetscReal));
+
+    //Small Grid variables
+
+    //Grid Gating variables
+    user->grid_gate_vars->mNaT = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->hNaT = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->gNaT = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->mNaP = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->hNaP = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->gNaP = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->mKDR = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->gKDR = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->mKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->hKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->gKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+
+    //Grid state_vars
+    user->grid_vars->c = (PetscReal*) malloc(Nc*Ni*nx*ny*sizeof(PetscReal));
+    user->grid_vars->phi = (PetscReal*) malloc(Nc*nx*ny*sizeof(PetscReal));
+    user->grid_vars->alpha = (PetscReal*) malloc((Nc-1)*nx*ny*sizeof(PetscReal));
+    user->grid_vars->v = NULL;
+    user->grid_vars->phi_ind = NULL;
+    user->grid_vars->phi_vec = NULL;
+    user->grid_vars->c_ind = NULL;
+    user->grid_vars->c_vec = NULL;
+    user->grid_vars->al_ind = NULL;
+    user->grid_vars->al_vec = NULL;
+
+    //Grid past state_Vars
+
+    user->grid_vars_past->c = (PetscReal*) malloc(Nc*Ni*nx*ny*sizeof(PetscReal));
+    user->grid_vars_past->phi = (PetscReal*) malloc(Nc*nx*ny*sizeof(PetscReal));
+    user->grid_vars_past->alpha = (PetscReal*) malloc((Nc-1)*nx*ny*sizeof(PetscReal));
+    user->grid_vars_past->v = NULL;
+    user->grid_vars_past->phi_ind = NULL;
+    user->grid_vars_past->phi_vec = NULL;
+    user->grid_vars_past->c_ind = NULL;
+    user->grid_vars_past->c_vec = NULL;
+    user->grid_vars_past->al_ind = NULL;
+    user->grid_vars_past->al_vec = NULL;
+
+
+
 }
 void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars,struct GateType* gate_vars,struct FluxData *flux,struct AppCtx*user)
 {
@@ -398,7 +444,8 @@ void initialize_data(Vec current_state,struct AppCtx *user)
         restore_subarray(current_state,user->state_vars);
 
 //    	newton_solve(current_state,user);
-        SNESSolve(user->slvr->snes,NULL,current_state);
+//        SNESSolve(user->slvr->snes,NULL,current_state);
+        Update_Solution(current_state,texct+1,user);
 
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
@@ -432,8 +479,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
   	ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
     //    Get Nx, Ny, and dt from options if possible
 
-    user->Nx = 128;
-    user->Ny = 128;
+    user->Nx = 32;
+    user->Ny = 32;
     user->dt =0.01;
 
     PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);
@@ -446,7 +493,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
     user->dx = Lx/Nx;
     user->dy = Ly/Ny;
-    user->NA = Nx*Ny*Nv;//total number of unknowns
+    user->NA = Nv*(2*width_size+1)*(2*width_size+1);//total number of unknowns
     user->Nz = (Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny)); //number of nonzeros in Jacobian
 
     PetscInt NA = user->NA;
@@ -474,6 +521,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
 
     //Initialize Space
+
 
     ierr = initialize_jacobian(slvr->A,user); CHKERRQ(ierr);
     ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
@@ -538,12 +586,12 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
 
 //    ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
-//    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
+    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
 //     ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
 
     //Gmres type methods
 //     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
-    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
+//    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
     /*
     ierr = KSPSetType(slvr->ksp,KSPDGMRES); CHKERRQ(ierr);
 
@@ -560,11 +608,11 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = Initialize_PCMG(slvr->pc,slvr->A,user); CHKERRQ(ierr);
 
     //LU Direct solve
-    /*
+//    /*
     ierr = PCSetType(slvr->pc,PCLU);CHKERRQ(ierr);
     ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
      ierr = PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
-    */
+//    */
     // ILU Precond
     /*
     ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
@@ -596,15 +644,13 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
 
 
-    free(nnz);
-
     return ierr;
 }
 
 void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user)
 {
-    PetscInt Nx = user->Nx;
-    PetscInt Ny = user->Ny;
+    PetscInt Nx = 2*width_size+1;
+    PetscInt Ny = 2*width_size+1;
     PetscInt NA = user->NA;
     //Make sure nnz is initialized to zero
     for(int i=0;i<NA;i++)
@@ -877,8 +923,8 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user)
 PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
     printf("Initializing Jacobian Memory\n");
     PetscErrorCode ierr;
-    PetscInt Nx = user->Nx;
-    PetscInt Ny = user->Ny;
+    PetscInt Nx = 2*width_size+1;
+    PetscInt Ny = 2*width_size+1;
     PetscInt ind = 0;
     PetscInt x,y,ion,comp;
 
@@ -1247,6 +1293,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
     }
     ierr = MatAssemblyBegin(Jac,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
     ierr = MatAssemblyEnd(Jac,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+
 
     return ierr;
 }
