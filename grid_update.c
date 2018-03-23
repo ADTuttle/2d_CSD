@@ -1376,7 +1376,7 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
     return ierr;
 }
 
-PetscErrorCode Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
+int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
 
 
     PetscReal rsd;
@@ -1404,7 +1404,7 @@ PetscErrorCode Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
             if (details) {
                 printf("Iteration: %d, Residual: %.10e\n", iter, rsd);
             }
-            return ierr;
+            return iter;
         }
         ierr = Grid_Jacobian_algebraic(user->slvr->A, xi, yi, user);CHKERRQ(ierr);
 
@@ -1422,7 +1422,7 @@ PetscErrorCode Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
 
 
         if (details) {
-            printf("iter num:%d, norm: %.10e\n", num_iter, rnorm);
+            printf("iter num:%d, norm: %.10e\n", num_iter, rnorm);CHKERRQ(ierr);
         }
 
 //        PetscTime(&tic);
@@ -1440,7 +1440,7 @@ PetscErrorCode Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
                 }
             }
         }
-        ierr = VecRestoreArray(user->slvr->Q, &temp);
+        ierr = VecRestoreArray(user->slvr->Q, &temp);CHKERRQ(ierr);
 
 
         if (details) {
@@ -1452,50 +1452,117 @@ PetscErrorCode Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
         fprintf(stderr, "Netwon Iteration did not converge! Stopping...\n");
         exit(EXIT_FAILURE); /* indicate failure.*/
     }
-    return ierr;
+    return itermax;
 }
 PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *user)
 {
-    PetscErrorCode ierr;
+    PetscErrorCode ierr = 0;
+
+
+    PetscReal dt = user->dt;
 
 
     PetscInt Nx = 2*width_size+1;
     PetscInt Ny = 2*width_size+1;
-    PetscInt ion,comp,x,y;
+    PetscInt ion,comp,x,y,iter;
 
     //Load current variable into past variable
-    for( x=0;x<Nx;x++) {
-        for ( y = 0; y < Ny; y++) {
+    for (x = 0; x < Nx; x++) {
+        for (y = 0; y < Ny; y++) {
 
             for (comp = 0; comp < Nc; comp++) {
                 for (ion = 0; ion < Ni; ion++) {
-                    user->grid_vars_past->c[c_index(x, y, comp, ion, Nx)] = user->grid_vars->c[c_index(x, y, comp, ion, Nx)] ;
+                    user->grid_vars_past->c[c_index(x, y, comp, ion, Nx)] = user->grid_vars->c[c_index(x, y, comp,
+                                                                                                       ion, Nx)];
                 }
-                user->grid_vars_past->phi[phi_index(x, y, comp, Nx)] = user->grid_vars->phi[phi_index(x, y, comp, Nx)];
+                user->grid_vars_past->phi[phi_index(x, y, comp, Nx)] = user->grid_vars->phi[phi_index(x, y, comp,
+                                                                                                      Nx)];
             }
             for (comp = 0; comp < Nc - 1; comp++) {
-                user->grid_vars_past->alpha[al_index(x, y, comp, Nx)] = user->grid_vars->alpha[al_index(x, y, comp, Nx)];
+                user->grid_vars_past->alpha[al_index(x, y, comp, Nx)] = user->grid_vars->alpha[al_index(x, y, comp,
+                                                                                                        Nx)];
             }
 
         }
     }
-
-
     //Calculate diffusion
     //compute diffusion coefficients
-    grid_diff_coef(user->Dcs,user->grid_vars_past->alpha,1,user);
+    grid_diff_coef(user->Dcs, user->grid_vars_past->alpha, 1, user);
     //Bath diffusion
-    grid_diff_coef(user->Dcb,user->grid_vars_past->alpha,Batheps,user);
+    grid_diff_coef(user->Dcb, user->grid_vars_past->alpha, Batheps, user);
 
-    //Perform Newton Solve
-    ierr = Newton_Solve_Grid(xi,yi,user);
 
-    //Update Gating variable
-    gatevars_update_grid(user->grid_gate_vars,user->grid_vars,user->dt*1e3,user);
+    PetscInt steps = 0;
+    PetscInt NSteps = 1;
+    PetscInt Max_step = 256;
+    PetscInt accepted_step = 0;
 
-    //Update Excitation
-    excitation_grid(user,t-user->dt,xi,yi);
+    while(steps<NSteps) {
 
+        //Perform Newton Solve
+        iter = Newton_Solve_Grid(xi, yi, user);
+
+        //Check if we accept the step
+        if (iter < 3 || accepted_step || NSteps >= Max_step) {
+            steps++;
+
+            //Update Gating variable
+            gatevars_update_grid(user->grid_gate_vars, user->grid_vars, user->dt * 1e3, user);
+
+            //Update Excitation
+            excitation_grid(user, t - user->dt*steps, xi, yi);
+
+            accepted_step = 1;
+
+
+            //Load current variable into past variable
+            for (x = 0; x < Nx; x++) {
+                for (y = 0; y < Ny; y++) {
+                    for (comp = 0; comp < Nc; comp++) {
+                        for (ion = 0; ion < Ni; ion++) {
+                            user->grid_vars_past->c[c_index(x, y, comp, ion, Nx)] = user->grid_vars->c[c_index(x, y, comp,ion, Nx)];
+                        }
+                        user->grid_vars_past->phi[phi_index(x, y, comp, Nx)] = user->grid_vars->phi[phi_index(x, y, comp, Nx)];
+                    }
+                    for (comp = 0; comp < Nc - 1; comp++) {
+                        user->grid_vars_past->alpha[al_index(x, y, comp, Nx)] = user->grid_vars->alpha[al_index(x, y, comp, Nx)];
+                    }
+                }
+            }
+            //Calculate diffusion
+            //compute diffusion coefficients
+            grid_diff_coef(user->Dcs, user->grid_vars_past->alpha, 1, user);
+            //Bath diffusion
+            grid_diff_coef(user->Dcb, user->grid_vars_past->alpha, Batheps, user);
+
+        } else {
+
+            //If we aren't below cutoff. Half the time step.
+            user->dt = user->dt / 2;
+            NSteps = 2 * NSteps;
+            printf("Reducing step at (%d,%d) to %d\n",xi,yi,NSteps);
+            //Reset current vars
+            //Load current variable into past variable
+            for (x = 0; x < Nx; x++) {
+                for (y = 0; y < Ny; y++) {
+                    for (comp = 0; comp < Nc; comp++) {
+                        for (ion = 0; ion < Ni; ion++) {
+                            user->grid_vars->c[c_index(x, y, comp, ion, Nx)] = user->grid_vars_past->c[c_index(x, y, comp, ion, Nx)];
+                        }
+                        user->grid_vars->phi[phi_index(x, y, comp, Nx)] = user->grid_vars_past->phi[phi_index(x, y, comp, Nx)];
+                    }
+                    for (comp = 0; comp < Nc - 1; comp++) {
+                        user->grid_vars->alpha[al_index(x, y, comp, Nx)] = user->grid_vars_past->alpha[al_index(x, y, comp, Nx)];
+                    }
+                }
+            }
+        }
+    }
+
+
+    user->dt_space[xy_index(xi,yi,user->Nx)] = user->dt;
+
+    user->dt = dt;
 
     return ierr;
 }

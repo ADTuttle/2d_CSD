@@ -26,7 +26,7 @@ static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
 //grid parameters
-#define Time 20.0   //total simulated time in seconds
+#define Time 5.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -68,6 +68,7 @@ static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
 
 //excitation parameters
 #define pmax  (1e-1/3)          //max value for excitation
+//#define pmax  (1e0)          //max value for excitation
 //#define pmax  50          //max value for excitation
 //#define texct 2         //time for excitation
 #define texct 0.05         //time for excitation
@@ -209,6 +210,7 @@ struct AppCtx{
     PetscInt Ny;
     PetscInt NA;
     PetscInt Nz;
+    PetscReal *dt_space;
 };
 PetscLogEvent event[10];
 

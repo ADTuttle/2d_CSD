@@ -255,6 +255,9 @@ void init_arrays(struct AppCtx*user)
     user->grid_vars_past->al_ind = NULL;
     user->grid_vars_past->al_vec = NULL;
 
+    //dt saving
+    user->dt_space = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+
 
 
 }

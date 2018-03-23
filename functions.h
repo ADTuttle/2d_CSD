@@ -104,7 +104,9 @@ PetscErrorCode Grid_Residual_algebraic(Vec ,PetscInt ,PetscInt ,void *);
 PetscErrorCode Grid_Jacobian_algebraic(Mat ,PetscInt ,PetscInt ,void *);
 PetscErrorCode Update_Grid(PetscInt ,PetscInt,PetscReal ,struct AppCtx *);
 PetscErrorCode Update_Solution(Vec,PetscReal t,struct AppCtx *);
-PetscErrorCode Newton_Solve_Grid(PetscInt, PetscInt,struct AppCtx *);
+int Newton_Solve_Grid(PetscInt, PetscInt,struct AppCtx *);
+
+void save_timestep(FILE *,struct AppCtx*,PetscInt ,int );
 
 
 //Find abs. max value of an array

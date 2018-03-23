@@ -329,7 +329,35 @@ void write_point(FILE *fp,struct AppCtx* user,PetscInt numrecords,int start)
 
 
 }
+void save_timestep(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
+{
+    if(Profiling_on) {
+        PetscLogEventBegin(event[8], 0, 0, 0, 0);
+    }
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+        if (start) {
+            fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, numrecords, 0, 0);
+        } else {
+            int x, y;
 
+                    for (y = 0; y < Ny; y++) {
+                        for (x = 0; x < Nx; x++) {
+                            if (x == Nx - 1 & y == Ny - 1) {
+                                fprintf(fp, "%f\n", user->dt_space[xy_index(x,y,Nx)]);
+                            } else {
+                                fprintf(fp, "%f,", user->dt_space[xy_index(x,y,Nx)]);
+                            }
+                        }
+                    }
+                }
+
+
+
+    if(Profiling_on) {
+        PetscLogEventEnd(event[8], 0, 0, 0, 0);
+    }
+}
 void measure_flux(FILE *fp, struct AppCtx* user,PetscInt numrecords,int start)
 {
     struct SimState *state_vars= user->state_vars;

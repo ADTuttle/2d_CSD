@@ -109,11 +109,16 @@ int main(int argc, char **argv)
     //Open file to write to
     FILE *fp;
     fp = fopen("data_csd.txt","w");
+
+    FILE *fdt;
+    fdt = fopen("csd_dt.txt","w");
+
     FILE *fptime;
     fptime = fopen("timing.txt","a");
     extract_subarray(current_state,state_vars);
     write_data(fp,user,numrecords,1);
 //    write_point(fp,user,numrecords,1);
+    save_timestep(fdt,user,numrecords,1);
     FILE *fpflux;
     fpflux = fopen("flux_csd.txt","w");
     measure_flux(fpflux,user,numrecords,1);
@@ -137,9 +142,9 @@ int main(int argc, char **argv)
         }
         //Update diffusion with past
         //compute diffusion coefficients
-        diff_coef(user->Dcs,state_vars_past->alpha,1,user);
+//        diff_coef(user->Dcs,state_vars_past->alpha,1,user);
         //Bath diffusion
-        diff_coef(user->Dcb,state_vars_past->alpha,Batheps,user);
+//        diff_coef(user->Dcb,state_vars_past->alpha,Batheps,user);
         restore_subarray(current_state,state_vars);
         //Newton update
         PetscTime(&tic);
@@ -159,19 +164,20 @@ int main(int argc, char **argv)
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
 
-        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
+//        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
         if(separate_vol) {
             //Update volume (this uses new c values for wflow)
 //            volume_update(user->state_vars, user->state_vars_past, user);
         }
         //Update Excitation
-        excitation(user,t);
+//        excitation(user,t);
         count++;
         if(count%krecordfreq==0) {
             printf("Time: %f,Newton time: %f,iters:%d, Reason: %d,KSPIters: %d\n",t, toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
 //            write_point(fp, user,numrecords, 0);
             write_data(fp, user,numrecords, 0);
             measure_flux(fpflux,user,numrecords,0);
+            save_timestep(fdt,user,numrecords,0);
         }
         ksp_iters_old = ksp_iters_new;
         if(reason<0){
