@@ -30,7 +30,7 @@ void mcGoldman(struct FluxData *,int,double,int,double,double,double,int);
 //Conductance for potassium inward rectifier
 double inwardrect(double,double,double);
 //Returns of c_i*z_i
-double cz(const double *,const PetscInt *,int,int,int,struct AppCtx*);
+double cz(const double *,const PetscInt *,int,int,int,PetscInt,struct AppCtx*);
 //Computes diffusion coef
 void diff_coef(double *,const PetscReal *,PetscReal,struct AppCtx*);
 //Calculate the ion fluxes and derivatives
@@ -96,9 +96,12 @@ void grid_wflowm(struct AppCtx *);
 void grid_ionmflux(struct AppCtx* );
 void gatevars_update_grid(struct GateType *,struct SimState *,PetscReal ,struct AppCtx * );
 void excitation_grid(struct AppCtx* ,PetscReal ,PetscInt, PetscInt);
+void grid_diff_coef(PetscReal *,const PetscReal *,PetscReal ,struct AppCtx* );
 
 PetscErrorCode Grid_Residual(Vec ,PetscInt ,PetscInt ,void *);
 PetscErrorCode Grid_Jacobian(Mat ,PetscInt ,PetscInt ,void *);
+PetscErrorCode Grid_Residual_algebraic(Vec ,PetscInt ,PetscInt ,void *);
+PetscErrorCode Grid_Jacobian_algebraic(Mat ,PetscInt ,PetscInt ,void *);
 PetscErrorCode Update_Grid(PetscInt ,PetscInt,PetscReal ,struct AppCtx *);
 PetscErrorCode Update_Solution(Vec,PetscReal t,struct AppCtx *);
 PetscErrorCode Newton_Solve_Grid(PetscInt, PetscInt,struct AppCtx *);

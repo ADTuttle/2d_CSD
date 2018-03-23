@@ -8,9 +8,9 @@
 
 //set global parameters here (constants)
 
-#define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
-#define separate_vol 1 //if true, will solve c,phi separate from alpha.
-#define details 1 //if true, will show how many iterations were necessary for each newton solve, and the residual
+#define use_en_deriv 0 //if true, will use the derivative of the electroneutrality condition for the system of equations
+#define separate_vol 0 //if true, will solve c,phi separate from alpha.
+#define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
 #define mid_points_exct 1
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 #define Profiling_on 0 //Turns timing of functions on/off.
@@ -26,7 +26,7 @@ static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
 //grid parameters
-#define Time 0.1   //total simulated time in seconds
+#define Time 20.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)

@@ -118,12 +118,12 @@ PetscReal inwardrect(PetscReal ci,PetscReal ce,PetscReal phim)
   	PetscReal cKo = .003; //#3 mM is base extracellular potassium concentration
   	return sqrt(ce/cKo)*(1+exp(18.5/42.5))/(1+exp((RTFC*phim-Enernst+18.5)/42.5))*(1+exp((-118.6+EKdef)/44.1))/(1+exp((-118.6+RTFC*phim)/44.1));
 }
-PetscReal cz(const PetscReal *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt comp,struct AppCtx *user)
+PetscReal cz(const PetscReal *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt Nx,PetscInt comp,struct AppCtx *user)
 {
 	//function to compute sum over i of c_i*z_i
 	PetscReal accumulate=0;
 	for(PetscInt ion=0;ion<Ni;ion++) {
-		accumulate += zvals[ion]*cmat[c_index(x,y,comp,ion,user->Nx)];
+		accumulate += zvals[ion]*cmat[c_index(x,y,comp,ion,Nx)];
 	}
 	return accumulate;
 }
@@ -914,6 +914,60 @@ void excitation_grid(struct AppCtx* user,PetscReal t,PetscInt xi,PetscInt yi)
     }
 
 //    printf("Number of excited points: %d\n",num_points);
+}
+void grid_diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct AppCtx* user)
+{
+    //diffusion coefficients at all points, for all ions, in all compartments, in both x and y directions
+    PetscReal tortuosity=1.6;
+    PetscInt Nx = 2*width_size+1;
+    PetscInt Ny = 2*width_size+1;
+    PetscReal alNcL,alNcR,alNcU;
+    for(PetscInt x=0;x<Nx;x++) {
+        for(PetscInt y=0;y<Ny;y++) {
+
+            alNcL=1-alp[al_index(x,y,0,Nx)]-alp[al_index(x,y,1,Nx)]; //Left extracell
+            alNcR = 0;
+            if(x<Nx-1) {
+                alNcR = 1 - alp[al_index(x + 1, y, 0,Nx)] - alp[al_index(x + 1, y, 1,Nx)]; //Right extracell
+            }
+            alNcU = 0;
+            if(y<Ny-1) {
+                alNcU = 1 - alp[al_index(x, y + 1, 0,Nx)] - alp[al_index(x, y + 1, 1,Nx)];
+            }
+            for(PetscInt ion = 0; ion<Ni;ion++) {
+                //diffusion coefficients in x direction
+                if(x==(Nx-1)) {
+                    //Boundary is zero
+                    Dc[c_index(x,y,Nc-1,ion,Nx)*2] = scale*D[ion]*(alNcL)/(tortuosity*tortuosity);
+                }
+                else {
+                    //diffusion coefficients in the extracellular space proportional to volume fraction
+                    Dc[c_index(x,y,Nc-1,ion,Nx)*2] = scale*D[ion]/2*(alNcL+alNcR)/(tortuosity*tortuosity);
+                }
+                //diffusion coefficients in neuronal compartment equal to 0
+                Dc[c_index(x,y,0,ion,Nx)*2] = 0.0 ;
+                //diffusion coefficients in glial compartment proportional to default volume fraction
+                Dc[c_index(x,y,1,ion,Nx)*2] = 0*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
+//                Dc[c_index(x,y,1,ion,Nx)*2] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2); //0.25
+                //diffusion coefficients in y direction
+                if(y==(Ny-1)) {
+                    //Boundary is zero
+                    Dc[c_index(x,y,Nc-1,ion,Nx)*2+1] = scale*D[ion]*(alNcL)/pow(tortuosity,2);
+                }
+                else {
+                    //diffusion coefficients in the extracellular space proportional to volume fraction
+                    Dc[c_index(x,y,Nc-1,ion,Nx)*2+1] = scale*D[ion]/2*(alNcL+alNcU)/pow(tortuosity,2);
+
+                }
+                //diffusion coefficients in neuronal compartment equal to 0
+                Dc[c_index(x,y,0,ion,Nx)*2+1] = 0.0;
+                //diffusion coefficients in glial compartment proportional to default volume fraction
+//			    Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2); //0.25
+                Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.001*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
+
+            }
+        }
+    }
 }
 
 

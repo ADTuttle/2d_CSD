@@ -354,9 +354,9 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
       }
       con_vars->ao[k] = alpha[k]*(con_vars->ao[Nc-1]/alpha[Nc-1]+osmotic);
       //set average valence to ensure electroneutrality
-      con_vars->zo[k] = (-cz(c,z,0,0,k,user)*alpha[k]+cmphi[k])/con_vars->ao[k];
+      con_vars->zo[k] = (-cz(c,z,0,0,Nx,k,user)*alpha[k]+cmphi[k])/con_vars->ao[k];
     }
-    con_vars->zo[Nc-1] = (-cz(c,z,0,0,Nc-1,user)*alpha[Nc-1]-cmphi[Nc-1])/con_vars->ao[Nc-1];
+    con_vars->zo[Nc-1] = (-cz(c,z,0,0,Nx,Nc-1,user)*alpha[Nc-1]-cmphi[Nc-1])/con_vars->ao[Nc-1];
     //Copy the point data to vectors.
     //Only needed for uniform data
     for(PetscInt x=0;x<Nx;x++)
@@ -426,30 +426,29 @@ void initialize_data(Vec current_state,struct AppCtx *user)
 //  	PetscReal dt_temp = 0.1;
     // PetscReal dt_temp = 0.01;
   	
-  	while(rsd>tol && user->dt*k<10)
-  	{
-        extract_subarray(current_state,user->state_vars);
-    	memcpy(cp,user->state_vars->c,sizeof(PetscReal)*Nx*Ny*Ni*Nc);
+  	while(rsd>tol && user->dt*k<10) {
+        extract_subarray(current_state, user->state_vars);
+        memcpy(cp, user->state_vars->c, sizeof(PetscReal) * Nx * Ny * Ni * Nc);
         //Save the "current" aka past state
-        restore_subarray(user->state_vars_past->v,user->state_vars_past);
-        copy_simstate(current_state,user->state_vars_past);
-        if(separate_vol) {
+        restore_subarray(user->state_vars_past->v, user->state_vars_past);
+        copy_simstate(current_state, user->state_vars_past);
+        if (separate_vol) {
             //Update volume
             volume_update(user->state_vars, user->state_vars_past, user);
         }
         //compute diffusion coefficients
-        diff_coef(user->Dcs,user->state_vars->alpha,1,user);
+//        diff_coef(user->Dcs,user->state_vars->alpha,1,user);
         //Bath diffusion
-        diff_coef(user->Dcb,user->state_vars->alpha,Batheps,user);
-        restore_subarray(current_state,user->state_vars);
+//        diff_coef(user->Dcb,user->state_vars->alpha,Batheps,user);
+        restore_subarray(current_state, user->state_vars);
 
 //    	newton_solve(current_state,user);
 //        SNESSolve(user->slvr->snes,NULL,current_state);
-        Update_Solution(current_state,texct+1,user);
+        Update_Solution(current_state, texct + 1, user);
 
         //Update gating variables
-        extract_subarray(current_state,user->state_vars);
-        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
+        extract_subarray(current_state, user->state_vars);
+//        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
 
         //Update Excitation
     	rsd = array_diff_max(user->state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/user->dt;

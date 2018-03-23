@@ -1412,12 +1412,12 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
             for(comp=0;comp<Nc-1;comp++)
             {
 
-                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
                 ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
             }
             //Extracellular term
             comp=Nc-1;
-            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
             ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
 
             //Residual for water flow
@@ -1715,10 +1715,10 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-cm[comp],INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
                 //Extra phi with intra-Volume
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni+1,comp,Nx),-cz(c,z,x,y,Nc-1,user),INSERT_VALUES);CHKERRQ(ierr);
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni+1,comp,Nx),-cz(c,z,x,y,Nx,Nc-1,user),INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
                 //Intra phi with Intra Vol
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni+1,comp,Nx),cz(c,z,x,y,comp,user),INSERT_VALUES);CHKERRQ(ierr);
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni+1,comp,Nx),cz(c,z,x,y,Nx,comp,user),INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
             }
         }
@@ -1889,12 +1889,12 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
             for(comp=0;comp<Nc-1;comp++)
             {
 
-                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
                 ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
             }
             //Extracellular term
             comp=Nc-1;
-            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
             ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
         }
     }
