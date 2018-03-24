@@ -198,6 +198,18 @@ void init_arrays(struct AppCtx*user)
     user->gate_vars->mKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars->hKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars->gKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    //Gating variables
+    user->gate_vars_past->mNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->hNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->gNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->mNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->hNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->gNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->mKDR = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->gKDR = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->mKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->hKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->gKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
 
 
     //Excitation
@@ -420,6 +432,7 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     //Compute Gating variables
     //compute gating variables
     gatevars_update(user->gate_vars,user->state_vars,0,user,1);
+    gatevars_update(user->gate_vars_past,user->state_vars,0,user,1);
     restore_subarray(current_state,user->state_vars);
 
   	//Initialize and compute the excitation (it's zeros here)

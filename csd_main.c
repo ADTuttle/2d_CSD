@@ -61,6 +61,7 @@ int main(int argc, char **argv)
 
     //Create the gating variables
     struct GateType *gate_vars = (struct GateType*) malloc(sizeof(struct GateType));
+    struct GateType *gate_vars_past = (struct GateType*) malloc(sizeof(struct GateType));
     //Create the flux structure
     struct FluxData *flux = (struct FluxData*) malloc(sizeof(struct FluxData));
     //Create Excitation
@@ -76,6 +77,7 @@ int main(int argc, char **argv)
     user->slvr = slvr;
     user->con_vars = con_vars;
     user->gate_vars=gate_vars;
+    user->gate_vars_past=gate_vars_past;
     user->flux=flux;
     user->gexct=gexct;
     user->state_vars_past=state_vars_past;
@@ -141,10 +143,10 @@ int main(int argc, char **argv)
             volume_update(user->state_vars, user->state_vars_past, user);
         }
         //Update diffusion with past
-        //compute diffusion coefficients
-//        diff_coef(user->Dcs,state_vars_past->alpha,1,user);
-        //Bath diffusion
-//        diff_coef(user->Dcb,state_vars_past->alpha,Batheps,user);
+//        compute diffusion coefficients
+        diff_coef(user->Dcs,state_vars_past->alpha,1,user);
+//        Bath diffusion
+        diff_coef(user->Dcb,state_vars_past->alpha,Batheps,user);
         restore_subarray(current_state,state_vars);
         //Newton update
         PetscTime(&tic);
@@ -172,6 +174,20 @@ int main(int argc, char **argv)
         //Update Excitation
 //        excitation(user,t);
         count++;
+        //Copy old gating variables
+        //Save the gating variables
+        memcpy(user->gate_vars_past->mNaT,user->gate_vars->mNaT,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->hNaT,user->gate_vars->hNaT,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->gNaT,user->gate_vars->gNaT,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->mNaP,user->gate_vars->mNaP,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->hNaP,user->gate_vars->hNaP,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->gNaP,user->gate_vars->gNaP,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->gKA,user->gate_vars->gKA,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->hKA,user->gate_vars->hKA,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->mKA,user->gate_vars->mKA,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->mKDR,user->gate_vars->mKDR,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->gKDR,user->gate_vars->gKDR,sizeof(PetscReal)*user->Nx*user->Ny);
+
         if(count%krecordfreq==0) {
             printf("Time: %f,Newton time: %f,iters:%d, Reason: %d,KSPIters: %d\n",t, toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
 //            write_point(fp, user,numrecords, 0);
