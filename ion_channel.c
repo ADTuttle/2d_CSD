@@ -414,7 +414,7 @@ void ionmflux(struct AppCtx* user)
     struct FluxData *flux = user->flux;
     struct SimState *state_vars=user->state_vars;
     struct SimState *state_vars_past = user->state_vars_past;
-    struct GateType *gvars = user->gate_vars;
+    struct GateType *gvars = user->gate_vars_past;
     struct ExctType *gexct = user->gexct;
     struct ConstVars *con_vars = user->con_vars;
     //Variables to save to for ease of notation

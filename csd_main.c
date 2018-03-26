@@ -142,12 +142,14 @@ int main(int argc, char **argv)
         //Save the "current" aka past state
         ierr = restore_subarray(user->state_vars_past->v,user->state_vars_past); CHKERRQ(ierr);
         ierr = copy_simstate(current_state,user->state_vars_past); CHKERRQ(ierr);
+        if(separate_vol){
+            memcpy(user->state_vars_past->alpha, user->state_vars->alpha, sizeof(PetscReal) * user->Nx * user->Ny * (Nc - 1));
+        }
 //        restore_subarray(current_state,state_vars);
-
 
         //Newton update
         PetscTime(&grid_tic);
-//        Update_Solution(current_state,t,user);
+        Update_Solution(current_state,t,user);
         PetscTime(&grid_toc);
 
 //        extract_subarray(current_state,state_vars);

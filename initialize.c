@@ -449,6 +449,8 @@ void initialize_data(Vec current_state,struct AppCtx *user)
         restore_subarray(user->state_vars_past->v, user->state_vars_past);
         copy_simstate(current_state, user->state_vars_past);
         if (separate_vol) {
+            memcpy(user->state_vars_past->alpha, user->state_vars->alpha, sizeof(PetscReal) * user->Nx * user->Ny * (Nc - 1));
+
             //Update volume
             volume_update(user->state_vars, user->state_vars_past, user);
         }
@@ -602,25 +604,25 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
 //    ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
 //    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
-//     ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
+     ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
 
     //Gmres type methods
 //     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
 //    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
-//    /*
+    /*
     ierr = KSPSetType(slvr->ksp,KSPDGMRES); CHKERRQ(ierr);
 
     ierr = KSPGMRESSetRestart(slvr->ksp,40); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_eigen","10"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_max_eigen","100"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_force",""); CHKERRQ(ierr);
-//*/
+*/
 
 
 
     ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
     //Multigrid precond
-    ierr = Initialize_PCMG(slvr->pc,slvr->A,user); CHKERRQ(ierr);
+//    ierr = Initialize_PCMG(slvr->pc,slvr->A,user); CHKERRQ(ierr);
 
     //LU Direct solve
     /*

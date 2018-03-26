@@ -692,7 +692,8 @@ void volume_update(struct SimState *state_vars,struct SimState *state_vars_past,
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
     for(int n=0;n<1;n++) {
-        memcpy(state_vars_past->alpha, state_vars->alpha, sizeof(PetscReal) * Nx * Ny * (Nc - 1));
+
+//        memcpy(state_vars_past->alpha, state_vars->alpha, sizeof(PetscReal) * Nx * Ny * (Nc - 1));
         //Forward Euler update
 /*
     wflowm(user->flux,user->state_vars_past,user->con_vars);

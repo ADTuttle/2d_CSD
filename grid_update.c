@@ -1614,9 +1614,6 @@ PetscErrorCode Update_Solution(Vec current_state,PetscReal t,struct AppCtx *user
         for(y=0;y<Ny;y++){
 
 //            printf("Updating: (%d,%d)\n",x,y);
-//            if(x==11&&y==13){
-//                printf("here\n");
-//            }
             //Load new gridpoint
             Load_Grid(user,x,y);
             //Update new grid
