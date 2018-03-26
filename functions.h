@@ -57,8 +57,9 @@ PetscInt Ind_nx(PetscInt,PetscInt ,PetscInt ,PetscInt , PetscInt );
 //Create Petsc Structures
 
 PetscErrorCode initialize_petsc(struct Solver *,int, char **,struct AppCtx*);
-void Get_Nonzero_in_Rows(int *,struct AppCtx*);
-PetscErrorCode initialize_jacobian(Mat,struct AppCtx*);
+PetscErrorCode initialize_grid_slvr(struct Solver *,int, char **,struct AppCtx*);
+void Get_Nonzero_in_Rows(int *,struct AppCtx*,int);
+PetscErrorCode initialize_jacobian(Mat,struct AppCtx*,int);
 
 //Multigrid functions
 PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny);

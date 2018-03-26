@@ -10,8 +10,13 @@ int main(int argc, char **argv)
     PetscErrorCode ierr;
     //Petsc Initialize
     struct Solver *slvr = (struct Solver*)malloc(sizeof(struct Solver));
+    struct Solver *grid_slvr = (struct Solver*)malloc(sizeof(struct Solver));
     struct AppCtx *user = (struct AppCtx*)malloc(sizeof(struct AppCtx));
+    user->slvr = slvr;
+    user->grid_slvr = grid_slvr;
     ierr = initialize_petsc(slvr,argc,argv,user);CHKERRQ(ierr);
+    ierr = initialize_grid_slvr(grid_slvr,argc,argv,user);CHKERRQ(ierr);
+
     PetscReal dt = user->dt;
     PetscInt Nt = (PetscInt) floor(Time/dt);
     PetscInt numrecords = (PetscInt)floor(Time/trecordstep);
@@ -26,7 +31,7 @@ int main(int argc, char **argv)
     }
 
     printf("\n\n\nGrid size: %dx%d, with %d ions, and %d compartments. For %f sec at step %f\n",user->Nx,user->Ny,Ni,Nc,Time,dt);
-    PetscLogDouble tic,toc,full_tic,full_toc;
+    PetscLogDouble tic,toc,full_tic,full_toc,grid_tic,grid_toc;
     //Create state_variables struct
     struct SimState *state_vars = (struct SimState*)malloc(sizeof(struct SimState));
     Vec current_state;
@@ -73,8 +78,6 @@ int main(int argc, char **argv)
     struct GateType *grid_gate_vars = (struct GateType*) malloc(sizeof(struct GateType));
 
     //Pass data structs over to AppCtx
-
-    user->slvr = slvr;
     user->con_vars = con_vars;
     user->gate_vars=gate_vars;
     user->gate_vars_past=gate_vars_past;
@@ -131,6 +134,7 @@ int main(int argc, char **argv)
     excitation(user,0);
     int count = 0;
     PetscInt num_iters,ksp_iters_old,ksp_iters_new;
+    PetscInt total_newton = 0;
     SNESConvergedReason reason;
     PetscTime(&full_tic);
     for(PetscReal t=dt;t<=Time;t+=dt)
@@ -138,6 +142,16 @@ int main(int argc, char **argv)
         //Save the "current" aka past state
         ierr = restore_subarray(user->state_vars_past->v,user->state_vars_past); CHKERRQ(ierr);
         ierr = copy_simstate(current_state,user->state_vars_past); CHKERRQ(ierr);
+//        restore_subarray(current_state,state_vars);
+
+
+        //Newton update
+        PetscTime(&grid_tic);
+//        Update_Solution(current_state,t,user);
+        PetscTime(&grid_toc);
+
+//        extract_subarray(current_state,state_vars);
+
         if(separate_vol) {
             //Update volume(uses past c values for wflow)
             volume_update(user->state_vars, user->state_vars_past, user);
@@ -148,15 +162,18 @@ int main(int argc, char **argv)
 //        Bath diffusion
         diff_coef(user->Dcb,state_vars_past->alpha,Batheps,user);
         restore_subarray(current_state,state_vars);
-        //Newton update
+
+        //Update Excitation
+        excitation(user,t-dt);
         PetscTime(&tic);
-        Update_Solution(current_state,t,user);
+        SNESSolve(user->slvr->snes,NULL,current_state);
         PetscTime(&toc);
 
 
         SNESGetIterationNumber(user->slvr->snes,&num_iters);
         SNESGetConvergedReason(user->slvr->snes,&reason);
         KSPGetTotalIterations(user->slvr->ksp,&ksp_iters_new);
+        total_newton+=num_iters;
         if(details) {
             printf("Newton time: %f,SNesiters:%d, Reason: %d, KSPIters: %d\n", toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
 
@@ -166,13 +183,11 @@ int main(int argc, char **argv)
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
 
-//        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
+        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
         if(separate_vol) {
             //Update volume (this uses new c values for wflow)
 //            volume_update(user->state_vars, user->state_vars_past, user);
         }
-        //Update Excitation
-//        excitation(user,t);
         count++;
         //Copy old gating variables
         //Save the gating variables
@@ -188,8 +203,9 @@ int main(int argc, char **argv)
         memcpy(user->gate_vars_past->mKDR,user->gate_vars->mKDR,sizeof(PetscReal)*user->Nx*user->Ny);
         memcpy(user->gate_vars_past->gKDR,user->gate_vars->gKDR,sizeof(PetscReal)*user->Nx*user->Ny);
 
+
         if(count%krecordfreq==0) {
-            printf("Time: %f,Newton time: %f,iters:%d, Reason: %d,KSPIters: %d\n",t, toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
+            printf("Time: %f,Grid Time: %f,Newton time: %f,iters:%d, Reason: %d,KSPIters: %d\n",t, grid_toc-grid_tic,toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
 //            write_point(fp, user,numrecords, 0);
             write_data(fp, user,numrecords, 0);
             measure_flux(fpflux,user,numrecords,0);
@@ -213,6 +229,7 @@ int main(int argc, char **argv)
     fclose(fptime);
     fclose(fpflux);
     printf("Finished Running. Full solve time: %.10e\n",full_toc-full_tic);
+    printf("Total newton iterations:%d\n",total_newton);
 
     if(Profiling_on) {
         PetscLogStagePop();

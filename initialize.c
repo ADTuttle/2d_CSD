@@ -459,8 +459,8 @@ void initialize_data(Vec current_state,struct AppCtx *user)
         restore_subarray(current_state, user->state_vars);
 
 //    	newton_solve(current_state,user);
-//        SNESSolve(user->slvr->snes,NULL,current_state);
-        Update_Solution(current_state, texct + 1, user);
+        SNESSolve(user->slvr->snes,NULL,current_state);
+//        Update_Solution(current_state, texct + 1, user);
 
         //Update gating variables
         extract_subarray(current_state, user->state_vars);
@@ -508,10 +508,10 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
     user->dx = Lx/Nx;
     user->dy = Ly/Ny;
-    user->NA = Nv*(2*width_size+1)*(2*width_size+1);//total number of unknowns
+    slvr->NA = Nv*Nx*Ny;//total number of unknowns
     user->Nz = (Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny)); //number of nonzeros in Jacobian
 
-    PetscInt NA = user->NA;
+    PetscInt NA = slvr->NA;
     PetscInt Nz = user->Nz;
 
 
@@ -524,7 +524,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
   	//Create Matrix
     //Get number of nonzeros in each row
     int *nnz = (int*) malloc(sizeof(int)*NA);
-    Get_Nonzero_in_Rows(nnz,user);
+    Get_Nonzero_in_Rows(nnz,user,0);
     //Construct matrix using that
   	// ierr = MatCreateSeqAIJ(PETSC_COMM_WORLD,NA,NA,5*Nv,nnz,&slvr->A);CHKERRQ(ierr);
     ierr = MatCreate(PETSC_COMM_WORLD,&slvr->A);CHKERRQ(ierr);
@@ -538,7 +538,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     //Initialize Space
 
 
-    ierr = initialize_jacobian(slvr->A,user); CHKERRQ(ierr);
+    ierr = initialize_jacobian(slvr->A,user,0); CHKERRQ(ierr);
     ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
 
   	//Create Solver Contexts
@@ -601,20 +601,20 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
 
 //    ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
-    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
+//    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
 //     ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
 
     //Gmres type methods
 //     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
 //    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
-    /*
+//    /*
     ierr = KSPSetType(slvr->ksp,KSPDGMRES); CHKERRQ(ierr);
 
     ierr = KSPGMRESSetRestart(slvr->ksp,40); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_eigen","10"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_max_eigen","100"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_force",""); CHKERRQ(ierr);
-*/
+//*/
 
 
 
@@ -623,19 +623,19 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = Initialize_PCMG(slvr->pc,slvr->A,user); CHKERRQ(ierr);
 
     //LU Direct solve
-//    /*
+    /*
     ierr = PCSetType(slvr->pc,PCLU);CHKERRQ(ierr);
     ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
      ierr = PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
-//    */
+    */
     // ILU Precond
-    /*
+//    /*
     ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
     ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
     ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
     ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     ierr = PCFactorSetMatOrderingType(slvr->pc,MATORDERINGNATURAL); CHKERRQ(ierr);
-    */
+//    */
 //     ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     /*
     PetscReal div_tol = 1e12;
@@ -662,11 +662,105 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     return ierr;
 }
 
-void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user)
+PetscErrorCode initialize_grid_slvr(struct Solver *slvr,int argc, char **argv,struct AppCtx *user)
 {
-    PetscInt Nx = 2*width_size+1;
-    PetscInt Ny = 2*width_size+1;
-    PetscInt NA = user->NA;
+    PetscErrorCode ierr;
+    //    Get Nx, Ny, and dt from options if possible
+
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+
+    user->dx = Lx/Nx;
+    user->dy = Ly/Ny;
+    slvr->NA = ((Ni+2)*Nc-1)*(2*width_size+1)*(2*width_size+1);//total number of unknowns
+
+    PetscInt NA = slvr->NA;
+
+
+    //Create Vectors
+    ierr = VecCreate(PETSC_COMM_WORLD,&slvr->Q);CHKERRQ(ierr);
+    ierr = VecSetType(slvr->Q,VECSEQ);CHKERRQ(ierr);
+    ierr = VecSetSizes(slvr->Q,PETSC_DECIDE,NA);CHKERRQ(ierr);
+    ierr = VecDuplicate(slvr->Q,&slvr->Res);CHKERRQ(ierr);
+
+    //Create Matrix
+    //Get number of nonzeros in each row
+    int *nnz = (int*) malloc(sizeof(int)*NA);
+    Get_Nonzero_in_Rows(nnz,user,1);
+    //Construct matrix using that
+    // ierr = MatCreateSeqAIJ(PETSC_COMM_WORLD,NA,NA,5*Nv,nnz,&slvr->A);CHKERRQ(ierr);
+    ierr = MatCreate(PETSC_COMM_WORLD,&slvr->A);CHKERRQ(ierr);
+    ierr = MatSetType(slvr->A,MATSEQAIJ);CHKERRQ(ierr);
+    ierr = MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,NA,NA);CHKERRQ(ierr);
+    ierr = MatSeqAIJSetPreallocation(slvr->A,5*((Ni+2)*Nc-1),nnz);CHKERRQ(ierr);
+    // ierr = MatSetFromOptions(slvr->A);CHKERRQ(ierr);
+    ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
+
+
+    //Initialize Space
+
+
+    ierr = initialize_jacobian(slvr->A,user,1); CHKERRQ(ierr);
+    ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
+
+    //Create Solver Contexts
+
+    ierr = KSPCreate(PETSC_COMM_WORLD,&slvr->ksp);CHKERRQ(ierr);
+
+
+//    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
+//    ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
+    //Gmres type methods
+//     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
+//    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
+    //    /*
+    ierr = KSPSetType(slvr->ksp,KSPDGMRES); CHKERRQ(ierr);
+
+    ierr = KSPGMRESSetRestart(slvr->ksp,40); CHKERRQ(ierr);
+    ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_eigen","10"); CHKERRQ(ierr);
+    ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_max_eigen","100"); CHKERRQ(ierr);
+    ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_force",""); CHKERRQ(ierr);
+//*/
+
+
+
+    ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
+
+    //LU Direct solve
+    /*
+    ierr = PCSetType(slvr->pc,PCLU);CHKERRQ(ierr);
+    ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
+    ierr = PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
+    */
+
+
+    // ILU Precond
+//    /*
+    ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
+    ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
+    ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
+    ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
+    ierr = PCFactorSetMatOrderingType(slvr->pc,MATORDERINGNATURAL); CHKERRQ(ierr);
+//    */
+
+
+    return ierr;
+}
+
+void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
+{
+    PetscInt Nx;
+    PetscInt Ny;
+    PetscInt NA;
+    if(grid) {
+        Nx = 2 * width_size + 1;
+        Ny = 2 * width_size + 1;
+        NA = user->grid_slvr->NA;
+    }else{
+        Nx = user->Nx;
+        Ny = user->Ny;
+        NA = user->slvr->NA;
+    }
     //Make sure nnz is initialized to zero
     for(int i=0;i<NA;i++)
     {
@@ -742,7 +836,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user)
                     // C Intra with Phi Extra
                     nnz[Ind_1(x,y,ion,comp,Nx)]++;//Ind_1(x,y,Ni,Nc-1,Nx)
                     ind++;
-                    if(!separate_vol) {
+                    if(!separate_vol||grid) {
                         //Volume terms
                         //C extra with intra alpha
                         nnz[Ind_1(x, y, ion, Nc - 1,Nx)]++;//Ind_1(x,y,Ni+1,comp,Nx)
@@ -900,7 +994,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user)
             ind++;
         }
     }
-    if(!separate_vol) {
+    if(!separate_vol||grid) {
         //water flow
         for (x = 0; x < Nx; x++) {
             for (y = 0; y < Ny; y++) {
@@ -935,11 +1029,18 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user)
 }
 
 
-PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
+PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
     printf("Initializing Jacobian Memory\n");
     PetscErrorCode ierr;
-    PetscInt Nx = 2*width_size+1;
-    PetscInt Ny = 2*width_size+1;
+    PetscInt Nx;
+    PetscInt Ny;
+    if(grid) {
+         Nx = 2 * width_size + 1;
+         Ny = 2 * width_size + 1;
+    }else{
+        Nx = user->Nx;
+        Ny = user->Ny;
+    }
     PetscInt ind = 0;
     PetscInt x,y,ion,comp;
 
@@ -958,7 +1059,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
                         //Right c with left phi (-Fph0x)
                         ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
-                        if (use_en_deriv) {
+                        if (use_en_deriv&&!grid) {
                             //Right phi with left c in voltage eqn
                             ierr = MatSetValue(Jac,Ind_1(x+1,y,Ni,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                             ind++;
@@ -974,7 +1075,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
                         //Left c with right phi (-Fph1x)
                         ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
-                        if (use_en_deriv) {
+                        if (use_en_deriv&&!grid) {
                             //Left phi with right c in voltage eqn
                             ierr = MatSetValue(Jac, Ind_1(x - 1, y, Ni, comp,Nx), Ind_1(x, y, ion, comp,Nx), 0,
                                                INSERT_VALUES);
@@ -990,7 +1091,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
                         //Upper c with lower phi (-Fph0y)
                         ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
-                        if (use_en_deriv) {
+                        if (use_en_deriv&&!grid) {
                             //Upper phi with lower c in voltage eqn
                             ierr = MatSetValue(Jac, Ind_1(x, y + 1, Ni, comp,Nx), Ind_1(x, y, ion, comp,Nx), 0,
                                                INSERT_VALUES);
@@ -1006,7 +1107,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
                         //Lower c with Upper phi (-Fph1y)
                         ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
-                        if (use_en_deriv) {
+                        if (use_en_deriv&&!grid) {
                             //Lower phi with upper c in voltage eqn
                             ierr = MatSetValue(Jac, Ind_1(x, y - 1, Ni, comp,Nx), Ind_1(x, y, ion, comp,Nx), 0,
                                                INSERT_VALUES);
@@ -1028,7 +1129,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
                     // C Intra with Phi Extra
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp,Nx),Ind_1(x,y,Ni,Nc-1,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
-                    if(!separate_vol) {
+                    if(!separate_vol||grid) {
                         //Volume terms
                         //C extra with intra alpha
                         ierr = MatSetValue(Jac, Ind_1(x, y, ion, Nc - 1,Nx), Ind_1(x, y, Ni + 1, comp,Nx), 0, INSERT_VALUES);
@@ -1046,7 +1147,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
                     // c with phi
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
-                    if (use_en_deriv) {
+                    if (use_en_deriv&&!grid) {
                         //Intra-Phi with c (voltage eqn)
                         ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp,Nx), Ind_1(x, y, ion, comp,Nx), 0, INSERT_VALUES);
                         CHKERRQ(ierr);
@@ -1074,7 +1175,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
                     //Right c with left phi (-Fph0x)
                     ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
-                    if (use_en_deriv) {
+                    if (use_en_deriv&&!grid) {
                         // left Phi with right c (voltage eqn)
                         ierr = MatSetValue(Jac, Ind_1(x + 1, y, Ni, comp,Nx), Ind_1(x, y, ion, comp,Nx), 0, INSERT_VALUES);
                         CHKERRQ(ierr);
@@ -1089,7 +1190,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
                     //Left c with right phi (-Fph1x)
                     ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
-                    if (use_en_deriv) {
+                    if (use_en_deriv&&!grid) {
                         // left Phi with right c (voltage eqn)
                         ierr = MatSetValue(Jac, Ind_1(x - 1, y, Ni, comp,Nx), Ind_1(x, y, ion, comp,Nx), 0, INSERT_VALUES);
                         CHKERRQ(ierr);
@@ -1104,7 +1205,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
                     //Upper c with lower phi (-Fph0y)
                     ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
-                    if (use_en_deriv) {
+                    if (use_en_deriv&&!grid) {
                         // Upper Phi with lower c (voltage eqn)
                         ierr = MatSetValue(Jac, Ind_1(x, y + 1, Ni, comp,Nx), Ind_1(x, y, ion, comp,Nx), 0, INSERT_VALUES);
                         CHKERRQ(ierr);
@@ -1119,7 +1220,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
                     //Lower c with Upper phi (-Fph1y)
                     ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
-                    if (use_en_deriv) {
+                    if (use_en_deriv&&!grid) {
                         // Lower Phi with upper c (voltage eqn)
                         ierr = MatSetValue(Jac, Ind_1(x, y - 1, Ni, comp,Nx), Ind_1(x, y, ion, comp,Nx), 0, INSERT_VALUES);
                         CHKERRQ(ierr);
@@ -1133,14 +1234,14 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
                 // c with phi
                 ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1,Nx),Ind_1(x,y,Ni,Nc-1,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
-                if (use_en_deriv) {
+                if (use_en_deriv&&!grid) {
                     //phi with c (voltage eqn)
                     ierr = MatSetValue(Jac, Ind_1(x, y, Ni, Nc - 1,Nx), Ind_1(x, y, ion, Nc - 1,Nx), 0, INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
             }
-            if (use_en_deriv) {
+            if (use_en_deriv&&!grid) {
                 //Derivative of charge-capacitance
                 for (comp = 0; comp < Nc - 1; comp++) {
                     if (x < Nx - 1) {
@@ -1217,7 +1318,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
 
         }
     }
-    if(!use_en_deriv) {
+    if(!use_en_deriv||grid) {
         //Electroneutrality charge-capcitance condition
         for (x = 0; x < Nx; x++) {
             for (y = 0; y < Ny; y++) {
@@ -1255,7 +1356,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
                     ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp,Nx), Ind_1(x, y, Ni, comp,Nx), 0, INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
-                    if(!separate_vol) {
+                    if(!separate_vol||grid) {
                         //Extra phi with intra-Volume
                         ierr = MatSetValue(Jac, Ind_1(x, y, Ni, Nc - 1,Nx), Ind_1(x, y, Ni + 1, comp,Nx), 0,
                                            INSERT_VALUES);
@@ -1271,7 +1372,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user) {
             }
         }
     }
-    if(!separate_vol) {
+    if(!separate_vol||grid) {
         //water flow
         for (x = 0; x < Nx; x++) {
             for (y = 0; y < Ny; y++) {

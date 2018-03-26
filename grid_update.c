@@ -1423,9 +1423,9 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
 
     for (PetscInt iter = 0; iter < itermax; iter++) {
 
-        ierr = Grid_Residual_algebraic(user->slvr->Res, xi, yi, user);CHKERRQ(ierr);
+        ierr = Grid_Residual_algebraic(user->grid_slvr->Res, xi, yi, user);CHKERRQ(ierr);
 
-        ierr = VecNorm(user->slvr->Res, NORM_MAX, &rsd);CHKERRQ(ierr);
+        ierr = VecNorm(user->grid_slvr->Res, NORM_MAX, &rsd);CHKERRQ(ierr);
 //        if(xi==16&&yi==16) {
 //            printf("Iteration: %d, Residual: %.10e\n", iter, rsd);
 //        }
@@ -1435,16 +1435,16 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
             }
             return iter;
         }
-        ierr = Grid_Jacobian_algebraic(user->slvr->A, xi, yi, user);CHKERRQ(ierr);
+        ierr = Grid_Jacobian_algebraic(user->grid_slvr->A, xi, yi, user);CHKERRQ(ierr);
 
         //Set the new operator
-        ierr = KSPSetOperators(user->slvr->ksp, user->slvr->A, user->slvr->A);CHKERRQ(ierr);
+        ierr = KSPSetOperators(user->grid_slvr->ksp, user->grid_slvr->A, user->grid_slvr->A);CHKERRQ(ierr);
 
         //Solve
-        ierr = KSPSolve(user->slvr->ksp, user->slvr->Res, user->slvr->Q);CHKERRQ(ierr);
+        ierr = KSPSolve(user->grid_slvr->ksp, user->grid_slvr->Res, user->grid_slvr->Q);CHKERRQ(ierr);
 
-        ierr = KSPGetIterationNumber(user->slvr->ksp, &num_iter);CHKERRQ(ierr);
-        ierr = KSPGetResidualNorm(user->slvr->ksp, &rnorm);CHKERRQ(ierr);
+        ierr = KSPGetIterationNumber(user->grid_slvr->ksp, &num_iter);CHKERRQ(ierr);
+        ierr = KSPGetResidualNorm(user->grid_slvr->ksp, &rnorm);CHKERRQ(ierr);
 
         // printf("KSP Solve time: %f, iter num:%d, norm: %.10e\n",toc-tic,num_iter,rnorm);
 //        ierr = KSPView(slvr->ksp,PETSC_VIEWER_STDOUT_SELF);CHKERRQ(ierr);
@@ -1455,7 +1455,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
         }
 
 //        PetscTime(&tic);
-        ierr = VecGetArray(user->slvr->Q, &temp);
+        ierr = VecGetArray(user->grid_slvr->Q, &temp);
         for (x = 0; x < Nx; x++) {
             for (y = 0; y < Ny; y++) {
                 for (comp = 0; comp < Nc; comp++) {
@@ -1469,7 +1469,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
                 }
             }
         }
-        ierr = VecRestoreArray(user->slvr->Q, &temp);CHKERRQ(ierr);
+        ierr = VecRestoreArray(user->grid_slvr->Q, &temp);CHKERRQ(ierr);
 
 
         if (details) {
@@ -1520,100 +1520,77 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
     //Bath diffusion
     grid_diff_coef(user->Dcb, user->grid_vars_past->alpha, Batheps, user);
 
+    PetscInt steps = 0;
+    PetscInt NSteps = 1;
+    PetscInt Max_step = 256;
+    PetscInt accepted_step = 0;
 
-    /*
-    //Update Excitation
-    excitation_grid(user, t - user->dt, xi, yi);
+    while(steps<NSteps) {
 
-    if(xi==16&&yi==16){
-        printf("Before solve: %f\n",user->grid_vars->phi[phi_index(1,1,0,Nx)]*RTFC);
-    }
+        //Perform Newton Solve
+        iter = Newton_Solve_Grid(xi, yi, user);
 
-    iter = Newton_Solve_Grid(xi, yi, user);
+        //Check if we accept the step
+        if (iter < 3 || accepted_step || NSteps >= Max_step) {
+            steps++;
 
-    if(xi==16&&yi==16){
-        printf("After solve: %f\n",user->grid_vars->phi[phi_index(1,1,0,Nx)]*RTFC);
-    }
+            //Update Gating variable
+            gatevars_update_grid(user->grid_gate_vars, user->grid_vars, user->dt * 1e3, user);
 
-    //Update Gating variable
-    gatevars_update_grid(user->grid_gate_vars, user->grid_vars, user->dt * 1e3, user);
+            //Update Excitation
+            excitation_grid(user, t - user->dt*steps, xi, yi);
 
-     */
-
-
-//        /*
-        PetscInt steps = 0;
-        PetscInt NSteps = 1;
-        PetscInt Max_step = 256;
-        PetscInt accepted_step = 0;
-
-        while(steps<NSteps) {
-
-            //Perform Newton Solve
-            iter = Newton_Solve_Grid(xi, yi, user);
-
-            //Check if we accept the step
-            if (iter < 3 || accepted_step || NSteps >= Max_step) {
-                steps++;
-
-                //Update Gating variable
-                gatevars_update_grid(user->grid_gate_vars, user->grid_vars, user->dt * 1e3, user);
-
-                //Update Excitation
-                excitation_grid(user, t - user->dt*steps, xi, yi);
-
-                accepted_step = 1;
+            accepted_step = 1;
 
 
-                //Load current variable into past variable
-                for (x = 0; x < Nx; x++) {
-                    for (y = 0; y < Ny; y++) {
-                        for (comp = 0; comp < Nc; comp++) {
-                            for (ion = 0; ion < Ni; ion++) {
-                                user->grid_vars_past->c[c_index(x, y, comp, ion, Nx)] = user->grid_vars->c[c_index(x, y, comp,ion, Nx)];
-                            }
-                            user->grid_vars_past->phi[phi_index(x, y, comp, Nx)] = user->grid_vars->phi[phi_index(x, y, comp, Nx)];
+            //Load current variable into past variable
+            for (x = 0; x < Nx; x++) {
+                for (y = 0; y < Ny; y++) {
+                    for (comp = 0; comp < Nc; comp++) {
+                        for (ion = 0; ion < Ni; ion++) {
+                            user->grid_vars_past->c[c_index(x, y, comp, ion, Nx)] = user->grid_vars->c[c_index(x, y, comp,ion, Nx)];
                         }
-                        for (comp = 0; comp < Nc - 1; comp++) {
-                            user->grid_vars_past->alpha[al_index(x, y, comp, Nx)] = user->grid_vars->alpha[al_index(x, y, comp, Nx)];
-                        }
+                        user->grid_vars_past->phi[phi_index(x, y, comp, Nx)] = user->grid_vars->phi[phi_index(x, y, comp, Nx)];
+                    }
+                    for (comp = 0; comp < Nc - 1; comp++) {
+                        user->grid_vars_past->alpha[al_index(x, y, comp, Nx)] = user->grid_vars->alpha[al_index(x, y, comp, Nx)];
                     }
                 }
-                //Calculate diffusion
-                //compute diffusion coefficients
-                grid_diff_coef(user->Dcs, user->grid_vars_past->alpha, 1, user);
-                //Bath diffusion
-                grid_diff_coef(user->Dcb, user->grid_vars_past->alpha, Batheps, user);
+            }
+            //Calculate diffusion
+            //compute diffusion coefficients
+            grid_diff_coef(user->Dcs, user->grid_vars_past->alpha, 1, user);
+            //Bath diffusion
+            grid_diff_coef(user->Dcb, user->grid_vars_past->alpha, Batheps, user);
 
-            } else {
+        } else {
 
-                //If we aren't below cutoff. Half the time step.
-                user->dt = user->dt / 2;
-                NSteps = 2 * NSteps;
-                printf("Reducing step at (%d,%d) to %d\n",xi,yi,NSteps);
-                //Reset current vars
-                //Load current variable into past variable
-                for (x = 0; x < Nx; x++) {
-                    for (y = 0; y < Ny; y++) {
-                        for (comp = 0; comp < Nc; comp++) {
-                            for (ion = 0; ion < Ni; ion++) {
-                                user->grid_vars->c[c_index(x, y, comp, ion, Nx)] = user->grid_vars_past->c[c_index(x, y, comp, ion, Nx)];
-                            }
-                            user->grid_vars->phi[phi_index(x, y, comp, Nx)] = user->grid_vars_past->phi[phi_index(x, y, comp, Nx)];
+            //If we aren't below cutoff. Half the time step.
+            user->dt = user->dt / 2;
+            NSteps = 2 * NSteps;
+//            printf("Reducing step at (%d,%d) to %d\n",xi,yi,NSteps);
+            //Reset current vars
+            //Load current variable into past variable
+            for (x = 0; x < Nx; x++) {
+                for (y = 0; y < Ny; y++) {
+                    for (comp = 0; comp < Nc; comp++) {
+                        for (ion = 0; ion < Ni; ion++) {
+                            user->grid_vars->c[c_index(x, y, comp, ion, Nx)] = user->grid_vars_past->c[c_index(x, y, comp, ion, Nx)];
                         }
-                        for (comp = 0; comp < Nc - 1; comp++) {
-                            user->grid_vars->alpha[al_index(x, y, comp, Nx)] = user->grid_vars_past->alpha[al_index(x, y, comp, Nx)];
-                        }
+                        user->grid_vars->phi[phi_index(x, y, comp, Nx)] = user->grid_vars_past->phi[phi_index(x, y, comp, Nx)];
+                    }
+                    for (comp = 0; comp < Nc - 1; comp++) {
+                        user->grid_vars->alpha[al_index(x, y, comp, Nx)] = user->grid_vars_past->alpha[al_index(x, y, comp, Nx)];
                     }
                 }
             }
         }
+    }
 
 
-        user->dt_space[xy_index(xi,yi,user->Nx)] = user->dt;
+    user->dt_space[xy_index(xi,yi,user->Nx)] = user->dt;
 
-        user->dt = dt;
-//    */
+    user->dt = dt;
     return ierr;
 
 }
@@ -1628,7 +1605,7 @@ PetscErrorCode Update_Solution(Vec current_state,PetscReal t,struct AppCtx *user
     PetscInt nx = 2*width_size+1;
     PetscInt ny = 2*width_size+1;
 
-    extract_subarray(current_state,user->state_vars);
+//    extract_subarray(current_state,user->state_vars);
 //    extract_subarray(user->state_vars_past->v,user->state_vars_past);
 
 
@@ -1637,6 +1614,9 @@ PetscErrorCode Update_Solution(Vec current_state,PetscReal t,struct AppCtx *user
         for(y=0;y<Ny;y++){
 
 //            printf("Updating: (%d,%d)\n",x,y);
+//            if(x==11&&y==13){
+//                printf("here\n");
+//            }
             //Load new gridpoint
             Load_Grid(user,x,y);
             //Update new grid
@@ -1651,7 +1631,7 @@ PetscErrorCode Update_Solution(Vec current_state,PetscReal t,struct AppCtx *user
 
 
 
-    restore_subarray(current_state,user->state_vars);
+//    restore_subarray(current_state,user->state_vars);
 //    restore_subarray(user->state_vars_past->v,user->state_vars_past);
 
     return ierr;
