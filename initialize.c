@@ -39,8 +39,8 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx
     PetscInt Ny = user->Ny;
     //Setup indices
     int x,y,comp,ion;
-    PetscInt c_ind[Nx*Ny*Nc*Ni];
-    PetscInt phi_ind[Nx*Ny*Nc];
+    PetscInt *c_ind = (PetscInt*)malloc(sizeof(PetscInt)*Nx*Ny*Nc*Ni);
+    PetscInt *phi_ind =(PetscInt*)malloc(sizeof(PetscInt)*Nx*Ny*Nc);
     for(x=0;x<Nx;x++){
         for(y=0;y<Ny;y++){
             for(comp=0;comp<Nc;comp++)
@@ -56,8 +56,9 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx
     ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*Ni*Nc,c_ind,PETSC_COPY_VALUES,&state_vars->c_ind); CHKERRQ(ierr);
     ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*Nc,phi_ind,PETSC_COPY_VALUES,&state_vars->phi_ind); CHKERRQ(ierr);
 
+    free(c_ind);free(phi_ind);
     if(!separate_vol) {
-        PetscInt al_ind[Nx*Ny*(Nc-1)];
+        PetscInt *al_ind =(PetscInt*)malloc(sizeof(PetscInt)*Nx*Ny*(Nc-1));
         for (x = 0; x < Nx; x++) {
             for (y = 0; y < Ny; y++) {
                 for (comp = 0; comp < Nc - 1; comp++) {
@@ -67,11 +68,13 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx
         }
         ierr = ISCreateGeneral(PETSC_COMM_WORLD, Nx * Ny * (Nc - 1), al_ind, PETSC_COPY_VALUES, &state_vars->al_ind);
         CHKERRQ(ierr);
+        free(al_ind);
     }
     else{
         state_vars->alpha = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*(Nc-1));
     }
     extract_subarray(state,state_vars);
+
     return ierr;
 }
 PetscErrorCode extract_subarray(Vec state,struct SimState *state_vars)
