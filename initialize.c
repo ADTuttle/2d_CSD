@@ -39,8 +39,8 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx
     PetscInt Ny = user->Ny;
     //Setup indices
     int x,y,comp,ion;
-    PetscInt c_ind[Nx*Ny*Nc*Ni];
-    PetscInt phi_ind[Nx*Ny*Nc];
+    PetscInt *c_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*Nc*Ni);
+    PetscInt *phi_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*Nc);
     for(x=0;x<Nx;x++){
         for(y=0;y<Ny;y++){
             for(comp=0;comp<Nc;comp++)
@@ -56,8 +56,9 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx
     ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*Ni*Nc,c_ind,PETSC_COPY_VALUES,&state_vars->c_ind); CHKERRQ(ierr);
     ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*Nc,phi_ind,PETSC_COPY_VALUES,&state_vars->phi_ind); CHKERRQ(ierr);
 
+    free(phi_ind);free(c_ind);
     if(!separate_vol) {
-        PetscInt al_ind[Nx*Ny*(Nc-1)];
+        PetscInt *al_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*(Nc-1));
         for (x = 0; x < Nx; x++) {
             for (y = 0; y < Ny; y++) {
                 for (comp = 0; comp < Nc - 1; comp++) {
@@ -67,6 +68,7 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx
         }
         ierr = ISCreateGeneral(PETSC_COMM_WORLD, Nx * Ny * (Nc - 1), al_ind, PETSC_COPY_VALUES, &state_vars->al_ind);
         CHKERRQ(ierr);
+        free(al_ind);
     }
     else{
         state_vars->alpha = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*(Nc-1));
@@ -269,6 +271,11 @@ void init_arrays(struct AppCtx*user)
 
     //dt saving
     user->dt_space = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    for(int x=0;x<Nx;x++){
+        for(int y=0;y<Ny;y++){
+            user->dt_space[xy_index(x,y,Nx)]=user->dt;
+        }
+    }
 
 
 
@@ -321,7 +328,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
     PetscReal NaKCl = -flux->mflux[c_index(0,0,1,2,Nx)]/2;
 
     //compute gating variables
-    gatevars_update(gate_vars,state_vars,0,user,1);
+    gatevars_update(gate_vars,gate_vars,state_vars,0,user,1);
 
     //compute K channel currents (neuron)
     PetscReal pKGHK = pKDR*gate_vars->gKDR[0]+pKA*gate_vars->gKA[0];
@@ -431,8 +438,8 @@ void initialize_data(Vec current_state,struct AppCtx *user)
   	cp = (PetscReal *)malloc(sizeof(PetscReal)*Nx*Ny*Ni*Nc);
     //Compute Gating variables
     //compute gating variables
-    gatevars_update(user->gate_vars,user->state_vars,0,user,1);
-    gatevars_update(user->gate_vars_past,user->state_vars,0,user,1);
+    gatevars_update(user->gate_vars,user->gate_vars,user->state_vars,0,user,1);
+    gatevars_update(user->gate_vars_past,user->gate_vars_past,user->state_vars,0,user,1);
     restore_subarray(current_state,user->state_vars);
 
   	//Initialize and compute the excitation (it's zeros here)
@@ -1370,6 +1377,24 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         CHKERRQ(ierr);
                         ind++;
                     }
+                    if(grid) {
+                        //Extra phi with intra phi
+                        ierr = MatSetValue(Jac, Ind_1(x, y, Ni, Nc - 1, Nx), Ind_1(x, y, Ni, comp, Nx), cm[comp],
+                                           INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        // Intra phi with Extraphi
+                        ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp, Nx), Ind_1(x, y, Ni, Nc - 1, Nx), cm[comp],
+                                           INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        //Intra phi with Intra phi
+                        ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -cm[comp],
+                                           INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+
                 }
             }
         }

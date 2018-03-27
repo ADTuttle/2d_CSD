@@ -39,7 +39,7 @@ void ionmflux(struct AppCtx*);
 void wflowm(struct AppCtx*);
 
 //Update the gating variables
-void gatevars_update(struct GateType *,struct SimState *,PetscReal,struct AppCtx *,int);
+void gatevars_update(struct GateType *,struct GateType *,struct SimState *,PetscReal,struct AppCtx *,int);
 //Update Volume fraction
 void volume_update(struct SimState*,struct SimState*,struct AppCtx*);
 //Initial excitation

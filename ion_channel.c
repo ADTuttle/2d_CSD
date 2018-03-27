@@ -182,15 +182,14 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct AppCtx*
 	}
 }
 
-void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,PetscReal dtms,struct AppCtx *user,PetscInt firstpass)
+void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past, struct SimState *state_vars,PetscReal dtms,struct AppCtx *user,PetscInt firstpass)
 {
 	if(Profiling_on) {
 		PetscLogEventBegin(event[4], 0, 0, 0, 0);
 	}
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
-	if(firstpass)
-	{
+	if(firstpass) {
 		//membrane potential in mV
 		PetscReal v = (state_vars->phi[phi_index(0,0,0,Nx)]-state_vars->phi[phi_index(0,0,Nc-1,Nx)])*RTFC;
 		//Iniitialize the poPetscInt gating variables
@@ -263,8 +262,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,Pets
   			gate_vars->gKA[i] = gate_vars->gKA[0];
 
   		}
-    } else //if it's not the firstpass, then we actually have values in v.
-	{
+    } else{ //if it's not the firstpass, then we actually have values in v.
 		PetscReal v, alpha,beta;
 		for(PetscInt x=0;x<Nx;x++)
 		{
@@ -277,25 +275,25 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,Pets
 		  		//gating variables mNaT
 		  		alpha = xoverexpminusone(v,0.32,51.9,0.25,1); //0.32*(Vm+51.9)./(1-exp(-0.25*(Vm+51.9)))
 		  		beta = xoverexpminusone(v,0.28,24.89,0.2,0); //0.28*(Vm+24.89)./(exp(0.2*(Vm+24.89))-1)
-		    	gate_vars->mNaT[xy_index(x,y,Nx)] = (gate_vars->mNaT[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+		    	gate_vars->mNaT[xy_index(x,y,Nx)] = (gate_vars_past->mNaT[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
 		  		//gating variable hNaT
 		  		alpha = 0.128*exp(-(0.056*v+2.94));
 		  		beta = 4/(exp(-(0.2*v+6))+1);
 		    	gate_vars->hNaT[xy_index(x,y,Nx)] = alpha/(alpha+beta);
-		    	gate_vars->hNaT[xy_index(x,y,Nx)] = (gate_vars->hNaT[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+		    	gate_vars->hNaT[xy_index(x,y,Nx)] = (gate_vars_past->hNaT[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
 		    	gate_vars->gNaT[xy_index(x,y,Nx)] = pow(gate_vars->mNaT[xy_index(x,y,Nx)],3)*gate_vars->hNaT[xy_index(x,y,Nx)];
 		  		//compute current NaP
 		  		//gating variable mNaP
 		  		alpha = 1/(1+exp(-(0.143*v+5.67)))/6;
 		  		beta = 1.0/6.0-alpha; //1./(1+exp(0.143*Vm+5.67))/6
-		  		gate_vars->mNaP[xy_index(x,y,Nx)] = (gate_vars->mNaP[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+		  		gate_vars->mNaP[xy_index(x,y,Nx)] = (gate_vars_past->mNaP[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
 		  		//gating variable hNaP
 		  		alpha = 5.12e-6*exp(-(0.056*v+2.94));
 		  		beta = 1.6e-4/(1+exp(-(0.2*v+8)));
-		  		gate_vars->hNaP[xy_index(x,y,Nx)] = (gate_vars->hNaP[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+		  		gate_vars->hNaP[xy_index(x,y,Nx)] = (gate_vars_past->hNaP[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
 		  		gate_vars->gNaP[xy_index(x,y,Nx)] = pow(gate_vars->mNaP[xy_index(x,y,Nx)],2)*gate_vars->hNaP[xy_index(x,y,Nx)];
 
@@ -303,7 +301,7 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,Pets
 		  		//gating variable mKDR
 		  		alpha = xoverexpminusone(v,0.016,34.9,0.2,1); //0.016*(Vm+34.9)./(1-exp(-0.2*(Vm+34.9)))
 		  		beta = 0.25*exp(-(0.025*v+1.25));
-		    	gate_vars->mKDR[xy_index(x,y,Nx)] = (gate_vars->mKDR[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+		    	gate_vars->mKDR[xy_index(x,y,Nx)] = (gate_vars_past->mKDR[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
 		  		gate_vars->gKDR[xy_index(x,y,Nx)] = pow(gate_vars->mKDR[xy_index(x,y,Nx)],2);
 
@@ -311,12 +309,12 @@ void gatevars_update(struct GateType *gate_vars,struct SimState *state_vars,Pets
 		  		//gating variable mKA
 		  		alpha = xoverexpminusone(v,0.02,56.9,0.1,1); //0.02*(Vm+56.9)./(1-exp(-0.1*(Vm+56.9)))
 		  		beta = xoverexpminusone(v,0.0175,29.9,0.1,0); //0.0175*(Vm+29.9)./(exp(0.1*(Vm+29.9))-1)
-		    	gate_vars->mKA[xy_index(x,y,Nx)] = (gate_vars->mKA[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+		    	gate_vars->mKA[xy_index(x,y,Nx)] = (gate_vars_past->mKA[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
 		 		//gating variable hKA
 		  		alpha = 0.016*exp(-(0.056*v+4.61));
 		  		beta = 0.5/(exp(-(0.2*v+11.98))+1);
-		    	gate_vars->hKA[xy_index(x,y,Nx)] = (gate_vars->hKA[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+		    	gate_vars->hKA[xy_index(x,y,Nx)] = (gate_vars_past->hKA[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
 		  		gate_vars->gKA[xy_index(x,y,Nx)] = pow(gate_vars->mKA[xy_index(x,y,Nx)],2)*gate_vars->hKA[xy_index(x,y,Nx)];
   			}

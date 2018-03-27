@@ -243,15 +243,6 @@ void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
 
 
             }
-//            printf("\n");
-//            for( ion=0;ion<Ni;ion++)
-//            {
-//                for( comp=0;comp<Nc;comp++)
-//                {
-//                    printf("(%d,%d),Ion: %d, Comp %d, C: %f\n",xind,yind,ion,comp,grid_vars->c[c_index(x,y,comp,ion,nx)]);
-//                }
-//            }
-//            printf("\n");
         }
     }
 
@@ -1346,15 +1337,16 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
             ind++;
             for(comp=0;comp<Nc-1;comp++)
             {
+                //The next 3 are inserted in init jacobian for the grid
                 //Extra phi with intra phi
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni,comp,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
-                ind++;
+//                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni,comp,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
+//                ind++;
                 // Intra phi with Extraphi
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni,Nc-1,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
-                ind++;
+//                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni,Nc-1,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
+//                ind++;
                 //Intra phi with Intra phi
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-cm[comp],INSERT_VALUES);CHKERRQ(ierr);
-                ind++;
+//                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-cm[comp],INSERT_VALUES);CHKERRQ(ierr);
+//                ind++;
                 //Extra phi with intra-Volume
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni+1,comp,Nx),-cz(c,z,x,y,Nx,Nc-1,user),INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
@@ -1455,7 +1447,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
         }
 
 //        PetscTime(&tic);
-        ierr = VecGetArray(user->grid_slvr->Q, &temp);
+        ierr = VecGetArray(user->grid_slvr->Q, &temp);CHKERRQ(ierr);
         for (x = 0; x < Nx; x++) {
             for (y = 0; y < Ny; y++) {
                 for (comp = 0; comp < Nc; comp++) {
@@ -1490,38 +1482,27 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
 
     PetscReal dt = user->dt;
 
+    user->dt = user->dt_space[xy_index(xi,yi,user->Nx)];
+
 
     PetscInt Nx = 2*width_size+1;
     PetscInt Ny = 2*width_size+1;
     PetscInt ion,comp,x,y,iter;
 
     //Load current variable into past variable
-    for (x = 0; x < Nx; x++) {
-        for (y = 0; y < Ny; y++) {
-
-            for (comp = 0; comp < Nc; comp++) {
-                for (ion = 0; ion < Ni; ion++) {
-                    user->grid_vars_past->c[c_index(x, y, comp, ion, Nx)] = user->grid_vars->c[c_index(x, y, comp,
-                                                                                                       ion, Nx)];
-                }
-                user->grid_vars_past->phi[phi_index(x, y, comp, Nx)] = user->grid_vars->phi[phi_index(x, y, comp,
-                                                                                                      Nx)];
-            }
-            for (comp = 0; comp < Nc - 1; comp++) {
-                user->grid_vars_past->alpha[al_index(x, y, comp, Nx)] = user->grid_vars->alpha[al_index(x, y, comp,
-                                                                                                        Nx)];
-            }
-
-        }
-    }
+    memcpy(user->grid_vars_past->c,user->grid_vars->c,sizeof(PetscReal)*Nx*Ny*Nc*Ni);
+    memcpy(user->grid_vars_past->phi,user->grid_vars->phi,sizeof(PetscReal)*Nx*Ny*Nc);
+    memcpy(user->grid_vars_past->alpha,user->grid_vars->alpha,sizeof(PetscReal)*Nx*Ny*(Nc-1));
     //Calculate diffusion
     //compute diffusion coefficients
     grid_diff_coef(user->Dcs, user->grid_vars_past->alpha, 1, user);
     //Bath diffusion
     grid_diff_coef(user->Dcb, user->grid_vars_past->alpha, Batheps, user);
 
+    excitation_grid(user, t - dt, xi, yi);
+
     PetscInt steps = 0;
-    PetscInt NSteps = 1;
+    PetscInt NSteps = (PetscInt)floor(dt/user->dt); //1;
     PetscInt Max_step = 256;
     PetscInt accepted_step = 0;
 
@@ -1538,25 +1519,15 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
             gatevars_update_grid(user->grid_gate_vars, user->grid_vars, user->dt * 1e3, user);
 
             //Update Excitation
-            excitation_grid(user, t - user->dt*steps, xi, yi);
+            excitation_grid(user, t - dt+user->dt*steps, xi, yi);
 
             accepted_step = 1;
 
 
             //Load current variable into past variable
-            for (x = 0; x < Nx; x++) {
-                for (y = 0; y < Ny; y++) {
-                    for (comp = 0; comp < Nc; comp++) {
-                        for (ion = 0; ion < Ni; ion++) {
-                            user->grid_vars_past->c[c_index(x, y, comp, ion, Nx)] = user->grid_vars->c[c_index(x, y, comp,ion, Nx)];
-                        }
-                        user->grid_vars_past->phi[phi_index(x, y, comp, Nx)] = user->grid_vars->phi[phi_index(x, y, comp, Nx)];
-                    }
-                    for (comp = 0; comp < Nc - 1; comp++) {
-                        user->grid_vars_past->alpha[al_index(x, y, comp, Nx)] = user->grid_vars->alpha[al_index(x, y, comp, Nx)];
-                    }
-                }
-            }
+            memcpy(user->grid_vars_past->c,user->grid_vars->c,sizeof(PetscReal)*Nx*Ny*Nc*Ni);
+            memcpy(user->grid_vars_past->phi,user->grid_vars->phi,sizeof(PetscReal)*Nx*Ny*Nc);
+            memcpy(user->grid_vars_past->alpha,user->grid_vars->alpha,sizeof(PetscReal)*Nx*Ny*(Nc-1));
             //Calculate diffusion
             //compute diffusion coefficients
             grid_diff_coef(user->Dcs, user->grid_vars_past->alpha, 1, user);
@@ -1568,27 +1539,21 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
             //If we aren't below cutoff. Half the time step.
             user->dt = user->dt / 2;
             NSteps = 2 * NSteps;
-//            printf("Reducing step at (%d,%d) to %d\n",xi,yi,NSteps);
+//            printf("Reducing step at (%d,%d) to %f\n",xi,yi,user->dt);
             //Reset current vars
             //Load current variable into past variable
-            for (x = 0; x < Nx; x++) {
-                for (y = 0; y < Ny; y++) {
-                    for (comp = 0; comp < Nc; comp++) {
-                        for (ion = 0; ion < Ni; ion++) {
-                            user->grid_vars->c[c_index(x, y, comp, ion, Nx)] = user->grid_vars_past->c[c_index(x, y, comp, ion, Nx)];
-                        }
-                        user->grid_vars->phi[phi_index(x, y, comp, Nx)] = user->grid_vars_past->phi[phi_index(x, y, comp, Nx)];
-                    }
-                    for (comp = 0; comp < Nc - 1; comp++) {
-                        user->grid_vars->alpha[al_index(x, y, comp, Nx)] = user->grid_vars_past->alpha[al_index(x, y, comp, Nx)];
-                    }
-                }
-            }
+            memcpy(user->grid_vars->c,user->grid_vars_past->c,sizeof(PetscReal)*Nx*Ny*Nc*Ni);
+            memcpy(user->grid_vars->phi,user->grid_vars_past->phi,sizeof(PetscReal)*Nx*Ny*Nc);
+            memcpy(user->grid_vars->alpha,user->grid_vars_past->alpha,sizeof(PetscReal)*Nx*Ny*(Nc-1));
         }
     }
 
+    if(user->dt<dt){
+        user->dt_space[xy_index(xi,yi,user->Nx)] = 2*user->dt;
+    } else{
+        user->dt_space[xy_index(xi,yi,user->Nx)] = user->dt;
+    }
 
-    user->dt_space[xy_index(xi,yi,user->Nx)] = user->dt;
 
     user->dt = dt;
     return ierr;

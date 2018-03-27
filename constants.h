@@ -15,7 +15,7 @@
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 #define Profiling_on 0 //Turns timing of functions on/off.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define trecordstep 0.01//0.5 //determines how often to record
+#define trecordstep 0.1//0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 
 //basic ion extern constants
@@ -215,6 +215,7 @@ struct AppCtx{
     PetscInt Ny;
     PetscInt Nz;
     PetscReal *dt_space;
+    PetscReal t;
 };
 PetscLogEvent event[10];
 

@@ -145,14 +145,11 @@ int main(int argc, char **argv)
         if(separate_vol){
             memcpy(user->state_vars_past->alpha, user->state_vars->alpha, sizeof(PetscReal) * user->Nx * user->Ny * (Nc - 1));
         }
-//        restore_subarray(current_state,state_vars);
 
         //Newton update
         PetscTime(&grid_tic);
         Update_Solution(current_state,t,user);
         PetscTime(&grid_toc);
-
-//        extract_subarray(current_state,state_vars);
 
         if(separate_vol) {
             //Update volume(uses past c values for wflow)
@@ -185,7 +182,7 @@ int main(int argc, char **argv)
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
 
-        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
+        gatevars_update(user->gate_vars,user->gate_vars_past,user->state_vars,user->dt*1e3,user,0);
         if(separate_vol) {
             //Update volume (this uses new c values for wflow)
 //            volume_update(user->state_vars, user->state_vars_past, user);
