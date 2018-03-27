@@ -159,8 +159,8 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct AppCtx*
 			    //diffusion coefficients in neuronal compartment equal to 0
 			    Dc[c_index(x,y,0,ion,Nx)*2] = 0.0 ;
 			    //diffusion coefficients in glial compartment proportional to default volume fraction
-			    Dc[c_index(x,y,1,ion,Nx)*2] = 0*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
-//                Dc[c_index(x,y,1,ion,Nx)*2] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2); //0.25
+//			    Dc[c_index(x,y,1,ion,Nx)*2] = 0*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
+                Dc[c_index(x,y,1,ion,Nx)*2] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2); //0.25
 			    //diffusion coefficients in y direction
 			    if(y==(Ny-1)) {
 			    	//Boundary is zero
@@ -174,8 +174,8 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct AppCtx*
 				//diffusion coefficients in neuronal compartment equal to 0
 			    Dc[c_index(x,y,0,ion,Nx)*2+1] = 0.0;
 			    //diffusion coefficients in glial compartment proportional to default volume fraction
-//			    Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2); //0.25
-                Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.001*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
+			    Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2); //0.25
+//                Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.001*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
 
 		  	}
 		}

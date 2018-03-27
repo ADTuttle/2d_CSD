@@ -26,7 +26,7 @@ static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
 //grid parameters
-#define Time 0.1   //total simulated time in seconds
+#define Time 0.5   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -67,11 +67,12 @@ static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
 #define phibath (-0/RTFC) //Voltage of outside bath
 
 //excitation parameters
-#define pmax  (1e-1/3)          //max value for excitation
-//#define pmax  50          //max value for excitation
-//#define texct 2         //time for excitation
-#define texct 0.05         //time for excitation
-#define Lexct 0.05          //Length of region for excitation in each direction
+//#define pmax  (1e-1/3)          //max value for excitation
+#define pmax  50          //max value for excitation
+#define texct 0.5         //time for excitation
+//#define texct 0.05         //time for excitation
+#define Lexct 0.2
+//#define Lexct 0.05          //Length of region for excitation in each direction
 //#define Lexct 0.025          //Length of region for excitation in each direction
 
 //initial state setup
@@ -99,9 +100,9 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
 #define pNaT  0                 //1e-4%0%1e-3%if set to 0, recovery possible
-#define pNaP  2e-5
-#define pKDR  1e-3
-#define pKA  1e-4
+#define pNaP  0 //2e-5
+#define pKDR  0//1e-3
+#define pKA  0//1e-4
 
 //Leak conductances in mS/cm^2 from Kager, 2000 or Yao, Huang, Miura, 2011.
 #define pKLeak  (7e-2*RTFC/FC)     //Kager:10e-2,Miura:7e-2%K Leak conductance in mS/cm^2 converted to mmol/cm^2/s
