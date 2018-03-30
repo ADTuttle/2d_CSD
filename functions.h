@@ -66,7 +66,7 @@ PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny);
 PetscErrorCode Initialize_PCMG(PC pc,Mat A,struct AppCtx*);
 
 //Newton Solver
-PetscErrorCode newton_solve(Vec,struct AppCtx*);
+PetscErrorCode newton_solve(Vec,struct Solver*,struct AppCtx*);
 //Calculate residuals and jacobians
 
 //Nonlinear discretizations

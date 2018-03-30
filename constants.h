@@ -10,7 +10,7 @@
 
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
-#define details 1 //if true, will show how many iterations were necessary for each newton solve, and the residual
+#define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
 #define mid_points_exct 1
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 #define Profiling_on 0 //Turns timing of functions on/off.
@@ -116,7 +116,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 //pump current, parameters from Yao, Huang, Miura, 2011
 #define mK  2e-3                 //pump current constant in mmol/cm^3=mol/l
 #define mNa  7.7e-3              //pump current constant in mmol/cm^3=mol/l
-#define glpump  1.0              //multiplier to change glial pump rate
+#define glpump  1.0             //multiplier to change glial pump rate
 #define npump  1.0
 
 
