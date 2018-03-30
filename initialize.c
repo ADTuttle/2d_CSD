@@ -359,15 +359,39 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 void initialize_data(Vec current_state,struct AppCtx *user)
 {
 
+    //Make a temp solver for just a 3x3 grid for speed
+    PetscInt temp_Nx = user->Nx;
+    PetscInt temp_Ny = user->Ny;
+    user->Nx = 1;
+    user->Ny = 1;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
 
-	PetscReal convtol = 1e-10;
+    struct Solver *slvr = (struct Solver*)malloc(sizeof(struct Solver));
+    //Create Vectors
+    VecCreate(PETSC_COMM_WORLD,&slvr->Q);
+    VecSetType(slvr->Q,VECSEQ);
+    VecSetSizes(slvr->Q,PETSC_DECIDE,Nx*Ny*Nv);
+    VecDuplicate(slvr->Q,&slvr->Res);
+    MatCreate(PETSC_COMM_WORLD,&slvr->A);
+    MatSetType(slvr->A,MATSEQAIJ);
+    MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,Nx*Ny*Nv,Nx*Ny*Nv);
+    MatSeqAIJSetPreallocation(slvr->A,5*Nv,NULL);
+    MatSetUp(slvr->A);
+    initialize_jacobian(slvr->A,user);
+    KSPCreate(PETSC_COMM_WORLD,&slvr->ksp);
+    KSPSetType(slvr->ksp,KSPPREONLY);
+    KSPGetPC(slvr->ksp,&slvr->pc);
+    PCSetType(slvr->pc,PCLU);
+    PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU);
+
+
+	PetscReal convtol = 1e-9;
     extract_subarray(current_state,user->state_vars);
-	PetscReal tol = convtol*array_max(user->state_vars->c,(size_t)Nx*Ny*Nc*Ni);
+//	PetscReal tol = convtol*array_max(user->state_vars->c,(size_t)Nx*Ny*Nc*Ni);
+    PetscReal tol =convtol;
   	PetscReal rsd = 1.0;
-  	PetscReal *cp;
-  	cp = (PetscReal *)malloc(sizeof(PetscReal)*Nx*Ny*Ni*Nc);
+    PetscReal rsd_v[3];
     //Compute Gating variables
     //compute gating variables
     gatevars_update(user->gate_vars,user->state_vars,0,user,1);
@@ -378,13 +402,11 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     PetscReal dt_temp = user->dt;
   	PetscInt k = 0;
 //    user->dt = 0.1;
-    user->dt = 1;
-    // PetscReal dt_temp = 0.01;
+    user->dt = 0.01;
   	
-  	while(rsd>tol && user->dt*k<1e4)
+  	while(rsd>tol && k<1e5)
   	{
         extract_subarray(current_state,user->state_vars);
-    	memcpy(cp,user->state_vars->c,sizeof(PetscReal)*Nx*Ny*Ni*Nc);
         //Save the "current" aka past state
         restore_subarray(user->state_vars_past->v,user->state_vars_past);
         copy_simstate(current_state,user->state_vars_past);
@@ -398,27 +420,75 @@ void initialize_data(Vec current_state,struct AppCtx *user)
         diff_coef(user->Dcb,user->state_vars->alpha,Batheps,user);
         restore_subarray(current_state,user->state_vars);
 
-//    	newton_solve(current_state,user);
-        SNESSolve(user->slvr->snes,NULL,current_state);
+
+        newton_solve(current_state,slvr,user);
+//        SNESSolve(user->slvr->snes,NULL,current_state);
 
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
+
         // Set to be "firstpass" (that's the 1)
         // So that we set to alpha/beta infinity values as if it came to rest
         gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,1);
 
-        //Update Excitation
-    	rsd = array_diff_max(user->state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/user->dt;
+
+    	rsd_v[0] = array_diff_max(user->state_vars->c,user->state_vars_past->c,(size_t)Nx*Ny*Nc*Ni);
+        rsd_v[1] = array_diff_max(user->state_vars->phi,user->state_vars_past->phi,(size_t)Nx*Ny*Nc);
+        rsd_v[2] = array_diff_max(user->state_vars->alpha,user->state_vars_past->alpha,(size_t)Nx*Ny*(Nc-1));
+//        if(details|| k%1000==0) {
+//            printf("%.10e,%.10e,%.10e\n",user->state_vars->c[0],user->state_vars->phi[0]*RTFC,user->state_vars->alpha[0]);
+//        }
+        rsd = array_max(rsd_v,3);
         restore_subarray(current_state,user->state_vars);
-        printf("Init_Data rsd: %.10e, Tol: %.10e\n",rsd,tol);
+        if(details|| k%1000==0) {
+            printf("Tol: %.10e: rsd: c: %.10e, phi: %.10e, al: %.10e\n",tol,rsd_v[0],rsd_v[1],rsd_v[2]);
+        }
     	k++;
 	}
+
+    //Save the one set of variables we solved for (x=1,y=1 because that's the midpoint of the 3x3 system)
+
+    extract_subarray(current_state,user->state_vars);
+    PetscReal c[Ni*Nc];
+    PetscReal phi[Nc];
+    PetscReal al[Nc-1];
+    PetscInt comp,ion,x,y;
+    for(comp=0;comp<Nc;comp++){
+        for(ion=0;ion<Ni;ion++){
+            c[c_index(0,0,comp,ion,Nx)]=user->state_vars->c[c_index(0,0,comp,ion,Nx)];
+        }
+        phi[phi_index(0,0,comp,Nx)]=user->state_vars->phi[phi_index(0,0,comp,Nx)];
+    }
+    for(comp=0;comp<Nc-1;comp++){
+        al[al_index(0,0,comp,Nx)] = user->state_vars->alpha[al_index(0,0,comp,Nx)];
+    }
   	user->dt = dt_temp;
-  	free(cp);
-	if(rsd>1e-7)
+    user->Nx = temp_Nx;
+    user->Ny = temp_Ny;
+
+    //Copy over the saved variables.
+    for(x=0;x<Nx;x++){
+        for(y=0;y<Ny;y++){
+            for(comp=0;comp<Nc;comp++){
+                for(ion=0;ion<Ni;ion++){
+                    user->state_vars->c[c_index(x,y,comp,ion,Nx)]=c[c_index(0,0,comp,ion,Nx)];
+                }
+                user->state_vars->phi[phi_index(x,y,comp,Nx)]=phi[phi_index(0,0,comp,Nx)];
+            }
+            for(comp=0;comp<Nc-1;comp++){
+                user->state_vars->alpha[al_index(x,y,comp,Nx)]=al[al_index(0,0,comp,Nx)];
+            }
+        }
+    }
+
+    restore_subarray(current_state,user->state_vars);
+  	free(slvr);
+    printf("Initialization stopped at %.10e in %d iterations\n",rsd,k);
+	if(rsd>tol)
   	{
     	fprintf(stderr, "Did not converge! Aborting...\n");
-    	exit(EXIT_FAILURE); /* indicate failure.*/
+//    	exit(EXIT_FAILURE); /* indicate failure.*/
+        return;
 	} else
   	{
     	return;

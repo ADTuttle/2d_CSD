@@ -2,14 +2,16 @@
 #include "functions.h"
 
 
-PetscErrorCode newton_solve(Vec current_state,struct AppCtx *user)
+PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx *user)
 {
 
     PetscReal rsd;
     PetscErrorCode ierr = 0;
     PetscReal *temp;
-    PetscInt num_iter;
+    PetscInt num_iter,comp,ion,x,y;
     PetscReal rnorm;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
 
 
     PetscLogDouble tic,toc;
@@ -20,21 +22,38 @@ PetscErrorCode newton_solve(Vec current_state,struct AppCtx *user)
     //y at odd (1,3,5,...)
     //still use c_index(x,y,comp,ion,Nx), but with ind*2 or ind*2+1
 
-//    PetscReal tol = reltol*array_max(user->state_vars->c,(size_t)Nx*Ny*Ni*Nc);
-    PetscReal tol;
-    ierr = VecNorm(current_state,NORM_MAX,&tol);CHKERRQ(ierr);
-    tol = reltol*tol;
+    extract_subarray(current_state,user->state_vars);
+
+    PetscReal tol = reltol*array_max(user->state_vars->c,(size_t)Nx*Ny*Ni*Nc);
+    restore_subarray(current_state,user->state_vars);
+
+//    PetscReal tol;
+//    ierr = VecNorm(user->state_vars->v,NORM_MAX,&tol);CHKERRQ(ierr);
+//    tol = reltol*tol;
     rsd = tol+1;
 
-    for(PetscInt iter=0;iter<itermax;iter++)
+    for(PetscInt iter=0;iter<1;iter++)
     {
-//        PetscTime(&tic);
-        ierr = calc_residual(user->slvr->snes,current_state,user->slvr->Res,user);CHKERRQ(ierr);
-//        PetscTime(&toc);
-//        printf("Calc Residual time: %.10e\n",toc-tic);
+        if(separate_vol){
+            if(use_en_deriv){
+                ierr = calc_residual_no_vol(user->slvr->snes,current_state,slvr->Res,user);CHKERRQ(ierr);
 
-        ierr = VecNorm(user->slvr->Res,NORM_MAX,&rsd);CHKERRQ(ierr);
-        printf("Iteration: %d, Residual: %.10e\n",iter,rsd);
+            } else{
+                ierr = calc_residual_algebraic_no_vol(user->slvr->snes,current_state,slvr->Res,user);CHKERRQ(ierr);
+            }
+
+        }else{
+            if(use_en_deriv){
+                ierr = calc_residual(user->slvr->snes,current_state,slvr->Res,user);CHKERRQ(ierr);
+
+            } else{
+                ierr = calc_residual_algebraic(user->slvr->snes,current_state,slvr->Res,user);CHKERRQ(ierr);
+            }
+
+        }
+
+        ierr = VecNorm(slvr->Res,NORM_MAX,&rsd);CHKERRQ(ierr);
+//        printf("Iteration: %d, Residual: %.10e\n",iter,rsd);
         if(rsd<tol)
         {
             if(details)
@@ -43,24 +62,34 @@ PetscErrorCode newton_solve(Vec current_state,struct AppCtx *user)
             }
             return ierr;
         }
-//        PetscTime(&tic);
-        ierr = calc_jacobian(user->slvr->snes,current_state,user->slvr->A,user->slvr->A, user);CHKERRQ(ierr);
-//        PetscTime(&toc);
-//        printf("Calculate Jacobian time: %.10e\n",toc-tic);
+        if(separate_vol){
+            if(use_en_deriv){
+                ierr = calc_jacobian_no_vol(user->slvr->snes,current_state,slvr->A,slvr->A, user);CHKERRQ(ierr);
+
+            }else{
+                ierr = calc_jacobian_algebraic_no_vol(user->slvr->snes,current_state,slvr->A,slvr->A, user);CHKERRQ(ierr);
+
+            }
+
+        }else{
+            if(use_en_deriv){
+                ierr = calc_jacobian(user->slvr->snes,current_state,slvr->A,slvr->A, user);CHKERRQ(ierr);
+
+            }else{
+                ierr = calc_jacobian_algebraic(user->slvr->snes,current_state,slvr->A,slvr->A, user);CHKERRQ(ierr);
+
+            }
+        }
         //Set the new operator
-        ierr = KSPSetOperators(user->slvr->ksp,user->slvr->A,user->slvr->A);CHKERRQ(ierr);
-//        ierr = PCSetOperators(slvr->pc,slvr->A,slvr->A);CHKERRQ(ierr);
-//        ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
+        ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
 
         //Solve
         PetscTime(&tic);
-        ierr = KSPSolve(user->slvr->ksp,user->slvr->Res,user->slvr->Q);CHKERRQ(ierr);
+        ierr = KSPSolve(slvr->ksp,slvr->Res,slvr->Q);CHKERRQ(ierr);
         PetscTime(&toc);
 
         ierr = KSPGetIterationNumber(user->slvr->ksp,&num_iter); CHKERRQ(ierr);
         ierr =  KSPGetResidualNorm(user->slvr->ksp,&rnorm); CHKERRQ(ierr);
-        // printf("KSP Solve time: %f, iter num:%d, norm: %.10e\n",toc-tic,num_iter,rnorm);
-//        ierr = KSPView(slvr->ksp,PETSC_VIEWER_STDOUT_SELF);CHKERRQ(ierr);
 
 
         if(details) {
@@ -68,7 +97,27 @@ PetscErrorCode newton_solve(Vec current_state,struct AppCtx *user)
         }
 
 //        PetscTime(&tic);
-        ierr = VecAXPY(current_state,-1.0,user->slvr->Q); CHKERRQ(ierr);
+        ierr = VecGetArray(slvr->Q,&temp); CHKERRQ(ierr);
+        extract_subarray(current_state,user->state_vars);
+        for(x=0;x<Nx;x++){
+            for(y=0;y<Ny;y++){
+                for(comp=0;comp<Nc;comp++){
+                    for(ion=0;ion<Ni;ion++){
+                        user->state_vars->c[c_index(x,y,comp,ion,Nx)]-=temp[Ind_1(x,y,ion,comp,Nx)];
+                    }
+                    user->state_vars->phi[phi_index(x,y,comp,Nx)]-=temp[Ind_1(x,y,Ni,comp,Nx)];
+                }
+                if(!separate_vol){
+                    for(comp=0;comp<Nc-1;comp++) {
+                        user->state_vars->alpha[al_index(x, y, comp, Nx)] -= temp[Ind_1(x,y,Ni+1,comp,Nx)];
+                    }
+                }
+            }
+        }
+
+        ierr = VecRestoreArray(slvr->Q,&temp);
+        restore_subarray(current_state,user->state_vars);
+
 
 
         if(details)
@@ -76,13 +125,13 @@ PetscErrorCode newton_solve(Vec current_state,struct AppCtx *user)
             printf("Iteration: %d, Residual: %.10e\n",iter,rsd);
         }
     }
-    ierr = restore_subarray(user->state_vars_past->v,user->state_vars_past); CHKERRQ(ierr);
-
+/*
     if(rsd>tol)
     {
         fprintf(stderr, "Netwon Iteration did not converge! Stopping...\n");
-        exit(EXIT_FAILURE); /* indicate failure.*/
+        exit(EXIT_FAILURE);
     }
+    */
     return ierr;
 }
 
