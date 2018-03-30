@@ -362,7 +362,7 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
 
-	PetscReal convtol = 1e-11;
+	PetscReal convtol = 1e-10;
     extract_subarray(current_state,user->state_vars);
 	PetscReal tol = convtol*array_max(user->state_vars->c,(size_t)Nx*Ny*Nc*Ni);
   	PetscReal rsd = 1.0;
@@ -375,12 +375,13 @@ void initialize_data(Vec current_state,struct AppCtx *user)
 
   	//Initialize and compute the excitation (it's zeros here)
   	excitation(user,texct+1);
+    PetscReal dt_temp = user->dt;
   	PetscInt k = 0;
-    user->dt = 0.1;
-//  	PetscReal dt_temp = 0.1;
+//    user->dt = 0.1;
+    user->dt = 1;
     // PetscReal dt_temp = 0.01;
   	
-  	while(rsd>tol && user->dt*k<10)
+  	while(rsd>tol && user->dt*k<1e4)
   	{
         extract_subarray(current_state,user->state_vars);
     	memcpy(cp,user->state_vars->c,sizeof(PetscReal)*Nx*Ny*Ni*Nc);
@@ -402,7 +403,9 @@ void initialize_data(Vec current_state,struct AppCtx *user)
 
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
-        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
+        // Set to be "firstpass" (that's the 1)
+        // So that we set to alpha/beta infinity values as if it came to rest
+        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,1);
 
         //Update Excitation
     	rsd = array_diff_max(user->state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/user->dt;
@@ -410,7 +413,7 @@ void initialize_data(Vec current_state,struct AppCtx *user)
         printf("Init_Data rsd: %.10e, Tol: %.10e\n",rsd,tol);
     	k++;
 	}
-  	
+  	user->dt = dt_temp;
   	free(cp);
 	if(rsd>1e-7)
   	{
@@ -432,8 +435,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
   	ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
     //    Get Nx, Ny, and dt from options if possible
 
-    user->Nx = 128;
-    user->Ny = 128;
+    user->Nx = 32;
+    user->Ny = 32;
     user->dt =0.01;
 
     PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);
@@ -543,15 +546,15 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
     //Gmres type methods
 //     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
-    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
-    /*
+//    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
+//    /*
     ierr = KSPSetType(slvr->ksp,KSPDGMRES); CHKERRQ(ierr);
 
     ierr = KSPGMRESSetRestart(slvr->ksp,40); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_eigen","10"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_max_eigen","100"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_force",""); CHKERRQ(ierr);
-*/
+//*/
 
 
 
@@ -566,13 +569,13 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
      ierr = PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
     */
     // ILU Precond
-    /*
+//    /*
     ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
     ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
     ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
     ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     ierr = PCFactorSetMatOrderingType(slvr->pc,MATORDERINGNATURAL); CHKERRQ(ierr);
-    */
+//    */
 //     ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     /*
     PetscReal div_tol = 1e12;
