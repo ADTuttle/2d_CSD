@@ -26,7 +26,7 @@ static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
 //grid parameters
-#define Time 0.5   //total simulated time in seconds
+#define Time 15.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -100,8 +100,8 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
 #define pNaT  0                 //1e-4%0%1e-3%if set to 0, recovery possible
-#define pNaP  0 //2e-5
-#define pKDR  0//1e-3
+#define pNaP  0//2e-5
+#define pKDR  1e-3
 #define pKA  0//1e-4
 
 //Leak conductances in mS/cm^2 from Kager, 2000 or Yao, Huang, Miura, 2011.
@@ -111,7 +111,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 //Glial KIR from Steinberg et al 2005
 #define pKIR  (.13*RTFC/FC)        //conductance in mS/cm^2 converted to mmol/cm^2/s
-#define pKLeakadjust  1.0       //parameter for varying glial permeability
+#define pKLeakadjust  10.0       //parameter for varying glial permeability
 
 //pump current, parameters from Yao, Huang, Miura, 2011
 #define mK  2e-3                 //pump current constant in mmol/cm^3=mol/l

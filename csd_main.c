@@ -149,7 +149,7 @@ int main(int argc, char **argv)
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
 
-//        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
+        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
         if(separate_vol) {
             //Update volume (this uses new c values for wflow)
 //            volume_update(user->state_vars, user->state_vars_past, user);

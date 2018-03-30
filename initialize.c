@@ -405,7 +405,8 @@ void initialize_data(Vec current_state,struct AppCtx *user)
 
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
-        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
+//        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
+        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,1);
 
         //Update Excitation
     	rsd = array_diff_max(user->state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/user->dt;
