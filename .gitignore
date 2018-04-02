@@ -93,9 +93,8 @@ converge_runs/dt01/data_csd_32.txt
 
 converge_runs/dt01/data_csd_64.txt
 
-cmake-build-debug/data_fastcsd.txt
+cmake-build-debug/csd_dt.txt
 
-cmake-build-debug/time_step.txt
+cmake-build-debug/predict_csd_dt.txt
 
-flux_csd.txt
-
+cmake-build-debug/predict_data_csd.txt

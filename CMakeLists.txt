@@ -49,10 +49,7 @@ set(SOURCE_FILES
         initialize.c
         ion_channel.c
         update_solution.c
-        misc_print_plot.c
-        linear_update.c
-        constants.c
-        grid_update.c)
+        misc_print_plot.c linear_update.c constants.c)
 
 add_executable(2d_CSD ${SOURCE_FILES})
 

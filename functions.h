@@ -30,7 +30,7 @@ void mcGoldman(struct FluxData *,int,double,int,double,double,double,int);
 //Conductance for potassium inward rectifier
 double inwardrect(double,double,double);
 //Returns of c_i*z_i
-double cz(const double *,const PetscInt *,int,int,int,PetscInt,struct AppCtx*);
+double cz(const double *,const PetscInt *,int,int,int,struct AppCtx*);
 //Computes diffusion coef
 void diff_coef(double *,const PetscReal *,PetscReal,struct AppCtx*);
 //Calculate the ion fluxes and derivatives
@@ -39,7 +39,7 @@ void ionmflux(struct AppCtx*);
 void wflowm(struct AppCtx*);
 
 //Update the gating variables
-void gatevars_update(struct GateType *,struct GateType *,struct SimState *,PetscReal,struct AppCtx *,int);
+void gatevars_update(struct GateType *,struct SimState *,PetscReal,struct AppCtx *,int);
 //Update Volume fraction
 void volume_update(struct SimState*,struct SimState*,struct AppCtx*);
 //Initial excitation
@@ -51,16 +51,14 @@ PetscInt phi_index(PetscInt,PetscInt,PetscInt,PetscInt);
 PetscInt al_index(PetscInt,PetscInt,PetscInt,PetscInt);
 PetscInt xy_index(PetscInt,PetscInt,PetscInt);
 PetscInt Ind_1(PetscInt,PetscInt,PetscInt,PetscInt,PetscInt);
-PetscInt Ind_2(PetscInt,PetscInt ,PetscInt ,PetscInt , PetscInt );
+PetscInt Ind_nx(PetscInt,PetscInt ,PetscInt ,PetscInt , PetscInt );
 
 
 //Create Petsc Structures
 
 PetscErrorCode initialize_petsc(struct Solver *,int, char **,struct AppCtx*);
-PetscErrorCode initialize_grid_slvr(struct Solver *,int, char **,struct AppCtx*);
-void Get_Nonzero_in_Rows(int *,struct AppCtx*,int);
-PetscErrorCode initialize_jacobian(Mat,struct AppCtx*,int);
-PetscErrorCode initialize_grid_jacobian(Mat,struct AppCtx*,int);
+void Get_Nonzero_in_Rows(int *,struct AppCtx*);
+PetscErrorCode initialize_jacobian(Mat,struct AppCtx*);
 
 //Multigrid functions
 PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny);
@@ -91,25 +89,6 @@ PetscErrorCode calc_residual_linear_algebraic(SNES,Vec,Vec,void*); //void is mas
 PetscErrorCode calc_jacobian_linear_algebraic(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
 PetscErrorCode calc_residual_linear_deriv(SNES,Vec,Vec,void*); //void is masked AppCtx
 PetscErrorCode calc_jacobian_linear_deriv(SNES, Vec, Mat,Mat, void*); //void is masked AppCtx
-
-
-//Functions used in Grid solves
-void grid_wflowm(struct AppCtx *);
-void grid_ionmflux(struct AppCtx* );
-void gatevars_update_grid(struct GateType *,struct SimState *,PetscReal ,struct AppCtx * );
-void excitation_grid(struct AppCtx* ,PetscReal ,PetscInt, PetscInt);
-void grid_diff_coef(PetscReal *,const PetscReal *,PetscReal ,struct AppCtx* );
-
-PetscErrorCode Grid_Residual(Vec ,PetscInt ,PetscInt ,void *);
-PetscErrorCode Grid_Jacobian(Mat ,PetscInt ,PetscInt ,void *);
-PetscErrorCode Grid_Residual_algebraic(Vec ,PetscInt ,PetscInt ,void *);
-PetscErrorCode Grid_Jacobian_algebraic(Mat ,PetscInt ,PetscInt ,void *);
-PetscErrorCode Update_Grid(PetscInt ,PetscInt,PetscReal ,struct AppCtx *);
-PetscErrorCode Update_Solution(Vec,PetscReal t,struct AppCtx *);
-int Newton_Solve_Grid(PetscInt, PetscInt,struct AppCtx *);
-void Unload_Grid(struct AppCtx *,PetscInt , PetscInt );
-
-void save_timestep(FILE *,struct AppCtx*,PetscInt ,int );
 
 
 //Find abs. max value of an array

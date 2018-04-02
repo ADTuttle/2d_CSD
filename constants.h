@@ -8,29 +8,25 @@
 
 //set global parameters here (constants)
 
-// General options
-
+#define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
+#define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
 #define mid_points_exct 1
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 #define Profiling_on 0 //Turns timing of functions on/off.
-#define trecordstep 0.01//0.5 //determines how often to record
-#define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
-
-
-//Solver Type Options
-#define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
-#define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define Predictor 1  // Turns on predictor. Adaptive single point estimated update
-#define width_size  1 //Number of up,down,left,right neighbors to pair in the predictor.
+#define trecordstep 0.1//0.5 //determines how often to record
+#define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 
 //basic ion extern constants
 #define   Ni  3           //number of ion species (Na, K, Cl)
+//extern const PetscInt z[3]; //valences of ion species
+//extern const PetscReal D[3]; //diffusion coefficients in cm^2/sec
 static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
-#define Time 5.0   //total simulated time in seconds
+//grid parameters
+#define Time 10.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -41,6 +37,7 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 //#define  Ny  50     //number of grid points in the y direction
 //#define dx (Lx/Nx)       //grid size in x direction (in cm)
 //#define dy (Ly/Ny)        //grid size in y direction (in cm)
+
 
 
 //number of variables to be solved for at each grid point
@@ -71,10 +68,8 @@ static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
 
 //excitation parameters
 #define pmax  (1e-1/3)          //max value for excitation
-//#define pmax  (1e1)          //max value for excitation
 //#define pmax  50          //max value for excitation
 //#define texct 2         //time for excitation
-//#define texct 0.5
 #define texct 0.05         //time for excitation
 #define Lexct 0.05          //Length of region for excitation in each direction
 //#define Lexct 0.025          //Length of region for excitation in each direction
@@ -191,22 +186,15 @@ struct Solver{
   	KSP ksp;         /* linear solver context */
   	PC pc;           /* preconditioner context */
   	PetscMPIInt   size;
-
-    PetscInt NA;
 };
 
 
 struct AppCtx{
     struct SimState *state_vars;
     struct SimState *state_vars_past;
-    struct SimState *grid_vars;
-    struct SimState *grid_vars_past;
     struct Solver *slvr;
-    struct Solver *grid_slvr;
     struct FluxData *flux;
     struct GateType *gate_vars;
-    struct GateType *gate_vars_past;
-    struct GateType *grid_gate_vars;
     struct ExctType *gexct;
     struct ConstVars *con_vars;
     PetscReal *Dcs;
@@ -216,9 +204,8 @@ struct AppCtx{
     PetscReal dy;
     PetscInt Nx;
     PetscInt Ny;
+    PetscInt NA;
     PetscInt Nz;
-    PetscReal *dt_space;
-    PetscReal t;
 };
 PetscLogEvent event[10];
 
