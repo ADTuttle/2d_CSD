@@ -26,10 +26,6 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
 
     PetscReal tol = reltol*array_max(user->state_vars->c,(size_t)Nx*Ny*Ni*Nc);
     restore_subarray(current_state,user->state_vars);
-
-//    PetscReal tol;
-//    ierr = VecNorm(user->state_vars->v,NORM_MAX,&tol);CHKERRQ(ierr);
-//    tol = reltol*tol;
     rsd = tol+1;
 
     for(PetscInt iter=0;iter<1;iter++)
@@ -117,8 +113,6 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
 
         ierr = VecRestoreArray(slvr->Q,&temp);
         restore_subarray(current_state,user->state_vars);
-
-
 
         if(details)
         {

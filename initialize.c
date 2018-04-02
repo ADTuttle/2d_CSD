@@ -147,10 +147,8 @@ void init(Vec state,struct SimState *state_vars,struct AppCtx*user)
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
     extract_subarray(state,state_vars);
-	for(PetscInt x=0;x<Nx;x++)
-	{
-		for(PetscInt y=0;y<Ny;y++)
-		{
+	for(PetscInt x=0;x<Nx;x++) {
+		for(PetscInt y=0;y<Ny;y++) {
 			//initial volume fractions
 			state_vars->alpha[al_index(x,y,0,Nx)]=alphao[0];
 			state_vars->alpha[al_index(x,y,1,Nx)]=alphao[1]; 
@@ -291,22 +289,16 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 	PetscReal c[Ni*Nc];
 	PetscReal phi[Nc];
 	PetscReal alpha[Nc];
-	for(PetscInt comp=0;comp<Nc;comp++)
-	{
-		for(PetscInt ion=0;ion<Ni;ion++)
-		{
+	for(PetscInt comp=0;comp<Nc;comp++) {
+		for(PetscInt ion=0;ion<Ni;ion++) {
 			c[c_index(0,0,comp,ion,Nx)]=state_vars->c[c_index(0,0,comp,ion,Nx)];
 		}
 		phi[phi_index(0,0,comp,Nx)]=state_vars->phi[phi_index(0,0,comp,Nx)];
-		if(comp<Nc-1)
-		{
+		if(comp<Nc-1) {
 			alpha[al_index(0,0,comp,Nx)]=state_vars->alpha[al_index(0,0,comp,Nx)];
-		}
-		else
-		{
+		} else {
 			alpha[al_index(0,0,comp,Nx)]=1; //Adding in the extracellular vol
-			for(PetscInt i=0;i<Nc-1;i++)
-			{
+			for(PetscInt i=0;i<Nc-1;i++) {
 				alpha[al_index(0,0,comp,Nx)]-=alpha[al_index(0,0,i,Nx)];
 			}
 		}
@@ -320,8 +312,6 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
     //set glial Cl concentration equal to neuronal Cl concentration
     c[c_index(0,0,1,2,Nx)] = c[c_index(0,0,0,2,Nx)];
 
-    // struct FluxPoPetscInt *flux;
-    // flux = (struct FluxPoint*)malloc(sizeof(struct FluxPoint));
 
     //compute cotransporter permeability so that glial Cl is at rest
     mclin(flux,c_index(0,0,1,2,Nx),pClLeakg,-1,c[c_index(0,0,1,2,Nx)],c[c_index(0,0,2,2,Nx)],vmg,0);
@@ -365,14 +355,12 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
     con_vars->ao[Nc-1] = 5e-4;
     PetscReal cmphi[Nc];
     PetscReal osmotic;
-    for(PetscInt k=0;k<Nc-1;k++)
-    {
+    for(PetscInt k=0;k<Nc-1;k++) {
       cmphi[k] = cm[k]*(phi[k]-phi[Nc-1]);
       cmphi[Nc-1] += cmphi[k];
       //set intracellular organic anion amounts to ensure osmotic pressure balance
       osmotic=0;
-      for(PetscInt ion=0;ion<Ni;ion++)
-      {
+      for(PetscInt ion=0;ion<Ni;ion++) {
       	osmotic += c[c_index(0,0,Nc-1,ion,Nx)]-c[c_index(0,0,k,ion,Nx)];
       }
       con_vars->ao[k] = alpha[k]*(con_vars->ao[Nc-1]/alpha[Nc-1]+osmotic);
@@ -382,10 +370,8 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
     con_vars->zo[Nc-1] = (-cz(c,z,0,0,Nx,Nc-1,user)*alpha[Nc-1]-cmphi[Nc-1])/con_vars->ao[Nc-1];
     //Copy the point data to vectors.
     //Only needed for uniform data
-    for(PetscInt x=0;x<Nx;x++)
-    {
-    	for(PetscInt y=0;y<Ny;y++)
-    	{
+    for(PetscInt x=0;x<Nx;x++) {
+    	for(PetscInt y=0;y<Ny;y++) {
     		//Gating variables (already set in gatevars_update)
     		//We changed c_index(0,0,0/1,2,Nx), neuronal/glial Cl.
     		state_vars->c[c_index(x,y,0,2,Nx)] = c[c_index(0,0,0,2,Nx)];
@@ -399,8 +385,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
  	//parameters for osmotic water flow
   	
 	 PetscReal zetaadjust = 1; //modify glial permeability  
-  	for(PetscInt comp=0;comp<Nc-1;comp++)
-  	{
+  	for(PetscInt comp=0;comp<Nc-1;comp++) {
   		//based on B.E. Shapiro dissertation (2000) 
   		con_vars->zeta1[comp] = 5.4e-5;  //hydraulic permeability in cm/sec/(mmol/cm^3)
 	  	con_vars->zeta1[comp] /= ell;  //conversion to 1/sec/(mmol/cm^3)
@@ -420,9 +405,6 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
     con_vars->S = 1;  //Indicates whether zetaalpha is the stiffness (true) or 1/stiffness (false)
 
     restore_subarray(state,state_vars);
-
-
-    return;
 }
 
 void initialize_data(Vec current_state,struct AppCtx *user)
@@ -471,7 +453,6 @@ void initialize_data(Vec current_state,struct AppCtx *user)
   	excitation(user,texct+1);
     PetscReal dt_temp = user->dt;
   	PetscInt k = 0;
-//    user->dt = 0.1;
     user->dt = 0.01;
   	
   	while(rsd>tol && k<1e5)
@@ -482,7 +463,6 @@ void initialize_data(Vec current_state,struct AppCtx *user)
         copy_simstate(current_state, user->state_vars_past);
         if (separate_vol) {
             memcpy(user->state_vars_past->alpha, user->state_vars->alpha, sizeof(PetscReal) * user->Nx * user->Ny * (Nc - 1));
-
             //Update volume
             volume_update(user->state_vars, user->state_vars_past, user);
         }
@@ -490,28 +470,21 @@ void initialize_data(Vec current_state,struct AppCtx *user)
         diff_coef(user->Dcs,user->state_vars->alpha,1,user);
         //Bath diffusion
         diff_coef(user->Dcb,user->state_vars->alpha,Batheps,user);
-
-//        Update_Solution(current_state, texct + 1, user);
         restore_subarray(current_state, user->state_vars);
 
 
         newton_solve(current_state,slvr,user);
-//        SNESSolve(user->slvr->snes,NULL,current_state);
-
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
 
         // Set to be "firstpass" (that's the 1)
         // So that we set to alpha/beta infinity values as if it came to rest
-        gatevars_update(user->gate_vars,user->gate_vars,user->state_vars,user->dt*1e3,user,1);
+        gatevars_update(user->gate_vars,user->gate_vars_past,user->state_vars,user->dt*1e3,user,1);
 
 
     	rsd_v[0] = array_diff_max(user->state_vars->c,user->state_vars_past->c,(size_t)Nx*Ny*Nc*Ni);
         rsd_v[1] = array_diff_max(user->state_vars->phi,user->state_vars_past->phi,(size_t)Nx*Ny*Nc);
         rsd_v[2] = array_diff_max(user->state_vars->alpha,user->state_vars_past->alpha,(size_t)Nx*Ny*(Nc-1));
-//        if(details|| k%1000==0) {
-//            printf("%.10e,%.10e,%.10e\n",user->state_vars->c[0],user->state_vars->phi[0]*RTFC,user->state_vars->alpha[0]);
-//        }
         rsd = array_max(rsd_v,3);
         restore_subarray(current_state,user->state_vars);
         if(details|| k%1000==0) {
@@ -557,9 +530,8 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     restore_subarray(current_state,user->state_vars);
   	free(slvr);
     printf("Initialization stopped at %.10e in %d iterations\n",rsd,k);
-	if(rsd>tol)
-  	{
-    	fprintf(stderr, "Did not converge! Aborting...\n");
+	if(rsd>tol) {
+    	fprintf(stderr, "Did not converge! Continuing anyway...\n");
 //    	exit(EXIT_FAILURE); /* indicate failure.*/
         return;
 	} else {
@@ -595,8 +567,6 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     user->Nz = (Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny)); //number of nonzeros in Jacobian
 
     PetscInt NA = slvr->NA;
-    PetscInt Nz = user->Nz;
-
 
   	//Create Vectors
     ierr = VecCreate(PETSC_COMM_WORLD,&slvr->Q);CHKERRQ(ierr);
@@ -609,28 +579,22 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     int *nnz = (int*) malloc(sizeof(int)*NA);
     Get_Nonzero_in_Rows(nnz,user,0);
     //Construct matrix using that
-  	// ierr = MatCreateSeqAIJ(PETSC_COMM_WORLD,NA,NA,5*Nv,nnz,&slvr->A);CHKERRQ(ierr);
     ierr = MatCreate(PETSC_COMM_WORLD,&slvr->A);CHKERRQ(ierr);
   	ierr = MatSetType(slvr->A,MATSEQAIJ);CHKERRQ(ierr);
   	ierr = MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,NA,NA);CHKERRQ(ierr);
   	ierr = MatSeqAIJSetPreallocation(slvr->A,5*Nv,nnz);CHKERRQ(ierr);
-  	// ierr = MatSetFromOptions(slvr->A);CHKERRQ(ierr);
   	ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
 
-
     //Initialize Space
-
 
     ierr = initialize_jacobian(slvr->A,user,0); CHKERRQ(ierr);
     ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
 
   	//Create Solver Contexts
     ierr = SNESCreate(PETSC_COMM_WORLD,&slvr->snes); CHKERRQ(ierr);
-
-    
-//    ierr = KSPCreate(PETSC_COMM_WORLD,&slvr->ksp);CHKERRQ(ierr);
     ierr = SNESGetKSP(slvr->snes,&slvr->ksp); CHKERRQ(ierr);
 
+    //Choose solver based on constants.h options.
     if(Linear_Diffusion){
         if(use_en_deriv){
             //Set Function eval
@@ -683,14 +647,14 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 //    ierr = SNESSetType(slvr->snes,SNESNEWTONTR); CHKERRQ(ierr);
 
 
-//    ierr = KSPSetOperators(slvr->ksp,slvr->A,slvr->A);CHKERRQ(ierr);
+
 //    ierr = KSPSetType(slvr->ksp,KSPPREONLY);CHKERRQ(ierr);
-     ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
+//     ierr = KSPSetType(slvr->ksp,KSPBCGS);CHKERRQ(ierr);
 
     //Gmres type methods
 //     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
 //    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
-    /*
+//    /*
     ierr = KSPSetType(slvr->ksp,KSPDGMRES); CHKERRQ(ierr);
 
     ierr = KSPGMRESSetRestart(slvr->ksp,40); CHKERRQ(ierr);
@@ -719,24 +683,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     ierr = PCFactorSetMatOrderingType(slvr->pc,MATORDERINGNATURAL); CHKERRQ(ierr);
 //    */
-//     ierr = PCFactorSetUseInPlace(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
-    /*
-    PetscReal div_tol = 1e12;
-    PetscReal abs_tol = 1e-16;
-    PetscReal rel_tol = 1e-14;
-//    PetscReal abs_tol = 1e-12;
-//    PetscReal rel_tol = 1e-8;
-    ierr = KSPSetTolerances(slvr->ksp,rel_tol,abs_tol,div_tol,PETSC_DEFAULT);CHKERRQ(ierr);
-    ierr = KSPSetNormType(slvr->ksp,KSP_NORM_UNPRECONDITIONED);CHKERRQ(ierr);
-    */
 
-    /*
-        Set runtime options, e.g.,
-        -ksp_type <type> -pc_type <type> -ksp_monitor -ksp_rtol <rtol>
-    These options will override those specified above as long as
-    KSPSetFromOptions() is called _after_ any other customization
-    routines.
-    */
+
     ierr = SNESSetFromOptions(slvr->snes);CHKERRQ(ierr);
     ierr = KSPSetFromOptions(slvr->ksp);CHKERRQ(ierr);
     ierr = PCSetFromOptions(slvr->pc);CHKERRQ(ierr);
@@ -771,17 +719,13 @@ PetscErrorCode initialize_grid_slvr(struct Solver *slvr,int argc, char **argv,st
     int *nnz = (int*) malloc(sizeof(int)*NA);
     Get_Nonzero_in_Rows(nnz,user,1);
     //Construct matrix using that
-    // ierr = MatCreateSeqAIJ(PETSC_COMM_WORLD,NA,NA,5*Nv,nnz,&slvr->A);CHKERRQ(ierr);
     ierr = MatCreate(PETSC_COMM_WORLD,&slvr->A);CHKERRQ(ierr);
     ierr = MatSetType(slvr->A,MATSEQAIJ);CHKERRQ(ierr);
     ierr = MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,NA,NA);CHKERRQ(ierr);
     ierr = MatSeqAIJSetPreallocation(slvr->A,5*((Ni+2)*Nc-1),nnz);CHKERRQ(ierr);
-    // ierr = MatSetFromOptions(slvr->A);CHKERRQ(ierr);
     ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
 
-
     //Initialize Space
-
 
     ierr = initialize_grid_jacobian(slvr->A,user,1); CHKERRQ(ierr);
     ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
@@ -804,8 +748,6 @@ PetscErrorCode initialize_grid_slvr(struct Solver *slvr,int argc, char **argv,st
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_max_eigen","100"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_force",""); CHKERRQ(ierr);
 //*/
-
-
 
     ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
 
@@ -2129,13 +2071,10 @@ PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny)
 {
     PetscErrorCode  ierr;
     int x,y,ion,comp;
-    for(x=0;x<nx-1;x++)
-    {
-        for(y=0;y<ny-1;y++)
-        {
+    for(x=0;x<nx-1;x++) {
+        for(y=0;y<ny-1;y++) {
             //Interpolation for concentrations
-            for(ion=0;ion<Ni;ion++)
-            {
+            for(ion=0;ion<Ni;ion++) {
                 for(comp=0;comp<Nc;comp++) {
                     ierr = MatSetValue(R,Ind_1(2*x+1,2*y,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
                     ierr = MatSetValue(R,Ind_1(2*x+1,2*y,ion,comp,2*nx),Ind_1(x+1,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
@@ -2209,8 +2148,7 @@ PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny)
     x=nx-1;
     for(y=0;y<ny-1;y++) {
         //Interpolation for concentrations
-        for(ion=0;ion<Ni;ion++)
-        {
+        for(ion=0;ion<Ni;ion++) {
             for(comp=0;comp<Nc;comp++) {
                 ierr = MatSetValue(R,Ind_1(2*x+1,2*y,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
 
@@ -2267,8 +2205,7 @@ PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny)
     y=ny-1;
     for(x=0;x<nx-1;x++) {
         //Interpolation for concentrations
-        for(ion=0;ion<Ni;ion++)
-        {
+        for(ion=0;ion<Ni;ion++) {
             for(comp=0;comp<Nc;comp++) {
                 ierr = MatSetValue(R,Ind_1(2*x+1,2*y,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
                 ierr = MatSetValue(R,Ind_1(2*x+1,2*y,ion,comp,2*nx),Ind_1(x+1,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
@@ -2324,8 +2261,7 @@ PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny)
     }
     x=nx-1;y=ny-1;
     //Interpolation for concentrations
-    for(ion=0;ion<Ni;ion++)
-    {
+    for(ion=0;ion<Ni;ion++) {
         for(comp=0;comp<Nc;comp++) {
             ierr = MatSetValue(R,Ind_1(2*x+1,2*y,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
 
@@ -2360,18 +2296,14 @@ PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny)
             CHKERRQ(ierr);
 
             ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx), Ind_1(x, y, Ni + 1, comp, nx),
-                               1.0, INSERT_VALUES);
-            CHKERRQ(ierr);
-
+                               1.0, INSERT_VALUES);CHKERRQ(ierr);
             ierr = MatSetValue(R, Ind_1(2 * x, 2 * y, Ni + 1, comp, 2 * nx), Ind_1(x, y, Ni + 1, comp, nx), 1,
                                INSERT_VALUES);
             CHKERRQ(ierr);
         }
     }
-
     ierr = MatAssemblyBegin(R,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
     ierr = MatAssemblyEnd(R,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
-//    MatView(R,PETSC_VIEWER_STDOUT_SELF);
 
     return ierr;
 }
@@ -2406,61 +2338,6 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A,struct AppCtx*user)
     ierr = KSPGetPC(coarse_ksp,&coarse_pc);CHKERRQ(ierr);
     ierr = PCSetType(coarse_pc,PCLU); CHKERRQ(ierr);
     ierr = PCFactorSetMatSolverPackage(coarse_pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
-
-
-/*
-    //Make Multigrid operators at each level
-    ierr = PCMGGetSmoother(pc,0,&sksp); CHKERRQ(ierr);
-    ierr = KSPSetOperators(sksp,A,A); CHKERRQ(ierr);
-
-    ierr = MatCreate(PETSC_COMM_WORLD,&Aprev); CHKERRQ(ierr);
-    ierr = MatDuplicate(A,MAT_COPY_VALUES,&Aprev); CHKERRQ(ierr);
-    for (int i=1; i<nlevels; i++) {
-
-        //Make restriction operator
-        ierr = MatCreate(PETSC_COMM_WORLD,&R);CHKERRQ(ierr);
-        ierr = MatSetType(R,MATSEQAIJ);CHKERRQ(ierr);
-        ierr = MatSetSizes(R,PETSC_DECIDE,PETSC_DECIDE,nx/2*ny/2*Nv,nx*ny*Nv);CHKERRQ(ierr);
-        ierr = MatSeqAIJSetPreallocation(R,9,NULL);CHKERRQ(ierr);
-        ierr = MatSetOption(R,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
-
-        ierr = Create_Restriction(R,nx,ny); CHKERRQ(ierr);
-
-        ierr = PCMGSetRestriction(pc,i,R); CHKERRQ(ierr);
-
-
-        //Make interpolation opperator
-        ierr = MatCreate(PETSC_COMM_WORLD,&P);CHKERRQ(ierr);
-        ierr = MatSetType(P,MATSEQAIJ);CHKERRQ(ierr);
-        ierr = MatSetSizes(P,PETSC_DECIDE,PETSC_DECIDE,nx*ny*Nv,nx/2*ny/2*Nv);CHKERRQ(ierr);
-        ierr = MatSeqAIJSetPreallocation(P,4,NULL);CHKERRQ(ierr);
-        ierr = MatSetOption(P,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
-
-        ierr = Create_Interpolation(P,nx/2,ny/2); CHKERRQ(ierr);
-
-        ierr = PCMGSetInterpolation(pc,i,P); CHKERRQ(ierr);
-
-        ierr = PCMGGetSmoother(pc,i,&sksp); CHKERRQ(ierr);
-
-        ierr = MatCreate(PETSC_COMM_WORLD,&Ai);CHKERRQ(ierr);
-        ierr = MatSetType(Ai,MATSEQAIJ);CHKERRQ(ierr);
-        ierr = MatSetSizes(Ai,PETSC_DECIDE,PETSC_DECIDE,nx/2*ny/2*Nv,nx/2*ny/2*Nv);CHKERRQ(ierr);
-        ierr = MatSetUp(Ai); CHKERRQ(ierr);
-
-        ierr = MatMatMatMult(R,Aprev,P,MAT_INITIAL_MATRIX,PETSC_DEFAULT,&Ai); CHKERRQ(ierr);
-        ierr = KSPSetOperators(sksp,Ai,Ai); CHKERRQ(ierr);
-        ierr = MatDuplicate(Ai,MAT_COPY_VALUES,&Aprev); CHKERRQ(ierr);
-
-        ierr = MatDestroy(&Ai);CHKERRQ(ierr);
-        ierr = MatDestroy(&R); CHKERRQ(ierr);
-        ierr = MatDestroy(&P); CHKERRQ(ierr);
-
-        nx = nx/2;
-        ny = ny/2;
-    }
-    */
-
-
 
     //Make restriction operators
     for (int i=nlevels-1; i>0; i--) {

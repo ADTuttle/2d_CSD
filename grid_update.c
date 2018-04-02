@@ -2,7 +2,9 @@
 #include "functions.h"
 
 void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
-
+    if(Profiling_on) {
+        PetscLogEventBegin(event[12], 0, 0, 0, 0);
+    }
     struct SimState *state_vars = user->state_vars_past;
     struct SimState * grid_vars = user->grid_vars;
 
@@ -15,13 +17,10 @@ void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
     PetscInt ny = 2*width_size+1;
     PetscInt xind,yind,ion,comp,x,y;
 
-
     for( x=0;x<nx;x++) {
         for ( y = 0; y < ny; y++) {
             xind = x-width_size+xi;
-
             yind = y-width_size+yi;
-
             //If in interior just copy
             if(xind>-1 && yind>-1 && xind<Nx && yind<Ny) {
 
@@ -245,10 +244,15 @@ void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
             }
         }
     }
-
+    if(Profiling_on) {
+        PetscLogEventEnd(event[12], 0, 0, 0, 0);
+    }
 }
 
 void Unload_Grid(struct AppCtx *user,PetscInt x, PetscInt y){
+    if(Profiling_on) {
+        PetscLogEventBegin(event[13], 0, 0, 0, 0);
+    }
     PetscInt comp,ion;
     PetscInt Nx = user->Nx;
     PetscInt nx = 2*width_size+1;
@@ -274,6 +278,10 @@ void Unload_Grid(struct AppCtx *user,PetscInt x, PetscInt y){
     user->gate_vars->mKA[xy_index(x, y, Nx)] = user->grid_gate_vars->mKA[xy_index(width_size, width_size, nx)];
     user->gate_vars->hKA[xy_index(x, y, Nx)] = user->grid_gate_vars->hKA[xy_index(width_size, width_size, nx)];
     user->gate_vars->gKA[xy_index(x, y, Nx)] = user->grid_gate_vars->gKA[xy_index(width_size, width_size, nx)];
+
+    if(Profiling_on) {
+        PetscLogEventEnd(event[13], 0, 0, 0, 0);
+    }
 }
 
 PetscErrorCode Grid_Residual(Vec Res,PetscInt xi,PetscInt yi,void *ctx)
@@ -933,7 +941,7 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
     struct AppCtx * user = (struct AppCtx *) ctx;
     PetscErrorCode ierr;
     if(Profiling_on) {
-        PetscLogEventBegin(event[1], 0, 0, 0, 0);
+        PetscLogEventBegin(event[10], 0, 0, 0, 0);
     }
     //Compute membrane ionic flux relation quantitites
     grid_ionmflux(user);
@@ -946,7 +954,6 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
     PetscReal *al = user->grid_vars->alpha;
     PetscReal *cp = user->grid_vars_past->c;
     PetscReal *alp = user->grid_vars_past->alpha;
-    PetscReal *phip = user->grid_vars_past->phi;
 
     PetscReal *Dcs = user->Dcs;
     PetscReal *Dcb = user->Dcb;
@@ -1067,13 +1074,10 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
 
-    for(x=0;x<Nx;x++)
-    {
-        for(y=0;y<Ny;y++)
-        {
+    for(x=0;x<Nx;x++) {
+        for(y=0;y<Ny;y++) {
             // Add Modification to electroneutrality for non-zero mem.compacitance
-            for(comp=0;comp<Nc-1;comp++)
-            {
+            for(comp=0;comp<Nc-1;comp++) {
                 //Extracell voltage
                 ierr = VecSetValue(Res,Ind_2(x,y,Ni,Nc-1,Nx),-cm[comp]*(phi[phi_index(x,y,Nc-1,Nx)]-phi[phi_index(x,y,comp,Nx)]),ADD_VALUES);CHKERRQ(ierr);
                 //Intracell voltage mod
@@ -1086,7 +1090,7 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
 
     if(Profiling_on) {
-        PetscLogEventEnd(event[1], 0, 0, 0, 0);
+        PetscLogEventEnd(event[10], 0, 0, 0, 0);
     }
     return ierr;
 }
@@ -1099,7 +1103,7 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
     struct AppCtx * user = (struct AppCtx *) ctx;
     PetscErrorCode ierr;
     if(Profiling_on) {
-        PetscLogEventBegin(event[0], 0, 0, 0, 0);
+        PetscLogEventBegin(event[9], 0, 0, 0, 0);
     }
     PetscReal *c = user->grid_vars->c;
     PetscReal *al = user->grid_vars->alpha;
@@ -1307,15 +1311,11 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
     }
 
     //Electroneutrality charge-capcitance condition
-    for(x=0;x<Nx;x++)
-    {
-        for(y=0;y<Ny;y++)
-        {
+    for(x=0;x<Nx;x++) {
+        for(y=0;y<Ny;y++) {
             //electroneutral-concentration entries
-            for(ion=0;ion<Ni;ion++)
-            {
-                for(comp=0;comp<Nc-1;comp++)
-                {
+            for(ion=0;ion<Ni;ion++) {
+                for(comp=0;comp<Nc-1;comp++) {
                     //Phi with C entries
                     ierr = MatSetValue(Jac,Ind_2(x,y,Ni,comp,Nx),Ind_2(x,y,ion,comp,Nx),z[ion]*al[al_index(x,y,comp,Nx)],INSERT_VALUES); CHKERRQ(ierr);
                     ind++;
@@ -1328,15 +1328,13 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
             }
             //electroneutrality-voltage entries
             Aphi = 0;
-            for(comp=0;comp<Nc-1;comp++)
-            {
+            for(comp=0;comp<Nc-1;comp++) {
                 Aphi -= cm[comp];
             }
             //extraphi with extra phi
             ierr = MatSetValue(Jac,Ind_2(x,y,Ni,Nc-1,Nx),Ind_2(x,y,Ni,Nc-1,Nx),Aphi,INSERT_VALUES);CHKERRQ(ierr);
             ind++;
-            for(comp=0;comp<Nc-1;comp++)
-            {
+            for(comp=0;comp<Nc-1;comp++) {
                 //The next 3 are inserted in init jacobian for the grid
                 //Extra phi with intra phi
 //                ierr = MatSetValue(Jac,Ind_2(x,y,Ni,Nc-1,Nx),Ind_2(x,y,Ni,comp,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
@@ -1390,7 +1388,7 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
     ierr = MatAssemblyEnd(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
 
     if(Profiling_on) {
-        PetscLogEventEnd(event[0], 0, 0, 0, 0);
+        PetscLogEventEnd(event[9], 0, 0, 0, 0);
     }
     return ierr;
 }
@@ -1398,11 +1396,13 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
 int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
 
 
+    if(Profiling_on) {
+        PetscLogEventBegin(event[11], 0, 0, 0, 0);
+    }
+
     PetscReal rsd;
     PetscErrorCode ierr = 0;
     PetscReal *temp;
-    PetscInt num_iter;
-    PetscReal rnorm;
 
     PetscInt x,y,comp,ion;
     PetscInt Nx = 2*width_size+1;
@@ -1410,7 +1410,6 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
 
 
     PetscReal tol = reltol * array_max(user->grid_vars_past->c, (size_t) Nx * Ny * Ni * Nc);
-//    tol = reltol * tol;
     rsd = tol + 1;
 
     for (PetscInt iter = 0; iter < itermax; iter++) {
@@ -1418,12 +1417,10 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
         ierr = Grid_Residual_algebraic(user->grid_slvr->Res, xi, yi, user);CHKERRQ(ierr);
 
         ierr = VecNorm(user->grid_slvr->Res, NORM_MAX, &rsd);CHKERRQ(ierr);
-//        if(xi==16&&yi==16) {
-//            printf("Iteration: %d, Residual: %.10e\n", iter, rsd);
-//        }
+
         if (rsd < tol) {
-            if (details) {
-                printf("Iteration: %d, Residual: %.10e\n", iter, rsd);
+            if(Profiling_on) {
+                PetscLogEventEnd(event[11], 0, 0, 0, 0);
             }
             return iter;
         }
@@ -1435,18 +1432,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
         //Solve
         ierr = KSPSolve(user->grid_slvr->ksp, user->grid_slvr->Res, user->grid_slvr->Q);CHKERRQ(ierr);
 
-        ierr = KSPGetIterationNumber(user->grid_slvr->ksp, &num_iter);CHKERRQ(ierr);
-        ierr = KSPGetResidualNorm(user->grid_slvr->ksp, &rnorm);CHKERRQ(ierr);
 
-        // printf("KSP Solve time: %f, iter num:%d, norm: %.10e\n",toc-tic,num_iter,rnorm);
-//        ierr = KSPView(slvr->ksp,PETSC_VIEWER_STDOUT_SELF);CHKERRQ(ierr);
-
-
-        if (details) {
-            printf("iter num:%d, norm: %.10e\n", num_iter, rnorm);CHKERRQ(ierr);
-        }
-
-//        PetscTime(&tic);
         ierr = VecGetArray(user->grid_slvr->Q, &temp);CHKERRQ(ierr);
         for (x = 0; x < Nx; x++) {
             for (y = 0; y < Ny; y++) {
@@ -1463,15 +1449,14 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
         }
         ierr = VecRestoreArray(user->grid_slvr->Q, &temp);CHKERRQ(ierr);
 
-
-        if (details) {
-            printf("Iteration: %d, Residual: %.10e, tol: %.10e\n", iter, rsd,tol);
-        }
     }
 
     if (rsd > tol) {
         fprintf(stderr, "Netwon Iteration did not converge! Stopping...\n");
         exit(EXIT_FAILURE); /* indicate failure.*/
+    }
+    if(Profiling_on) {
+        PetscLogEventEnd(event[11], 0, 0, 0, 0);
     }
     return itermax;
 }
@@ -1523,7 +1508,6 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
 
             accepted_step = 1;
 
-
             //Load current variable into past variable
             memcpy(user->grid_vars_past->c,user->grid_vars->c,sizeof(PetscReal)*Nx*Ny*Nc*Ni);
             memcpy(user->grid_vars_past->phi,user->grid_vars->phi,sizeof(PetscReal)*Nx*Ny*Nc);
@@ -1535,11 +1519,10 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
             grid_diff_coef(user->Dcb, user->grid_vars_past->alpha, Batheps, user);
 
         } else {
-
             //If we aren't below cutoff. Half the time step.
             user->dt = user->dt / 2;
             NSteps = 2 * NSteps;
-//            printf("Reducing step at (%d,%d) to %f\n",xi,yi,user->dt);
+            printf("Reducing step at (%d,%d) to %f\n",xi,yi,user->dt);
             //Reset current vars
             //Load current variable into past variable
             memcpy(user->grid_vars->c,user->grid_vars_past->c,sizeof(PetscReal)*Nx*Ny*Nc*Ni);
@@ -1570,31 +1553,19 @@ PetscErrorCode Update_Solution(Vec current_state,PetscReal t,struct AppCtx *user
     PetscInt nx = 2*width_size+1;
     PetscInt ny = 2*width_size+1;
 
-//    extract_subarray(current_state,user->state_vars);
-//    extract_subarray(user->state_vars_past->v,user->state_vars_past);
-
-
 
     for(x=0;x<Nx;x++){
         for(y=0;y<Ny;y++){
-
 //            printf("Updating: (%d,%d)\n",x,y);
             //Load new gridpoint
             Load_Grid(user,x,y);
             //Update new grid
             Update_Grid(x,y,t,user);
-
             //Save the held variable
             Unload_Grid(user,x,y);
-
-
         }
     }
 
-
-
-//    restore_subarray(current_state,user->state_vars);
-//    restore_subarray(user->state_vars_past->v,user->state_vars_past);
 
     return ierr;
 
