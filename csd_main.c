@@ -15,7 +15,9 @@ int main(int argc, char **argv)
     user->slvr = slvr;
     user->grid_slvr = grid_slvr;
     ierr = initialize_petsc(slvr,argc,argv,user);CHKERRQ(ierr);
-    ierr = initialize_grid_slvr(grid_slvr,argc,argv,user);CHKERRQ(ierr);
+    if(Predictor) {
+        ierr = initialize_grid_slvr(grid_slvr, argc, argv, user);CHKERRQ(ierr);
+    }
 
     PetscReal dt = user->dt;
     PetscInt Nt = (PetscInt) floor(Time/dt);
@@ -116,14 +118,16 @@ int main(int argc, char **argv)
     fp = fopen("data_csd.txt","w");
 
     FILE *fdt;
-    fdt = fopen("csd_dt.txt","w");
+    if(Predictor) {
+        fdt = fopen("csd_dt.txt", "w");
+        save_timestep(fdt,user,numrecords,1);
+    }
 
     FILE *fptime;
     fptime = fopen("timing.txt","a");
     extract_subarray(current_state,state_vars);
     write_data(fp,user,numrecords,1);
 //    write_point(fp,user,numrecords,1);
-    save_timestep(fdt,user,numrecords,1);
     FILE *fpflux;
     fpflux = fopen("flux_csd.txt","w");
     measure_flux(fpflux,user,numrecords,1);
@@ -133,12 +137,14 @@ int main(int argc, char **argv)
     //Create the excitation
     excitation(user,0);
     int count = 0;
-    PetscInt num_iters,ksp_iters_old,ksp_iters_new;
+    PetscInt num_iters,ksp_iters_old,ksp_iters_new,grid_ksp_old;
     PetscInt total_newton = 0;
+    int refinement;
     SNESConvergedReason reason;
     PetscTime(&full_tic);
     for(PetscReal t=dt;t<=Time;t+=dt)
     {
+        count++;
         //Save the "current" aka past state
         ierr = restore_subarray(user->state_vars_past->v,user->state_vars_past); CHKERRQ(ierr);
         ierr = copy_simstate(current_state,user->state_vars_past); CHKERRQ(ierr);
@@ -147,9 +153,22 @@ int main(int argc, char **argv)
         }
 
         //Newton update
-        PetscTime(&grid_tic);
-        Update_Solution(current_state,t,user);
-        PetscTime(&grid_toc);
+        if(Predictor) {
+            PetscTime(&grid_tic);
+            Update_Solution(current_state, t, user);
+            PetscTime(&grid_toc);
+
+            if(count%krecordfreq==0) {
+                refinement=0;
+                for(int z=0;z<user->Nx*user->Ny;z++){
+                    if(user->dt_space[z]<user->dt){refinement++;}
+                }
+                KSPGetTotalIterations(user->grid_slvr->ksp,&ksp_iters_new);
+                printf("Grid Time: %f, #Refined %d, Kspiters/#pts: %.2f\n", grid_toc - grid_tic,refinement,((double)ksp_iters_new-grid_ksp_old)/(user->Nx*user->Ny));
+                save_timestep(fdt,user,numrecords,0);
+                grid_ksp_old = ksp_iters_new;
+            }
+        }
 
         if(separate_vol) {
             //Update volume(uses past c values for wflow)
@@ -183,11 +202,7 @@ int main(int argc, char **argv)
         extract_subarray(current_state,user->state_vars);
 
         gatevars_update(user->gate_vars,user->gate_vars_past,user->state_vars,user->dt*1e3,user,0);
-        if(separate_vol) {
-            //Update volume (this uses new c values for wflow)
-//            volume_update(user->state_vars, user->state_vars_past, user);
-        }
-        count++;
+
         //Copy old gating variables
         //Save the gating variables
         memcpy(user->gate_vars_past->mNaT,user->gate_vars->mNaT,sizeof(PetscReal)*user->Nx*user->Ny);
@@ -204,11 +219,10 @@ int main(int argc, char **argv)
 
 
         if(count%krecordfreq==0) {
-            printf("Time: %f,Grid Time: %f,Newton time: %f,iters:%d, Reason: %d,KSPIters: %d\n",t, grid_toc-grid_tic,toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
+            printf("Time: %f,Newton time: %f,iters:%d, Reason: %d,KSPIters: %d\n",t,toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
 //            write_point(fp, user,numrecords, 0);
             write_data(fp, user,numrecords, 0);
             measure_flux(fpflux,user,numrecords,0);
-            save_timestep(fdt,user,numrecords,0);
         }
         ksp_iters_old = ksp_iters_new;
         if(reason<0){

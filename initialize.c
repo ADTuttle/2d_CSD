@@ -22,14 +22,15 @@ PetscInt xy_index(PetscInt x,PetscInt y,PetscInt Nx)
 {
 	return Nx*y+x;
 }
+//Index based on Nv, which can change to either include or exclude alpha
 PetscInt Ind_1(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp,PetscInt Nx)
 {
     return Nv*(Nx*y+x)+ion*Nc+comp;
 }
-
-PetscInt Ind_nx(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp, PetscInt nx)
+// Index based on solving c,phi, and alpha.
+PetscInt Ind_2(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp, PetscInt nx)
 {
-    return Nv*(nx*y+x)+ion*Nc+comp;
+    return ((Ni+2)*Nc-1)*(nx*y+x)+ion*Nc+comp;
 }
 
 PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx *user)
@@ -444,9 +445,10 @@ void initialize_data(Vec current_state,struct AppCtx *user)
 
   	//Initialize and compute the excitation (it's zeros here)
   	excitation(user,texct+1);
+
+  	PetscReal dt_temp = user->dt;
   	PetscInt k = 0;
     user->dt = 0.1;
-//  	PetscReal dt_temp = 0.1;
     // PetscReal dt_temp = 0.01;
   	
   	while(rsd>tol && user->dt*k<10) {
@@ -462,26 +464,28 @@ void initialize_data(Vec current_state,struct AppCtx *user)
             volume_update(user->state_vars, user->state_vars_past, user);
         }
         //compute diffusion coefficients
-//        diff_coef(user->Dcs,user->state_vars->alpha,1,user);
+        diff_coef(user->Dcs,user->state_vars->alpha,1,user);
         //Bath diffusion
-//        diff_coef(user->Dcb,user->state_vars->alpha,Batheps,user);
+        diff_coef(user->Dcb,user->state_vars->alpha,Batheps,user);
+
+//        Update_Solution(current_state, texct + 1, user);
         restore_subarray(current_state, user->state_vars);
 
 //    	newton_solve(current_state,user);
         SNESSolve(user->slvr->snes,NULL,current_state);
-//        Update_Solution(current_state, texct + 1, user);
 
         //Update gating variables
         extract_subarray(current_state, user->state_vars);
-//        gatevars_update(user->gate_vars,user->state_vars,user->dt*1e3,user,0);
+        gatevars_update(user->gate_vars,user->gate_vars,user->state_vars,user->dt*1e3,user,1);
 
         //Update Excitation
     	rsd = array_diff_max(user->state_vars->c,cp,(size_t)Nx*Ny*Nc*Ni)/user->dt;
+
         restore_subarray(current_state,user->state_vars);
         printf("Init_Data rsd: %.10e, Tol: %.10e\n",rsd,tol);
     	k++;
 	}
-  	
+  	user->dt = dt_temp;
   	free(cp);
 	if(rsd>1e-7)
   	{
@@ -503,8 +507,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
   	ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
     //    Get Nx, Ny, and dt from options if possible
 
-    user->Nx = 32;
-    user->Ny = 32;
+    user->Nx = 128;
+    user->Ny = 128;
     user->dt =0.01;
 
     PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);
@@ -709,7 +713,7 @@ PetscErrorCode initialize_grid_slvr(struct Solver *slvr,int argc, char **argv,st
     //Initialize Space
 
 
-    ierr = initialize_jacobian(slvr->A,user,1); CHKERRQ(ierr);
+    ierr = initialize_grid_jacobian(slvr->A,user,1); CHKERRQ(ierr);
     ierr = MatSetOption(slvr->A,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
 
     //Create Solver Contexts
@@ -761,14 +765,17 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
     PetscInt Nx;
     PetscInt Ny;
     PetscInt NA;
+    PetscInt (*Ind)(PetscInt,PetscInt,PetscInt,PetscInt,PetscInt);
     if(grid) {
         Nx = 2 * width_size + 1;
         Ny = 2 * width_size + 1;
         NA = user->grid_slvr->NA;
+        Ind = &Ind_2;
     }else{
         Nx = user->Nx;
         Ny = user->Ny;
         NA = user->slvr->NA;
+        Ind = &Ind_1;
     }
     //Make sure nnz is initialized to zero
     for(int i=0;i<NA;i++)
@@ -789,86 +796,86 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                     //Electrodiffusion contributions
                     if(x<Nx-1)
                     {
-                        nnz[Ind_1(x+1,y,ion,comp,Nx)]++; //Ind_1(x,y,ion,comp,Nx)
+                        nnz[Ind(x+1,y,ion,comp,Nx)]++; //Ind_1(x,y,ion,comp,Nx)
                         ind++;
                         //Right c with left phi (-Fph0x)
-                        nnz[Ind_1(x+1,y,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                        nnz[Ind(x+1,y,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                         ind++;
-                        nnz[Ind_1(x+1,y,Ni,comp,Nx)]++;
+                        nnz[Ind(x+1,y,Ni,comp,Nx)]++;
                         ind++;
                     }
                     if(x>0)
                     {
                         //left c with right c (-Fc1x)
-                        nnz[Ind_1(x-1,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
+                        nnz[Ind(x-1,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                         ind++;
                         //Left c with right phi (-Fph1x)
-                        nnz[Ind_1(x-1,y,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                        nnz[Ind(x-1,y,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                         ind++;
-                        nnz[Ind_1(x-1,y,Ni,comp,Nx)]++;
+                        nnz[Ind(x-1,y,Ni,comp,Nx)]++;
                         ind++;
                     }
                     if(y<Ny-1)
                     {
                         // Upper c with lower c (-Fc0y)
-                        nnz[Ind_1(x,y+1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx);
+                        nnz[Ind(x,y+1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx);
                         ind++;
                         //Upper c with lower phi (-Fph0y)
-                        nnz[Ind_1(x,y+1,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                        nnz[Ind(x,y+1,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                         ind++;
-                        nnz[Ind_1(x,y+1,Ni,comp,Nx)]++;
+                        nnz[Ind(x,y+1,Ni,comp,Nx)]++;
                         ind++;
                     }
                     if(y>0)
                     {
                         //Lower c with Upper c (-Fc1y)
-                        nnz[Ind_1(x,y-1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
+                        nnz[Ind(x,y-1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                         ind++;
                         //Lower c with Upper phi (-Fph1y)
-                        nnz[Ind_1(x,y-1,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                        nnz[Ind(x,y-1,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                         ind++;
-                        nnz[Ind_1(x,y-1,Ni,comp,Nx)]++;
+                        nnz[Ind(x,y-1,Ni,comp,Nx)]++;
                         ind++;
                     }
       
                     //membrane current contributions
                     // Different Compartment Terms
                     // C Extracellular with C Inside
-                    nnz[Ind_1(x,y,ion,Nc-1,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
+                    nnz[Ind(x,y,ion,Nc-1,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     ind++;
                     // C Intra with C Extra
-                    nnz[Ind_1(x,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,Nc-1,Nx)
+                    nnz[Ind(x,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,Nc-1,Nx)
                     ind++;
                     // C Extracellular with Phi Inside
-                    nnz[Ind_1(x,y,ion,Nc-1,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                    nnz[Ind(x,y,ion,Nc-1,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
                     // C Intra with Phi Extra
-                    nnz[Ind_1(x,y,ion,comp,Nx)]++;//Ind_1(x,y,Ni,Nc-1,Nx)
+                    nnz[Ind(x,y,ion,comp,Nx)]++;//Ind_1(x,y,Ni,Nc-1,Nx)
                     ind++;
                     if(!separate_vol||grid) {
                         //Volume terms
                         //C extra with intra alpha
-                        nnz[Ind_1(x, y, ion, Nc - 1,Nx)]++;//Ind_1(x,y,Ni+1,comp,Nx)
+                        nnz[Ind(x, y, ion, Nc - 1,Nx)]++;//Ind_1(x,y,Ni+1,comp,Nx)
                         ind++;
                         //C intra with intra alpha
-                        nnz[Ind_1(x, y, ion, comp,Nx)]++;//Ind_1(x,y,Ni+1,comp,Nx)
+                        nnz[Ind(x, y, ion, comp,Nx)]++;//Ind_1(x,y,Ni+1,comp,Nx)
                         ind++;
                     }
                     //Same compartment terms
                     // c with c
-                    nnz[Ind_1(x,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
+                    nnz[Ind(x,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     ind++;
                      // c with phi
-                    nnz[Ind_1(x,y,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                    nnz[Ind(x,y,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
 
                     //Intra-Phi with c (voltage eqn)
-                    nnz[Ind_1(x,y,Ni,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
+                    nnz[Ind(x,y,Ni,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     //IntraPhi with c extra(volt eqn)
-                    nnz[Ind_1(x,y,Ni,comp,Nx)]++;//Ind_1(x,y,ion,Nc-1,Nx)
+                    nnz[Ind(x,y,Ni,comp,Nx)]++;//Ind_1(x,y,ion,Nc-1,Nx)
 
                     //Extra-Phi with intra-c (voltage eqn)
-                    nnz[Ind_1(x,y,Ni,Nc-1,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
+                    nnz[Ind(x,y,Ni,Nc-1,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
 
 
                 }
@@ -878,45 +885,45 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                 if(x<Nx-1)
                 {
                     // Right c with left c (-Fc0x)
-                    nnz[Ind_1(x+1,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
+                    nnz[Ind(x+1,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     ind++;
                     //Right c with left phi (-Fph0x)
-                    nnz[Ind_1(x+1,y,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                    nnz[Ind(x+1,y,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
-                    nnz[Ind_1(x+1,y,Ni,comp,Nx)]++;
+                    nnz[Ind(x+1,y,Ni,comp,Nx)]++;
                     ind++;
                 }
                 if(x>0)
                 {
                     //left c with right c (-Fc1x)
-                    nnz[Ind_1(x-1,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
+                    nnz[Ind(x-1,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     ind++;
                     //Left c with right phi (-Fph1x)
-                    nnz[Ind_1(x-1,y,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                    nnz[Ind(x-1,y,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
-                    nnz[Ind_1(x-1,y,Ni,comp,Nx)]++;
+                    nnz[Ind(x-1,y,Ni,comp,Nx)]++;
                     ind++;
                 }
                 if(y<Ny-1)
                 {
                     // Upper c with lower c (-Fc0y)
-                    nnz[Ind_1(x,y+1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
+                    nnz[Ind(x,y+1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     ind++;
                     //Upper c with lower phi (-Fph0y)
-                    nnz[Ind_1(x,y+1,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                    nnz[Ind(x,y+1,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
-                    nnz[Ind_1(x,y+1,Ni,comp,Nx)]++;
+                    nnz[Ind(x,y+1,Ni,comp,Nx)]++;
                     ind++;
                 }
                 if(y>0)
                 {
                     //Lower c with Upper c (-Fc1y)
-                    nnz[Ind_1(x,y-1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
+                    nnz[Ind(x,y-1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     ind++;
                     //Lower c with Upper phi (-Fph1y)
-                    nnz[Ind_1(x,y-1,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                    nnz[Ind(x,y-1,ion,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
-                    nnz[Ind_1(x,y-1,Ni,comp,Nx)]++;
+                    nnz[Ind(x,y-1,Ni,comp,Nx)]++;
                     ind++;
                 }
             
@@ -924,13 +931,13 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                 //Add bath contributions
                 //Insert extracell to extracell parts
                 // c with c
-                nnz[Ind_1(x,y,ion,Nc-1,Nx)]++;//Ind_1(x,y,ion,Nc-1,Nx)
+                nnz[Ind(x,y,ion,Nc-1,Nx)]++;//Ind_1(x,y,ion,Nc-1,Nx)
                 ind++;
                  // c with phi
-                nnz[Ind_1(x,y,ion,Nc-1,Nx)]++;//Ind_1(x,y,Ni,Nc-1,Nx)
+                nnz[Ind(x,y,ion,Nc-1,Nx)]++;//Ind_1(x,y,Ni,Nc-1,Nx)
                 ind++;
                 //Extra phi with c (volt eqn)
-                nnz[Ind_1(x,y,Ni,Nc-1,Nx)]++;
+                nnz[Ind(x,y,Ni,Nc-1,Nx)]++;
                 ind++;
             }
             //Derivative of charge-capacitance
@@ -938,32 +945,32 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                 if(x<Nx-1)
                 {
                     //Right phi with left phi (-Fph0x)
-                    nnz[Ind_1(x+1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                    nnz[Ind(x+1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
                 }
                 if(x>0)
                 {
                     //Left phi with right phi (-Fph1x)
-                    nnz[Ind_1(x-1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                    nnz[Ind(x-1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
                 }
                 if(y<Ny-1)
                 {
                     //Upper phi with lower phi (-Fph0y)
-                    nnz[Ind_1(x,y+1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                    nnz[Ind(x,y+1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
                 }
                 if(y>0)
                 {
                     //Lower phi with upper phi (-Fph1y)
-                    nnz[Ind_1(x,y-1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                    nnz[Ind(x,y-1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
                 }
                 //Intra-phi with Intra-phi
-                nnz[Ind_1(x,y,Ni,comp,Nx)]++;
+                nnz[Ind(x,y,Ni,comp,Nx)]++;
                 ind++;
                 //Intra-phi with extra-phi
-                nnz[Ind_1(x,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,Nc-1,Nx)
+                nnz[Ind(x,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,Nc-1,Nx)
                 ind++;
             }
             //Extracellular terms
@@ -971,35 +978,35 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
             if(x<Nx-1)
             {
                 //Right phi with left phi (-Fph0x)
-                nnz[Ind_1(x+1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                nnz[Ind(x+1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                 ind++;
             }
             if(x>0)
             {
                 //Left phi with right phi (-Fph1x)
-                nnz[Ind_1(x-1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                nnz[Ind(x-1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                 ind++;
             }
             if(y<Ny-1)
             {
                 //Upper phi with lower phi (-Fph0y)
-                nnz[Ind_1(x,y+1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                nnz[Ind(x,y+1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                 ind++;
             }
             if(y>0)
             {
                 //Lower phi with upper phi (-Fph1y)
-                nnz[Ind_1(x,y-1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+                nnz[Ind(x,y-1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                 ind++;
             }
             for(int k=0;k<Nc-1;k++){
 
                 //Extra-phi with Intra-phi
-                nnz[Ind_1(x,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,k,Nx)
+                nnz[Ind(x,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,k,Nx)
                 ind++;
             }
             //extra-phi with extra-phi
-            nnz[Ind_1(x,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+            nnz[Ind(x,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
             ind++;
         }
     }
@@ -1010,23 +1017,23 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                 for (comp = 0; comp < Nc - 1; comp++) {
                     //Water flow volume fraction entries
                     //Volume to Volume
-                    nnz[Ind_1(x, y, Ni + 1, comp,Nx)]++;//Ind_1(x,y,Ni+1,comp,Nx)
+                    nnz[Ind(x, y, Ni + 1, comp,Nx)]++;//Ind_1(x,y,Ni+1,comp,Nx)
                     ind++;
                     //Off diagonal (from aNc=1-sum(ak))
                     for (PetscInt l = 0; l < comp; l++) {
-                        nnz[Ind_1(x, y, Ni + 1, comp,Nx)]++;//Ind_1(x,y,Ni+1,l,Nx)
+                        nnz[Ind(x, y, Ni + 1, comp,Nx)]++;//Ind_1(x,y,Ni+1,l,Nx)
                         ind++;
                     }
                     for (PetscInt l = comp + 1; l < Nc - 1; l++) {
-                        nnz[Ind_1(x, y, Ni + 1, comp,Nx)]++;//Ind_1(x,y,Ni+1,l,Nx)
+                        nnz[Ind(x, y, Ni + 1, comp,Nx)]++;//Ind_1(x,y,Ni+1,l,Nx)
                         ind++;
                     }
                     for (ion = 0; ion < Ni; ion++) {
                         //Volume to extra c
-                        nnz[Ind_1(x, y, Ni + 1, comp,Nx)]++;//Ind_1(x,y,ion,Nc-1,Nx)
+                        nnz[Ind(x, y, Ni + 1, comp,Nx)]++;//Ind_1(x,y,ion,Nc-1,Nx)
                         ind++;
                         //Volume to intra c
-                        nnz[Ind_1(x, y, Ni + 1, comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
+                        nnz[Ind(x, y, Ni + 1, comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                         ind++;
                     }
                 }
@@ -1451,35 +1458,35 @@ PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny)
             for (ion = 0; ion < Ni; ion++) {
                 for (comp = 0; comp < Nc; comp++) {
                     //Center point
-                    ierr = MatSetValue(R, Ind_nx(x, y, ion, comp, nx / 2), Ind_nx(2 * x, 2 * y, ion, comp, nx), 1.0 / 4,
+                    ierr = MatSetValue(R, Ind_1(x, y, ion, comp, nx / 2), Ind_1(2 * x, 2 * y, ion, comp, nx), 1.0 / 4,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
 
                     //Up/down/left/right
-                    ierr = MatSetValue(R, Ind_nx(x, y, ion, comp, nx / 2), Ind_nx(2 * x, 2 * y - 1, ion, comp, nx),
+                    ierr = MatSetValue(R, Ind_1(x, y, ion, comp, nx / 2), Ind_1(2 * x, 2 * y - 1, ion, comp, nx),
                                        1.0 / 8, INSERT_VALUES);
                     CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(x, y, ion, comp, nx / 2), Ind_nx(2 * x - 1, 2 * y, ion, comp, nx),
+                    ierr = MatSetValue(R, Ind_1(x, y, ion, comp, nx / 2), Ind_1(2 * x - 1, 2 * y, ion, comp, nx),
                                        1.0 / 8, INSERT_VALUES);
                     CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(x, y, ion, comp, nx / 2), Ind_nx(2 * x, 2 * y + 1, ion, comp, nx),
+                    ierr = MatSetValue(R, Ind_1(x, y, ion, comp, nx / 2), Ind_1(2 * x, 2 * y + 1, ion, comp, nx),
                                        1.0 / 8, INSERT_VALUES);
                     CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(x, y, ion, comp, nx / 2), Ind_nx(2 * x + 1, 2 * y, ion, comp, nx),
+                    ierr = MatSetValue(R, Ind_1(x, y, ion, comp, nx / 2), Ind_1(2 * x + 1, 2 * y, ion, comp, nx),
                                        1.0 / 8, INSERT_VALUES);
                     CHKERRQ(ierr);
 
                     //Four diagonals
-                    ierr = MatSetValue(R, Ind_nx(x, y, ion, comp, nx / 2), Ind_nx(2 * x - 1, 2 * y - 1, ion, comp, nx),
+                    ierr = MatSetValue(R, Ind_1(x, y, ion, comp, nx / 2), Ind_1(2 * x - 1, 2 * y - 1, ion, comp, nx),
                                        1.0 / 16, INSERT_VALUES);
                     CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(x, y, ion, comp, nx / 2), Ind_nx(2 * x - 1, 2 * y + 1, ion, comp, nx),
+                    ierr = MatSetValue(R, Ind_1(x, y, ion, comp, nx / 2), Ind_1(2 * x - 1, 2 * y + 1, ion, comp, nx),
                                        1.0 / 16, INSERT_VALUES);
                     CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(x, y, ion, comp, nx / 2), Ind_nx(2 * x + 1, 2 * y - 1, ion, comp, nx),
+                    ierr = MatSetValue(R, Ind_1(x, y, ion, comp, nx / 2), Ind_1(2 * x + 1, 2 * y - 1, ion, comp, nx),
                                        1.0 / 16, INSERT_VALUES);
                     CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(x, y, ion, comp, nx / 2), Ind_nx(2 * x + 1, 2 * y + 1, ion, comp, nx),
+                    ierr = MatSetValue(R, Ind_1(x, y, ion, comp, nx / 2), Ind_1(2 * x + 1, 2 * y + 1, ion, comp, nx),
                                        1.0 / 16, INSERT_VALUES);
                     CHKERRQ(ierr);
 
@@ -1488,35 +1495,35 @@ PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny)
             //Restriction for Voltage
             for (comp = 0; comp < Nc; comp++) {
                 //Center point
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni, comp, nx / 2), Ind_nx(2 * x, 2 * y, ion, comp, nx), 1.0 / 4,
+                ierr = MatSetValue(R, Ind_1(x, y, Ni, comp, nx / 2), Ind_1(2 * x, 2 * y, ion, comp, nx), 1.0 / 4,
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
 
                 //Up/down/left/right
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni, comp, nx / 2), Ind_nx(2 * x, 2 * y - 1, Ni, comp, nx), 1.0 / 8,
+                ierr = MatSetValue(R, Ind_1(x, y, Ni, comp, nx / 2), Ind_1(2 * x, 2 * y - 1, Ni, comp, nx), 1.0 / 8,
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni, comp, nx / 2), Ind_nx(2 * x - 1, 2 * y, Ni, comp, nx), 1.0 / 8,
+                ierr = MatSetValue(R, Ind_1(x, y, Ni, comp, nx / 2), Ind_1(2 * x - 1, 2 * y, Ni, comp, nx), 1.0 / 8,
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni, comp, nx / 2), Ind_nx(2 * x, 2 * y + 1, Ni, comp, nx), 1.0 / 8,
+                ierr = MatSetValue(R, Ind_1(x, y, Ni, comp, nx / 2), Ind_1(2 * x, 2 * y + 1, Ni, comp, nx), 1.0 / 8,
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni, comp, nx / 2), Ind_nx(2 * x + 1, 2 * y, Ni, comp, nx), 1.0 / 8,
+                ierr = MatSetValue(R, Ind_1(x, y, Ni, comp, nx / 2), Ind_1(2 * x + 1, 2 * y, Ni, comp, nx), 1.0 / 8,
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
 
                 //Four diagonals
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni, comp, nx / 2), Ind_nx(2 * x - 1, 2 * y - 1, Ni, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni, comp, nx / 2), Ind_1(2 * x - 1, 2 * y - 1, Ni, comp, nx),
                                    1.0 / 16, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni, comp, nx / 2), Ind_nx(2 * x - 1, 2 * y + 1, Ni, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni, comp, nx / 2), Ind_1(2 * x - 1, 2 * y + 1, Ni, comp, nx),
                                    1.0 / 16, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni, comp, nx / 2), Ind_nx(2 * x + 1, 2 * y - 1, Ni, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni, comp, nx / 2), Ind_1(2 * x + 1, 2 * y - 1, Ni, comp, nx),
                                    1.0 / 16, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni, comp, nx / 2), Ind_nx(2 * x + 1, 2 * y + 1, Ni, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni, comp, nx / 2), Ind_1(2 * x + 1, 2 * y + 1, Ni, comp, nx),
                                    1.0 / 16, INSERT_VALUES);
                 CHKERRQ(ierr);
 
@@ -1525,41 +1532,41 @@ PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny)
                 //Restriction for Volume
                 for (comp = 0; comp < Nc - 1; comp++) {
                     //Center point
-                    ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y, ion, comp, nx),
+                    ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y, ion, comp, nx),
                                        1.0 / 4,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
 
                     //Up/down/left/right
-                    ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                       Ind_nx(2 * x, 2 * y - 1, Ni + 1, comp, nx),
+                    ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                       Ind_1(2 * x, 2 * y - 1, Ni + 1, comp, nx),
                                        1.0 / 8, INSERT_VALUES);
                     CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                       Ind_nx(2 * x - 1, 2 * y, Ni + 1, comp, nx),
+                    ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                       Ind_1(2 * x - 1, 2 * y, Ni + 1, comp, nx),
                                        1.0 / 8, INSERT_VALUES);
                     CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                       Ind_nx(2 * x, 2 * y + 1, Ni + 1, comp, nx),
+                    ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                       Ind_1(2 * x, 2 * y + 1, Ni + 1, comp, nx),
                                        1.0 / 8, INSERT_VALUES);
                     CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                       Ind_nx(2 * x + 1, 2 * y, Ni + 1, comp, nx),
+                    ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                       Ind_1(2 * x + 1, 2 * y, Ni + 1, comp, nx),
                                        1.0 / 8, INSERT_VALUES);
                     CHKERRQ(ierr);
 
                     //Four diagonals
-                    ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                       Ind_nx(2 * x - 1, 2 * y - 1, Ni + 1, comp, nx), 1.0 / 16, INSERT_VALUES);
+                    ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                       Ind_1(2 * x - 1, 2 * y - 1, Ni + 1, comp, nx), 1.0 / 16, INSERT_VALUES);
                     CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                       Ind_nx(2 * x - 1, 2 * y + 1, Ni + 1, comp, nx), 1.0 / 16, INSERT_VALUES);
+                    ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                       Ind_1(2 * x - 1, 2 * y + 1, Ni + 1, comp, nx), 1.0 / 16, INSERT_VALUES);
                     CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                       Ind_nx(2 * x + 1, 2 * y - 1, Ni + 1, comp, nx), 1.0 / 16, INSERT_VALUES);
+                    ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                       Ind_1(2 * x + 1, 2 * y - 1, Ni + 1, comp, nx), 1.0 / 16, INSERT_VALUES);
                     CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                       Ind_nx(2 * x + 1, 2 * y + 1, Ni + 1, comp, nx), 1.0 / 16, INSERT_VALUES);
+                    ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                       Ind_1(2 * x + 1, 2 * y + 1, Ni + 1, comp, nx), 1.0 / 16, INSERT_VALUES);
                     CHKERRQ(ierr);
 
                 }
@@ -1574,59 +1581,59 @@ PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny)
         {
             for(comp=0;comp<Nc;comp++) {
                 //Center point
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
 
                 //Up/down/left/right
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y-1,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y+1,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x+1,2*y,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y-1,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y+1,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x+1,2*y,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
 
                 //Two diagonals
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x+1,2*y-1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x+1,2*y+1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x+1,2*y-1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x+1,2*y+1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
 
             }
         }
         //Restriction for Voltage
         for(comp=0;comp<Nc;comp++) {
             //Center point
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
 
             //Up/down/left/right
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y-1,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y+1,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x+1,2*y,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y-1,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y+1,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x+1,2*y,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
 
             //Four diagonals
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x+1,2*y-1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x+1,2*y+1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x+1,2*y-1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x+1,2*y+1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
 
         }
         if(!separate_vol) {
             //Restriction for Volume
             for (comp = 0; comp < Nc - 1; comp++) {
                 //Center point
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y, ion, comp, nx), 1.0 / 3,
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y, ion, comp, nx), 1.0 / 3,
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
 
                 //Up/down/left/right
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y - 1, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y - 1, Ni + 1, comp, nx),
                                    1.0 / 6, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y + 1, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y + 1, Ni + 1, comp, nx),
                                    1.0 / 6, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x + 1, 2 * y, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x + 1, 2 * y, Ni + 1, comp, nx),
                                    1.0 / 6, INSERT_VALUES);
                 CHKERRQ(ierr);
 
                 //Four diagonals
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                   Ind_nx(2 * x + 1, 2 * y - 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                   Ind_1(2 * x + 1, 2 * y - 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                   Ind_nx(2 * x + 1, 2 * y + 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                   Ind_1(2 * x + 1, 2 * y + 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
                 CHKERRQ(ierr);
 
             }
@@ -1640,59 +1647,59 @@ PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny)
         {
             for(comp=0;comp<Nc;comp++) {
                 //Center point
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
 
                 //Up/down/left/right
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y-1,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y+1,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x-1,2*y,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y-1,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y+1,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x-1,2*y,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
 
                 //Two diagonals
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x-1,2*y-1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x-1,2*y+1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x-1,2*y-1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x-1,2*y+1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
 
             }
         }
         //Restriction for Voltage
         for(comp=0;comp<Nc;comp++) {
             //Center point
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
 
             //Up/down/left/right
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y-1,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y+1,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x-1,2*y,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y-1,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y+1,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x-1,2*y,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
 
             //Four diagonals
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x-1,2*y-1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x-1,2*y+1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x-1,2*y-1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x-1,2*y+1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
 
         }
         if(!separate_vol) {
             //Restriction for Volume
             for (comp = 0; comp < Nc - 1; comp++) {
                 //Center point
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y, ion, comp, nx), 1.0 / 3,
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y, ion, comp, nx), 1.0 / 3,
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
 
                 //Up/down/left/right
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y - 1, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y - 1, Ni + 1, comp, nx),
                                    1.0 / 6, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y + 1, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y + 1, Ni + 1, comp, nx),
                                    1.0 / 6, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x - 1, 2 * y, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x - 1, 2 * y, Ni + 1, comp, nx),
                                    1.0 / 6, INSERT_VALUES);
                 CHKERRQ(ierr);
 
                 //Four diagonals
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                   Ind_nx(2 * x - 1, 2 * y - 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                   Ind_1(2 * x - 1, 2 * y - 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                   Ind_nx(2 * x - 1, 2 * y + 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                   Ind_1(2 * x - 1, 2 * y + 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
                 CHKERRQ(ierr);
 
             }
@@ -1706,59 +1713,59 @@ PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny)
         {
             for(comp=0;comp<Nc;comp++) {
                 //Center point
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
 
                 //Up/down/left/right
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x-1,2*y,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y+1,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x+1,2*y,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x-1,2*y,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y+1,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x+1,2*y,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
 
                 //Two diagonals
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x-1,2*y+1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x+1,2*y+1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x-1,2*y+1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x+1,2*y+1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
 
             }
         }
         //Restriction for Voltage
         for(comp=0;comp<Nc;comp++) {
             //Center point
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
 
             //Up/down/left/right
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x-1,2*y,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y+1,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x+1,2*y,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x-1,2*y,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y+1,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x+1,2*y,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
 
             //Four diagonals
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x-1,2*y+1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x+1,2*y+1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x-1,2*y+1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x+1,2*y+1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
 
         }
         if(!separate_vol) {
             //Restriction for Volume
             for (comp = 0; comp < Nc - 1; comp++) {
                 //Center point
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y, ion, comp, nx), 1.0 / 3,
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y, ion, comp, nx), 1.0 / 3,
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
 
                 //Up/down/left/right
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x - 1, 2 * y, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x - 1, 2 * y, Ni + 1, comp, nx),
                                    1.0 / 6, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y + 1, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y + 1, Ni + 1, comp, nx),
                                    1.0 / 6, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x + 1, 2 * y, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x + 1, 2 * y, Ni + 1, comp, nx),
                                    1.0 / 6, INSERT_VALUES);
                 CHKERRQ(ierr);
 
                 //Four diagonals
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                   Ind_nx(2 * x - 1, 2 * y + 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                   Ind_1(2 * x - 1, 2 * y + 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                   Ind_nx(2 * x + 1, 2 * y + 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                   Ind_1(2 * x + 1, 2 * y + 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
                 CHKERRQ(ierr);
 
             }
@@ -1772,59 +1779,59 @@ PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny)
         {
             for(comp=0;comp<Nc;comp++) {
                 //Center point
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
 
                 //Up/down/left/right
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y-1,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x+1,2*y,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x-1,2*y,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y-1,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x+1,2*y,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x-1,2*y,ion,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
 
                 //Two diagonals
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x-1,2*y-1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x+1,2*y-1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x-1,2*y-1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x+1,2*y-1,ion,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
 
             }
         }
         //Restriction for Voltage
         for(comp=0;comp<Nc;comp++) {
             //Center point
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),1.0/3,INSERT_VALUES); CHKERRQ(ierr);
 
             //Up/down/left/right
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y-1,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x+1,2*y,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x-1,2*y,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y-1,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x+1,2*y,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x-1,2*y,Ni,comp,nx),1.0/6,INSERT_VALUES); CHKERRQ(ierr);
 
             //Four diagonals
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x-1,2*y-1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x+1,2*y-1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x-1,2*y-1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x+1,2*y-1,Ni,comp,nx),1.0/12,INSERT_VALUES); CHKERRQ(ierr);
 
         }
         if(!separate_vol) {
             //Restriction for Volume
             for (comp = 0; comp < Nc - 1; comp++) {
                 //Center point
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y, ion, comp, nx), 1.0 / 3,
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y, ion, comp, nx), 1.0 / 3,
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
 
                 //Up/down/left/right
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y - 1, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y - 1, Ni + 1, comp, nx),
                                    1.0 / 6, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x + 1, 2 * y, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x + 1, 2 * y, Ni + 1, comp, nx),
                                    1.0 / 6, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x - 1, 2 * y, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x - 1, 2 * y, Ni + 1, comp, nx),
                                    1.0 / 6, INSERT_VALUES);
                 CHKERRQ(ierr);
 
                 //Four diagonals
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                   Ind_nx(2 * x - 1, 2 * y - 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                   Ind_1(2 * x - 1, 2 * y - 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2),
-                                   Ind_nx(2 * x + 1, 2 * y - 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
+                ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2),
+                                   Ind_1(2 * x + 1, 2 * y - 1, Ni + 1, comp, nx), 1.0 / 12, INSERT_VALUES);
                 CHKERRQ(ierr);
 
             }
@@ -1837,48 +1844,48 @@ PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny)
     {
         for(comp=0;comp<Nc;comp++) {
             //Center point
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
             //Up/down/left/right
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y+1,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x+1,2*y,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y+1,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x+1,2*y,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
             //Two diagonals
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x+1,2*y+1,ion,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x+1,2*y+1,ion,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
         }
     }
     //Restriction for Voltage
     for(comp=0;comp<Nc;comp++) {
         //Center point
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
         //Up/down/left/right
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y+1,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x+1,2*y,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y+1,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x+1,2*y,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
         //Four diagonals
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x+1,2*y+1,Ni,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x+1,2*y+1,Ni,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
     }
     if(!separate_vol) {
         //Restriction for Volume
         for (comp = 0; comp < Nc - 1; comp++) {
             //Center point
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y, ion, comp, nx), 4.0 / 9,
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y, ion, comp, nx), 4.0 / 9,
                                INSERT_VALUES);
             CHKERRQ(ierr);
 
             //Up/down/left/right
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y + 1, Ni + 1, comp, nx),
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y + 1, Ni + 1, comp, nx),
                                2.0 / 9, INSERT_VALUES);
             CHKERRQ(ierr);
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x + 1, 2 * y, Ni + 1, comp, nx),
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x + 1, 2 * y, Ni + 1, comp, nx),
                                2.0 / 9, INSERT_VALUES);
             CHKERRQ(ierr);
 
             //Four diagonals
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x + 1, 2 * y + 1, Ni + 1, comp, nx),
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x + 1, 2 * y + 1, Ni + 1, comp, nx),
                                1.0 / 9, INSERT_VALUES);
             CHKERRQ(ierr);
 
@@ -1890,48 +1897,48 @@ PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny)
     {
         for(comp=0;comp<Nc;comp++) {
             //Center point
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
             //Up/down/left/right
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y+1,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x-1,2*y,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y+1,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x-1,2*y,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
             //Two diagonals
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x-1,2*y+1,ion,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x-1,2*y+1,ion,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
         }
     }
     //Restriction for Voltage
     for(comp=0;comp<Nc;comp++) {
         //Center point
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
         //Up/down/left/right
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y+1,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x-1,2*y,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y+1,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x-1,2*y,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
         //Four diagonals
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x-1,2*y+1,Ni,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x-1,2*y+1,Ni,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
     }
     if(!separate_vol) {
         //Restriction for Volume
         for (comp = 0; comp < Nc - 1; comp++) {
             //Center point
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y, ion, comp, nx), 4.0 / 9,
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y, ion, comp, nx), 4.0 / 9,
                                INSERT_VALUES);
             CHKERRQ(ierr);
 
             //Up/down/left/right
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y + 1, Ni + 1, comp, nx),
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y + 1, Ni + 1, comp, nx),
                                2.0 / 9, INSERT_VALUES);
             CHKERRQ(ierr);
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x - 1, 2 * y, Ni + 1, comp, nx),
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x - 1, 2 * y, Ni + 1, comp, nx),
                                2.0 / 9, INSERT_VALUES);
             CHKERRQ(ierr);
 
             //Four diagonals
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x - 1, 2 * y + 1, Ni + 1, comp, nx),
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x - 1, 2 * y + 1, Ni + 1, comp, nx),
                                1.0 / 9, INSERT_VALUES);
             CHKERRQ(ierr);
 
@@ -1943,48 +1950,48 @@ PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny)
     {
         for(comp=0;comp<Nc;comp++) {
             //Center point
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
             //Up/down/left/right
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y-1,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x+1,2*y,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y-1,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x+1,2*y,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
             //Two diagonals
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x+1,2*y-1,ion,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x+1,2*y-1,ion,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
         }
     }
     //Restriction for Voltage
     for(comp=0;comp<Nc;comp++) {
         //Center point
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
         //Up/down/left/right
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y-1,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x+1,2*y,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y-1,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x+1,2*y,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
         //Four diagonals
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x+1,2*y-1,Ni,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x+1,2*y-1,Ni,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
     }
     if(!separate_vol) {
         //Restriction for Volume
         for (comp = 0; comp < Nc - 1; comp++) {
             //Center point
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y, ion, comp, nx), 4.0 / 9,
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y, ion, comp, nx), 4.0 / 9,
                                INSERT_VALUES);
             CHKERRQ(ierr);
 
             //Up/down/left/right
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y - 1, Ni + 1, comp, nx),
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y - 1, Ni + 1, comp, nx),
                                2.0 / 9, INSERT_VALUES);
             CHKERRQ(ierr);
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x + 1, 2 * y, Ni + 1, comp, nx),
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x + 1, 2 * y, Ni + 1, comp, nx),
                                2.0 / 9, INSERT_VALUES);
             CHKERRQ(ierr);
 
             //Four diagonals
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x + 1, 2 * y - 1, Ni + 1, comp, nx),
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x + 1, 2 * y - 1, Ni + 1, comp, nx),
                                1.0 / 9, INSERT_VALUES);
             CHKERRQ(ierr);
 
@@ -1996,48 +2003,48 @@ PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny)
     {
         for(comp=0;comp<Nc;comp++) {
             //Center point
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
             //Up/down/left/right
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x,2*y-1,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x-1,2*y,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x,2*y-1,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x-1,2*y,ion,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
             //Two diagonals
-            ierr = MatSetValue(R,Ind_nx(x,y,ion,comp,nx/2),Ind_nx(2*x-1,2*y-1,ion,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(x,y,ion,comp,nx/2),Ind_1(2*x-1,2*y-1,ion,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
         }
     }
     //Restriction for Voltage
     for(comp=0;comp<Nc;comp++) {
         //Center point
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y,ion,comp,nx),4.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
         //Up/down/left/right
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x,2*y-1,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x-1,2*y,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x,2*y-1,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x-1,2*y,Ni,comp,nx),2.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
         //Four diagonals
-        ierr = MatSetValue(R,Ind_nx(x,y,Ni,comp,nx/2),Ind_nx(2*x-1,2*y-1,Ni,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(x,y,Ni,comp,nx/2),Ind_1(2*x-1,2*y-1,Ni,comp,nx),1.0/9,INSERT_VALUES); CHKERRQ(ierr);
 
     }
     if(!separate_vol) {
         //Restriction for Volume
         for (comp = 0; comp < Nc - 1; comp++) {
             //Center point
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y, ion, comp, nx), 4.0 / 9,
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y, ion, comp, nx), 4.0 / 9,
                                INSERT_VALUES);
             CHKERRQ(ierr);
 
             //Up/down/left/right
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x, 2 * y - 1, Ni + 1, comp, nx),
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x, 2 * y - 1, Ni + 1, comp, nx),
                                2.0 / 9, INSERT_VALUES);
             CHKERRQ(ierr);
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x - 1, 2 * y, Ni + 1, comp, nx),
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x - 1, 2 * y, Ni + 1, comp, nx),
                                2.0 / 9, INSERT_VALUES);
             CHKERRQ(ierr);
 
             //Four diagonals
-            ierr = MatSetValue(R, Ind_nx(x, y, Ni + 1, comp, nx / 2), Ind_nx(2 * x - 1, 2 * y - 1, Ni + 1, comp, nx),
+            ierr = MatSetValue(R, Ind_1(x, y, Ni + 1, comp, nx / 2), Ind_1(2 * x - 1, 2 * y - 1, Ni + 1, comp, nx),
                                1.0 / 9, INSERT_VALUES);
             CHKERRQ(ierr);
 
@@ -2060,68 +2067,68 @@ PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny)
             for(ion=0;ion<Ni;ion++)
             {
                 for(comp=0;comp<Nc;comp++) {
-                    ierr = MatSetValue(R,Ind_nx(2*x+1,2*y,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
-                    ierr = MatSetValue(R,Ind_nx(2*x+1,2*y,ion,comp,2*nx),Ind_nx(x+1,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                    ierr = MatSetValue(R,Ind_1(2*x+1,2*y,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                    ierr = MatSetValue(R,Ind_1(2*x+1,2*y,ion,comp,2*nx),Ind_1(x+1,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
 
-                    ierr = MatSetValue(R,Ind_nx(2*x,2*y+1,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
-                    ierr = MatSetValue(R,Ind_nx(2*x,2*y+1,ion,comp,2*nx),Ind_nx(x,y+1,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                    ierr = MatSetValue(R,Ind_1(2*x,2*y+1,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                    ierr = MatSetValue(R,Ind_1(2*x,2*y+1,ion,comp,2*nx),Ind_1(x,y+1,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
 
-                    ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
-                    ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,ion,comp,2*nx),Ind_nx(x+1,y,ion,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
-                    ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,ion,comp,2*nx),Ind_nx(x,y+1,ion,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
-                    ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,ion,comp,2*nx),Ind_nx(x+1,y+1,ion,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
+                    ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
+                    ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,ion,comp,2*nx),Ind_1(x+1,y,ion,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
+                    ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,ion,comp,2*nx),Ind_1(x,y+1,ion,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
+                    ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,ion,comp,2*nx),Ind_1(x+1,y+1,ion,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
 
-                    ierr = MatSetValue(R,Ind_nx(2*x,2*y,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
+                    ierr = MatSetValue(R,Ind_1(2*x,2*y,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
 
                 }
             }
             //Interpolation for Voltage
             for(comp=0;comp<Nc;comp++) {
-                ierr = MatSetValue(R,Ind_nx(2*x+1,2*y,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(2*x+1,2*y,Ni,comp,2*nx),Ind_nx(x+1,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x+1,2*y,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x+1,2*y,Ni,comp,2*nx),Ind_1(x+1,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
 
-                ierr = MatSetValue(R,Ind_nx(2*x,2*y+1,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(2*x,2*y+1,Ni,comp,2*nx),Ind_nx(x,y+1,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x,2*y+1,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x,2*y+1,Ni,comp,2*nx),Ind_1(x,y+1,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
 
-                ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,Ni,comp,2*nx),Ind_nx(x+1,y,Ni,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,Ni,comp,2*nx),Ind_nx(x,y+1,Ni,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,Ni,comp,2*nx),Ind_nx(x+1,y+1,Ni,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,Ni,comp,2*nx),Ind_1(x+1,y,Ni,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,Ni,comp,2*nx),Ind_1(x,y+1,Ni,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,Ni,comp,2*nx),Ind_1(x+1,y+1,Ni,comp,nx),0.25,INSERT_VALUES); CHKERRQ(ierr);
 
-                ierr = MatSetValue(R,Ind_nx(2*x,2*y,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x,2*y,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
             }
             if(!separate_vol) {
                 //Interpolation for Volume
                 for (comp = 0; comp < Nc - 1; comp++) {
 
-                    ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y, Ni + 1, comp, 2 * nx),
-                                       Ind_nx(x, y, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
+                    ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y, Ni + 1, comp, 2 * nx),
+                                       Ind_1(x, y, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
                     CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y, Ni + 1, comp, 2 * nx),
-                                       Ind_nx(x + 1, y, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
-                    CHKERRQ(ierr);
-
-                    ierr = MatSetValue(R, Ind_nx(2 * x, 2 * y + 1, Ni + 1, comp, 2 * nx),
-                                       Ind_nx(x, y, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
-                    CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(2 * x, 2 * y + 1, Ni + 1, comp, 2 * nx),
-                                       Ind_nx(x, y + 1, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
+                    ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y, Ni + 1, comp, 2 * nx),
+                                       Ind_1(x + 1, y, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
                     CHKERRQ(ierr);
 
-                    ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
-                                       Ind_nx(x, y, Ni + 1, comp, nx), 0.25, INSERT_VALUES);
+                    ierr = MatSetValue(R, Ind_1(2 * x, 2 * y + 1, Ni + 1, comp, 2 * nx),
+                                       Ind_1(x, y, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
                     CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
-                                       Ind_nx(x + 1, y, Ni + 1, comp, nx), 0.25, INSERT_VALUES);
-                    CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
-                                       Ind_nx(x, y + 1, Ni + 1, comp, nx), 0.25, INSERT_VALUES);
-                    CHKERRQ(ierr);
-                    ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
-                                       Ind_nx(x + 1, y + 1, Ni + 1, comp, nx), 0.25, INSERT_VALUES);
+                    ierr = MatSetValue(R, Ind_1(2 * x, 2 * y + 1, Ni + 1, comp, 2 * nx),
+                                       Ind_1(x, y + 1, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
                     CHKERRQ(ierr);
 
-                    ierr = MatSetValue(R, Ind_nx(2 * x, 2 * y, Ni + 1, comp, 2 * nx), Ind_nx(x, y, Ni + 1, comp, nx), 1,
+                    ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
+                                       Ind_1(x, y, Ni + 1, comp, nx), 0.25, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
+                                       Ind_1(x + 1, y, Ni + 1, comp, nx), 0.25, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
+                                       Ind_1(x, y + 1, Ni + 1, comp, nx), 0.25, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
+                                       Ind_1(x + 1, y + 1, Ni + 1, comp, nx), 0.25, INSERT_VALUES);
+                    CHKERRQ(ierr);
+
+                    ierr = MatSetValue(R, Ind_1(2 * x, 2 * y, Ni + 1, comp, 2 * nx), Ind_1(x, y, Ni + 1, comp, nx), 1,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                 }
@@ -2135,53 +2142,53 @@ PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny)
         for(ion=0;ion<Ni;ion++)
         {
             for(comp=0;comp<Nc;comp++) {
-                ierr = MatSetValue(R,Ind_nx(2*x+1,2*y,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x+1,2*y,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
 
-                ierr = MatSetValue(R,Ind_nx(2*x,2*y+1,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(2*x,2*y+1,ion,comp,2*nx),Ind_nx(x,y+1,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x,2*y+1,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x,2*y+1,ion,comp,2*nx),Ind_1(x,y+1,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
 
-                ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,ion,comp,2*nx),Ind_nx(x,y+1,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,ion,comp,2*nx),Ind_1(x,y+1,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
 
-                ierr = MatSetValue(R,Ind_nx(2*x,2*y,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x,2*y,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
 
             }
         }
         //Interpolation for Voltage
         for(comp=0;comp<Nc;comp++) {
-            ierr = MatSetValue(R,Ind_nx(2*x+1,2*y,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x+1,2*y,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
 
-            ierr = MatSetValue(R,Ind_nx(2*x,2*y+1,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(2*x,2*y+1,Ni,comp,2*nx),Ind_nx(x,y+1,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x,2*y+1,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x,2*y+1,Ni,comp,2*nx),Ind_1(x,y+1,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
 
-            ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,Ni,comp,2*nx),Ind_nx(x,y+1,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,Ni,comp,2*nx),Ind_1(x,y+1,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
 
-            ierr = MatSetValue(R,Ind_nx(2*x,2*y,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x,2*y,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
         }
         if(!separate_vol) {
             //Interpolation for Volume
             for (comp = 0; comp < Nc - 1; comp++) {
 
-                ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y, Ni + 1, comp, 2 * nx), Ind_nx(x, y, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y, Ni + 1, comp, 2 * nx), Ind_1(x, y, Ni + 1, comp, nx),
                                    1.0, INSERT_VALUES);
                 CHKERRQ(ierr);
 
-                ierr = MatSetValue(R, Ind_nx(2 * x, 2 * y + 1, Ni + 1, comp, 2 * nx), Ind_nx(x, y, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(2 * x, 2 * y + 1, Ni + 1, comp, 2 * nx), Ind_1(x, y, Ni + 1, comp, nx),
                                    0.5, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(2 * x, 2 * y + 1, Ni + 1, comp, 2 * nx),
-                                   Ind_nx(x, y + 1, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
+                ierr = MatSetValue(R, Ind_1(2 * x, 2 * y + 1, Ni + 1, comp, 2 * nx),
+                                   Ind_1(x, y + 1, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
                 CHKERRQ(ierr);
 
-                ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
-                                   Ind_nx(x, y, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
+                ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
+                                   Ind_1(x, y, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
-                                   Ind_nx(x, y + 1, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
+                ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
+                                   Ind_1(x, y + 1, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
                 CHKERRQ(ierr);
 
-                ierr = MatSetValue(R, Ind_nx(2 * x, 2 * y, Ni + 1, comp, 2 * nx), Ind_nx(x, y, Ni + 1, comp, nx), 1,
+                ierr = MatSetValue(R, Ind_1(2 * x, 2 * y, Ni + 1, comp, 2 * nx), Ind_1(x, y, Ni + 1, comp, nx), 1,
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
             }
@@ -2193,53 +2200,53 @@ PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny)
         for(ion=0;ion<Ni;ion++)
         {
             for(comp=0;comp<Nc;comp++) {
-                ierr = MatSetValue(R,Ind_nx(2*x+1,2*y,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(2*x+1,2*y,ion,comp,2*nx),Ind_nx(x+1,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x+1,2*y,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x+1,2*y,ion,comp,2*nx),Ind_1(x+1,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
 
-                ierr = MatSetValue(R,Ind_nx(2*x,2*y+1,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x,2*y+1,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
 
-                ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
-                ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,ion,comp,2*nx),Ind_nx(x+1,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,ion,comp,2*nx),Ind_1(x+1,y,ion,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
 
-                ierr = MatSetValue(R,Ind_nx(2*x,2*y,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(R,Ind_1(2*x,2*y,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
 
             }
         }
         //Interpolation for Voltage
         for(comp=0;comp<Nc;comp++) {
-            ierr = MatSetValue(R,Ind_nx(2*x+1,2*y,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(2*x+1,2*y,Ni,comp,2*nx),Ind_nx(x+1,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x+1,2*y,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x+1,2*y,Ni,comp,2*nx),Ind_1(x+1,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
 
-            ierr = MatSetValue(R,Ind_nx(2*x,2*y+1,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x,2*y+1,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
 
-            ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
-            ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,Ni,comp,2*nx),Ind_nx(x+1,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,Ni,comp,2*nx),Ind_1(x+1,y,Ni,comp,nx),0.5,INSERT_VALUES); CHKERRQ(ierr);
 
-            ierr = MatSetValue(R,Ind_nx(2*x,2*y,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x,2*y,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
         }
         if(!separate_vol) {
             //Interpolation for Volume
             for (comp = 0; comp < Nc - 1; comp++) {
 
-                ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y, Ni + 1, comp, 2 * nx), Ind_nx(x, y, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y, Ni + 1, comp, 2 * nx), Ind_1(x, y, Ni + 1, comp, nx),
                                    0.5, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y, Ni + 1, comp, 2 * nx),
-                                   Ind_nx(x + 1, y, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
+                ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y, Ni + 1, comp, 2 * nx),
+                                   Ind_1(x + 1, y, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
                 CHKERRQ(ierr);
 
-                ierr = MatSetValue(R, Ind_nx(2 * x, 2 * y + 1, Ni + 1, comp, 2 * nx), Ind_nx(x, y, Ni + 1, comp, nx),
+                ierr = MatSetValue(R, Ind_1(2 * x, 2 * y + 1, Ni + 1, comp, 2 * nx), Ind_1(x, y, Ni + 1, comp, nx),
                                    1.0, INSERT_VALUES);
                 CHKERRQ(ierr);
 
-                ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
-                                   Ind_nx(x, y, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
+                ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
+                                   Ind_1(x, y, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
                 CHKERRQ(ierr);
-                ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
-                                   Ind_nx(x + 1, y, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
+                ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx),
+                                   Ind_1(x + 1, y, Ni + 1, comp, nx), 0.5, INSERT_VALUES);
                 CHKERRQ(ierr);
 
-                ierr = MatSetValue(R, Ind_nx(2 * x, 2 * y, Ni + 1, comp, 2 * nx), Ind_nx(x, y, Ni + 1, comp, nx), 1,
+                ierr = MatSetValue(R, Ind_1(2 * x, 2 * y, Ni + 1, comp, 2 * nx), Ind_1(x, y, Ni + 1, comp, nx), 1,
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
             }
@@ -2250,43 +2257,43 @@ PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny)
     for(ion=0;ion<Ni;ion++)
     {
         for(comp=0;comp<Nc;comp++) {
-            ierr = MatSetValue(R,Ind_nx(2*x+1,2*y,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x+1,2*y,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
 
-            ierr = MatSetValue(R,Ind_nx(2*x,2*y+1,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x,2*y+1,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
 
-            ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
 
-            ierr = MatSetValue(R,Ind_nx(2*x,2*y,ion,comp,2*nx),Ind_nx(x,y,ion,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = MatSetValue(R,Ind_1(2*x,2*y,ion,comp,2*nx),Ind_1(x,y,ion,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
 
         }
     }
     //Interpolation for Voltage
     for(comp=0;comp<Nc;comp++) {
-        ierr = MatSetValue(R,Ind_nx(2*x+1,2*y,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(2*x+1,2*y,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
 
-        ierr = MatSetValue(R,Ind_nx(2*x,2*y+1,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(2*x,2*y+1,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
 
-        ierr = MatSetValue(R,Ind_nx(2*x+1,2*y+1,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(2*x+1,2*y+1,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),1.0,INSERT_VALUES); CHKERRQ(ierr);
 
-        ierr = MatSetValue(R,Ind_nx(2*x,2*y,Ni,comp,2*nx),Ind_nx(x,y,Ni,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(R,Ind_1(2*x,2*y,Ni,comp,2*nx),Ind_1(x,y,Ni,comp,nx),1,INSERT_VALUES); CHKERRQ(ierr);
     }
     if(!separate_vol) {
         //Interpolation for Volume
         for (comp = 0; comp < Nc - 1; comp++) {
 
-            ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y, Ni + 1, comp, 2 * nx), Ind_nx(x, y, Ni + 1, comp, nx), 1.0,
+            ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y, Ni + 1, comp, 2 * nx), Ind_1(x, y, Ni + 1, comp, nx), 1.0,
                                INSERT_VALUES);
             CHKERRQ(ierr);
 
-            ierr = MatSetValue(R, Ind_nx(2 * x, 2 * y + 1, Ni + 1, comp, 2 * nx), Ind_nx(x, y, Ni + 1, comp, nx), 1.0,
+            ierr = MatSetValue(R, Ind_1(2 * x, 2 * y + 1, Ni + 1, comp, 2 * nx), Ind_1(x, y, Ni + 1, comp, nx), 1.0,
                                INSERT_VALUES);
             CHKERRQ(ierr);
 
-            ierr = MatSetValue(R, Ind_nx(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx), Ind_nx(x, y, Ni + 1, comp, nx),
+            ierr = MatSetValue(R, Ind_1(2 * x + 1, 2 * y + 1, Ni + 1, comp, 2 * nx), Ind_1(x, y, Ni + 1, comp, nx),
                                1.0, INSERT_VALUES);
             CHKERRQ(ierr);
 
-            ierr = MatSetValue(R, Ind_nx(2 * x, 2 * y, Ni + 1, comp, 2 * nx), Ind_nx(x, y, Ni + 1, comp, nx), 1,
+            ierr = MatSetValue(R, Ind_1(2 * x, 2 * y, Ni + 1, comp, 2 * nx), Ind_1(x, y, Ni + 1, comp, nx), 1,
                                INSERT_VALUES);
             CHKERRQ(ierr);
         }

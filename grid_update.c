@@ -357,7 +357,7 @@ PetscErrorCode Grid_Residual(Vec Res,PetscInt xi,PetscInt yi,void *ctx)
                     Resc = al[al_index(x,y,comp,Nx)]*c[c_index(x,y,comp,ion,Nx)]-alp[al_index(x,y,comp,Nx)]*cp[c_index(x,y,comp,ion,Nx)];
                     Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x,y,comp,ion,Nx)]*dt;
 
-                    ierr = VecSetValue(Res,Ind_1(x,y,ion,comp,Nx),Resc,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = VecSetValue(Res,Ind_2(x,y,ion,comp,Nx),Resc,INSERT_VALUES);CHKERRQ(ierr);
 
                     //Save values for voltage
                     Rphx[comp]+=z[ion]*Rcvx;
@@ -399,7 +399,7 @@ PetscErrorCode Grid_Residual(Vec Res,PetscInt xi,PetscInt yi,void *ctx)
                 //Add bath variables
 
                 Resc -= sqrt(pow(Dcb[c_index(x,y,comp,ion,Nx)*2],2)+pow(Dcb[c_index(x,y,comp,ion,Nx)*2+1],2))*(cp[c_index(x,y,comp,ion,Nx)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion,Nx)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp,Nx)]-z[ion]*phibath)*dt;
-                ierr = VecSetValue(Res,Ind_1(x,y,ion,comp,Nx),Resc,INSERT_VALUES);CHKERRQ(ierr);
+                ierr = VecSetValue(Res,Ind_2(x,y,ion,comp,Nx),Resc,INSERT_VALUES);CHKERRQ(ierr);
 
                 //Save values for voltage
                 Rphx[comp]+=z[ion]*Rcvx;
@@ -419,7 +419,7 @@ PetscErrorCode Grid_Residual(Vec Res,PetscInt xi,PetscInt yi,void *ctx)
                 //Add the terms shared with extracell
                 ResphN -= Resph; // Subtract total capacitance, subtract total ion channel flux
                 Resph += Rphx[comp] - RphxRight[comp] + Rphy[comp] - RphyUp[comp];
-                ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resph,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = VecSetValue(Res,Ind_2(x,y,Ni,comp,Nx),Resph,INSERT_VALUES); CHKERRQ(ierr);
             }
 
             //Finish adding extracell
@@ -430,7 +430,7 @@ PetscErrorCode Grid_Residual(Vec Res,PetscInt xi,PetscInt yi,void *ctx)
                 ResphN -=z[ion]*sqrt(pow(Dcb[c_index(x,y,comp,ion,Nx)*2],2)+pow(Dcb[c_index(x,y,comp,ion,Nx)*2+1],2))*(cp[c_index(x,y,comp,ion,Nx)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion,Nx)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp,Nx)]-z[ion]*phibath)*dt;
             }
             ResphN += Rphx[comp] - RphxRight[comp] + Rphy[comp] - RphyUp[comp];
-            ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),ResphN,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = VecSetValue(Res,Ind_2(x,y,Ni,comp,Nx),ResphN,INSERT_VALUES); CHKERRQ(ierr);
         }
     }
 
@@ -506,18 +506,18 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
                         Fph0x = z[ion] * Ftmpx;
                         // Right c with left c (-Fc0x)
 
-                        ierr = MatSetValue(Jac, Ind_1(x + 1, y, ion, comp, Nx), Ind_1(x, y, ion, comp, Nx), -Fc0x,
+                        ierr = MatSetValue(Jac, Ind_2(x + 1, y, ion, comp, Nx), Ind_2(x, y, ion, comp, Nx), -Fc0x,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Right c with left phi (-Fph0x)
-                        ierr = MatSetValue(Jac, Ind_1(x + 1, y, ion, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fph0x,
+                        ierr = MatSetValue(Jac, Ind_2(x + 1, y, ion, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fph0x,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         //Right phi with left c in voltage eqn
-                        ierr = MatSetValue(Jac, Ind_1(x + 1, y, Ni, comp, Nx), Ind_1(x, y, ion, comp, Nx),
+                        ierr = MatSetValue(Jac, Ind_2(x + 1, y, Ni, comp, Nx), Ind_2(x, y, ion, comp, Nx),
                                            -z[ion] * Fc0x, INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
@@ -529,18 +529,18 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
                         Fc1x = Ftmpx / c[c_index(x, y, comp, ion, Nx)];
                         Fph1x = z[ion] * Ftmpx;
                         //left c with right c (-Fc1x)
-                        ierr = MatSetValue(Jac, Ind_1(x - 1, y, ion, comp, Nx), Ind_1(x, y, ion, comp, Nx), -Fc1x,
+                        ierr = MatSetValue(Jac, Ind_2(x - 1, y, ion, comp, Nx), Ind_2(x, y, ion, comp, Nx), -Fc1x,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Left c with right phi (-Fph1x)
-                        ierr = MatSetValue(Jac, Ind_1(x - 1, y, ion, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fph1x,
+                        ierr = MatSetValue(Jac, Ind_2(x - 1, y, ion, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fph1x,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         //Left phi with right c in voltage eqn
-                        ierr = MatSetValue(Jac, Ind_1(x - 1, y, Ni, comp, Nx), Ind_1(x, y, ion, comp, Nx),
+                        ierr = MatSetValue(Jac, Ind_2(x - 1, y, Ni, comp, Nx), Ind_2(x, y, ion, comp, Nx),
                                            -z[ion] * Fc1x, INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
@@ -552,18 +552,18 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
                         Fc0y = Ftmpy / c[c_index(x, y, comp, ion, Nx)];
                         Fph0y = z[ion] * Ftmpy;
                         // Upper c with lower c (-Fc0y)
-                        ierr = MatSetValue(Jac, Ind_1(x, y + 1, ion, comp, Nx), Ind_1(x, y, ion, comp, Nx), -Fc0y,
+                        ierr = MatSetValue(Jac, Ind_2(x, y + 1, ion, comp, Nx), Ind_2(x, y, ion, comp, Nx), -Fc0y,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Upper c with lower phi (-Fph0y)
-                        ierr = MatSetValue(Jac, Ind_1(x, y + 1, ion, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fph0y,
+                        ierr = MatSetValue(Jac, Ind_2(x, y + 1, ion, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fph0y,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         //Upper phi with lower c in voltage eqn
-                        ierr = MatSetValue(Jac, Ind_1(x, y + 1, Ni, comp, Nx), Ind_1(x, y, ion, comp, Nx),
+                        ierr = MatSetValue(Jac, Ind_2(x, y + 1, Ni, comp, Nx), Ind_2(x, y, ion, comp, Nx),
                                            -z[ion] * Fc0y, INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
@@ -575,18 +575,18 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
                         Fc1y = Ftmpy / c[c_index(x, y, comp, ion, Nx)];
                         Fph1y = z[ion] * Ftmpy;
                         //Lower c with Upper c (-Fc1y)
-                        ierr = MatSetValue(Jac, Ind_1(x, y - 1, ion, comp, Nx), Ind_1(x, y, ion, comp, Nx), -Fc1y,
+                        ierr = MatSetValue(Jac, Ind_2(x, y - 1, ion, comp, Nx), Ind_2(x, y, ion, comp, Nx), -Fc1y,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Lower c with Upper phi (-Fph1y)
-                        ierr = MatSetValue(Jac, Ind_1(x, y - 1, ion, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fph1y,
+                        ierr = MatSetValue(Jac, Ind_2(x, y - 1, ion, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fph1y,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         //Lower phi with upper c in voltage eqn
-                        ierr = MatSetValue(Jac, Ind_1(x, y - 1, Ni, comp, Nx), Ind_1(x, y, ion, comp, Nx),
+                        ierr = MatSetValue(Jac, Ind_2(x, y - 1, Ni, comp, Nx), Ind_2(x, y, ion, comp, Nx),
                                            -z[ion] * Fc1y, INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
@@ -606,37 +606,37 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
                     Aphi += flux->dfdphim[c_index(x, y, comp, ion, Nx)] * dt;
                     // Different Compartment Terms
                     // C Extracellular with C Inside
-                    ierr = MatSetValue(Jac, Ind_1(x, y, ion, Nc - 1, Nx), Ind_1(x, y, ion, comp, Nx),
+                    ierr = MatSetValue(Jac, Ind_2(x, y, ion, Nc - 1, Nx), Ind_2(x, y, ion, comp, Nx),
                                        -flux->dfdci[c_index(x, y, comp, ion, Nx)] * dt, INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     // C Intra with C Extra
-                    ierr = MatSetValue(Jac, Ind_1(x, y, ion, comp, Nx), Ind_1(x, y, ion, Nc - 1, Nx),
+                    ierr = MatSetValue(Jac, Ind_2(x, y, ion, comp, Nx), Ind_2(x, y, ion, Nc - 1, Nx),
                                        flux->dfdce[c_index(x, y, comp, ion, Nx)] * dt, INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     // C Extracellular with Phi Inside
-                    ierr = MatSetValue(Jac, Ind_1(x, y, ion, Nc - 1, Nx), Ind_1(x, y, Ni, comp, Nx),
+                    ierr = MatSetValue(Jac, Ind_2(x, y, ion, Nc - 1, Nx), Ind_2(x, y, Ni, comp, Nx),
                                        -flux->dfdphim[c_index(x, y, comp, ion, Nx)] * dt, INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     // C Intra with Phi Extra
-                    ierr = MatSetValue(Jac, Ind_1(x, y, ion, comp, Nx), Ind_1(x, y, Ni, Nc - 1, Nx),
+                    ierr = MatSetValue(Jac, Ind_2(x, y, ion, comp, Nx), Ind_2(x, y, Ni, Nc - 1, Nx),
                                        -flux->dfdphim[c_index(x, y, comp, ion, Nx)] * dt, INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Same compartment terms
                     // c with c
-                    ierr = MatSetValue(Jac, Ind_1(x, y, ion, comp, Nx), Ind_1(x, y, ion, comp, Nx), Ac, INSERT_VALUES);
+                    ierr = MatSetValue(Jac, Ind_2(x, y, ion, comp, Nx), Ind_2(x, y, ion, comp, Nx), Ac, INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     // c with phi
-                    ierr = MatSetValue(Jac, Ind_1(x, y, ion, comp, Nx), Ind_1(x, y, Ni, comp, Nx), Aphi, INSERT_VALUES);
+                    ierr = MatSetValue(Jac, Ind_2(x, y, ion, comp, Nx), Ind_2(x, y, Ni, comp, Nx), Aphi, INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
 
                     //Intra-Phi with c (voltage eqn)
-                    ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp, Nx), Ind_1(x, y, ion, comp, Nx), z[ion] *
+                    ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp, Nx), Ind_2(x, y, ion, comp, Nx), z[ion] *
                                                                                                    (Fc0x + Fc1x + Fc0y +
                                                                                                     Fc1y +
                                                                                                     flux->dfdci[c_index(
@@ -646,12 +646,12 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
                     CHKERRQ(ierr);
                     ind++;
                     //IntraPhi with c extra(volt eqn)
-                    ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp, Nx), Ind_1(x, y, ion, Nc - 1, Nx),
+                    ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp, Nx), Ind_2(x, y, ion, Nc - 1, Nx),
                                        z[ion] * (flux->dfdce[c_index(x, y, comp, ion, Nx)] * dt), INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Extra-Phi with intra-c (voltage eqn)
-                    ierr = MatSetValue(Jac, Ind_1(x, y, Ni, Nc - 1, Nx), Ind_1(x, y, ion, comp, Nx),
+                    ierr = MatSetValue(Jac, Ind_2(x, y, Ni, Nc - 1, Nx), Ind_2(x, y, ion, comp, Nx),
                                        -z[ion] * (flux->dfdci[c_index(x, y, comp, ion, Nx)] * dt), INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
@@ -677,18 +677,18 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
                     Fc0x = Ftmpx / c[c_index(x, y, comp, ion, Nx)];
                     Fph0x = z[ion] * Ftmpx;
                     // Right c with left c (-Fc0x)
-                    ierr = MatSetValue(Jac, Ind_1(x + 1, y, ion, comp, Nx), Ind_1(x, y, ion, comp, Nx), -Fc0x,
+                    ierr = MatSetValue(Jac, Ind_2(x + 1, y, ion, comp, Nx), Ind_2(x, y, ion, comp, Nx), -Fc0x,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Right c with left phi (-Fph0x)
-                    ierr = MatSetValue(Jac, Ind_1(x + 1, y, ion, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fph0x,
+                    ierr = MatSetValue(Jac, Ind_2(x + 1, y, ion, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fph0x,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
 
                     // Right Phi with left c (voltage eqn)
-                    ierr = MatSetValue(Jac, Ind_1(x + 1, y, Ni, comp, Nx), Ind_1(x, y, ion, comp, Nx), -z[ion] * Fc0x,
+                    ierr = MatSetValue(Jac, Ind_2(x + 1, y, Ni, comp, Nx), Ind_2(x, y, ion, comp, Nx), -z[ion] * Fc0x,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
@@ -700,18 +700,18 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
                     Fc1x = Ftmpx / c[c_index(x, y, comp, ion, Nx)];
                     Fph1x = z[ion] * Ftmpx;
                     //left c with right c (-Fc1x)
-                    ierr = MatSetValue(Jac, Ind_1(x - 1, y, ion, comp, Nx), Ind_1(x, y, ion, comp, Nx), -Fc1x,
+                    ierr = MatSetValue(Jac, Ind_2(x - 1, y, ion, comp, Nx), Ind_2(x, y, ion, comp, Nx), -Fc1x,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Left c with right phi (-Fph1x)
-                    ierr = MatSetValue(Jac, Ind_1(x - 1, y, ion, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fph1x,
+                    ierr = MatSetValue(Jac, Ind_2(x - 1, y, ion, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fph1x,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
 
                     // left Phi with right c (voltage eqn)
-                    ierr = MatSetValue(Jac, Ind_1(x - 1, y, Ni, comp, Nx), Ind_1(x, y, ion, comp, Nx), -z[ion] * Fc1x,
+                    ierr = MatSetValue(Jac, Ind_2(x - 1, y, Ni, comp, Nx), Ind_2(x, y, ion, comp, Nx), -z[ion] * Fc1x,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
@@ -723,18 +723,18 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
                     Fc0y = Ftmpy / c[c_index(x, y, comp, ion, Nx)];
                     Fph0y = z[ion] * Ftmpy;
                     // Upper c with lower c (-Fc0y)
-                    ierr = MatSetValue(Jac, Ind_1(x, y + 1, ion, comp, Nx), Ind_1(x, y, ion, comp, Nx), -Fc0y,
+                    ierr = MatSetValue(Jac, Ind_2(x, y + 1, ion, comp, Nx), Ind_2(x, y, ion, comp, Nx), -Fc0y,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Upper c with lower phi (-Fph0y)
-                    ierr = MatSetValue(Jac, Ind_1(x, y + 1, ion, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fph0y,
+                    ierr = MatSetValue(Jac, Ind_2(x, y + 1, ion, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fph0y,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
 
                     // Upper Phi with lower c (voltage eqn)
-                    ierr = MatSetValue(Jac, Ind_1(x, y + 1, Ni, comp, Nx), Ind_1(x, y, ion, comp, Nx), -z[ion] * Fc0y,
+                    ierr = MatSetValue(Jac, Ind_2(x, y + 1, Ni, comp, Nx), Ind_2(x, y, ion, comp, Nx), -z[ion] * Fc0y,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
@@ -746,18 +746,18 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
                     Fc1y = Ftmpy / c[c_index(x, y, comp, ion, Nx)];
                     Fph1y = z[ion] * Ftmpy;
                     //Lower c with Upper c (-Fc1y)
-                    ierr = MatSetValue(Jac, Ind_1(x, y - 1, ion, comp, Nx), Ind_1(x, y, ion, comp, Nx), -Fc1y,
+                    ierr = MatSetValue(Jac, Ind_2(x, y - 1, ion, comp, Nx), Ind_2(x, y, ion, comp, Nx), -Fc1y,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Lower c with Upper phi (-Fph1y)
-                    ierr = MatSetValue(Jac, Ind_1(x, y - 1, ion, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fph1y,
+                    ierr = MatSetValue(Jac, Ind_2(x, y - 1, ion, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fph1y,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
 
                     // Lower Phi with upper c (voltage eqn)
-                    ierr = MatSetValue(Jac, Ind_1(x, y - 1, Ni, comp, Nx), Ind_1(x, y, ion, comp, Nx), -z[ion] * Fc1y,
+                    ierr = MatSetValue(Jac, Ind_2(x, y - 1, Ni, comp, Nx), Ind_2(x, y, ion, comp, Nx), -z[ion] * Fc1y,
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
@@ -793,16 +793,16 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
 
                 //Insert extracell to extracell parts
                 // c with c
-                ierr = MatSetValue(Jac, Ind_1(x, y, ion, Nc - 1, Nx), Ind_1(x, y, ion, Nc - 1, Nx), Ac, INSERT_VALUES);
+                ierr = MatSetValue(Jac, Ind_2(x, y, ion, Nc - 1, Nx), Ind_2(x, y, ion, Nc - 1, Nx), Ac, INSERT_VALUES);
                 CHKERRQ(ierr);
                 ind++;
                 // c with phi
-                ierr = MatSetValue(Jac, Ind_1(x, y, ion, Nc - 1, Nx), Ind_1(x, y, Ni, Nc - 1, Nx), Aphi, INSERT_VALUES);
+                ierr = MatSetValue(Jac, Ind_2(x, y, ion, Nc - 1, Nx), Ind_2(x, y, Ni, Nc - 1, Nx), Aphi, INSERT_VALUES);
                 CHKERRQ(ierr);
                 ind++;
 
                 //phi with c (voltage eqn)
-                ierr = MatSetValue(Jac, Ind_1(x, y, Ni, Nc - 1, Nx), Ind_1(x, y, ion, Nc - 1, Nx), Avolt,
+                ierr = MatSetValue(Jac, Ind_2(x, y, Ni, Nc - 1, Nx), Ind_2(x, y, ion, Nc - 1, Nx), Avolt,
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
                 ind++;
@@ -811,28 +811,28 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
             for (comp = 0; comp < Nc - 1; comp++) {
                 if (x < Nx - 1) {
                     //Right phi with left phi (-Fph0x)
-                    ierr = MatSetValue(Jac, Ind_1(x + 1, y, Ni, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fphph0x[comp],
+                    ierr = MatSetValue(Jac, Ind_2(x + 1, y, Ni, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fphph0x[comp],
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
                 if (x > 0) {
                     //Left phi with right phi (-Fph1x)
-                    ierr = MatSetValue(Jac, Ind_1(x - 1, y, Ni, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fphph1x[comp],
+                    ierr = MatSetValue(Jac, Ind_2(x - 1, y, Ni, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fphph1x[comp],
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
                 if (y < Ny - 1) {
                     //Upper phi with lower phi (-Fph0y)
-                    ierr = MatSetValue(Jac, Ind_1(x, y + 1, Ni, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fphph0y[comp],
+                    ierr = MatSetValue(Jac, Ind_2(x, y + 1, Ni, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fphph0y[comp],
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
                 if (y > 0) {
                     //Lower phi with upper phi (-Fph1y)
-                    ierr = MatSetValue(Jac, Ind_1(x, y - 1, Ni, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fphph1y[comp],
+                    ierr = MatSetValue(Jac, Ind_2(x, y - 1, Ni, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fphph1y[comp],
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
@@ -845,11 +845,11 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
                 }
 
                 //Intra-phi with Intra-phi
-                ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp, Nx), Ind_1(x, y, Ni, comp, Nx), Avolt, INSERT_VALUES);
+                ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp, Nx), Ind_2(x, y, Ni, comp, Nx), Avolt, INSERT_VALUES);
                 CHKERRQ(ierr);
                 ind++;
                 //Intra-phi with extra-phi
-                ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp, Nx), Ind_1(x, y, Ni, Nc - 1, Nx), AvoltN, INSERT_VALUES);
+                ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp, Nx), Ind_2(x, y, Ni, Nc - 1, Nx), AvoltN, INSERT_VALUES);
                 CHKERRQ(ierr);
                 ind++;
             }
@@ -857,28 +857,28 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
             comp = Nc - 1;
             if (x < Nx - 1) {
                 //Right phi with left phi (-Fph0x)
-                ierr = MatSetValue(Jac, Ind_1(x + 1, y, Ni, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fphph0x[comp],
+                ierr = MatSetValue(Jac, Ind_2(x + 1, y, Ni, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fphph0x[comp],
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
                 ind++;
             }
             if (x > 0) {
                 //Left phi with right phi (-Fph1x)
-                ierr = MatSetValue(Jac, Ind_1(x - 1, y, Ni, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fphph1x[comp],
+                ierr = MatSetValue(Jac, Ind_2(x - 1, y, Ni, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fphph1x[comp],
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
                 ind++;
             }
             if (y < Ny - 1) {
                 //Upper phi with lower phi (-Fph0y)
-                ierr = MatSetValue(Jac, Ind_1(x, y + 1, Ni, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fphph0y[comp],
+                ierr = MatSetValue(Jac, Ind_2(x, y + 1, Ni, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fphph0y[comp],
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
                 ind++;
             }
             if (y > 0) {
                 //Lower phi with upper phi (-Fph1y)
-                ierr = MatSetValue(Jac, Ind_1(x, y - 1, Ni, comp, Nx), Ind_1(x, y, Ni, comp, Nx), -Fphph1y[comp],
+                ierr = MatSetValue(Jac, Ind_2(x, y - 1, Ni, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -Fphph1y[comp],
                                    INSERT_VALUES);
                 CHKERRQ(ierr);
                 ind++;
@@ -893,7 +893,7 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
                     AvoltN += z[ion] * flux->dfdphim[c_index(x, y, k, ion, Nx)] * dt;
                 }
                 //Extra-phi with Intra-phi
-                ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp, Nx), Ind_1(x, y, Ni, k, Nx), Avolt, INSERT_VALUES);
+                ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp, Nx), Ind_2(x, y, Ni, k, Nx), Avolt, INSERT_VALUES);
                 CHKERRQ(ierr);
                 ind++;
             }
@@ -907,7 +907,7 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
                 AvoltN -= z[ion] * Ftmpx * (cp[c_index(x, y, Nc - 1, ion, Nx)] + cbath[ion]) * z[ion] / 2 * dt;
             }
             //extra-phi with extra-phi
-            ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp, Nx), Ind_1(x, y, Ni, comp, Nx), AvoltN, INSERT_VALUES);
+            ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp, Nx), Ind_2(x, y, Ni, comp, Nx), AvoltN, INSERT_VALUES);
             CHKERRQ(ierr);
             ind++;
 
@@ -996,7 +996,7 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
                     Resc = al[al_index(x,y,comp,Nx)]*c[c_index(x,y,comp,ion,Nx)]-alp[al_index(x,y,comp,Nx)]*cp[c_index(x,y,comp,ion,Nx)];
                     Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x,y,comp,ion,Nx)]*dt;
 
-                    ierr = VecSetValue(Res,Ind_1(x,y,ion,comp,Nx),Resc,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = VecSetValue(Res,Ind_2(x,y,ion,comp,Nx),Resc,INSERT_VALUES);CHKERRQ(ierr);
 
                 }
                 //Set Extracellular values
@@ -1032,7 +1032,7 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
                 //Add bath variables
 
                 Resc -= sqrt(pow(Dcb[c_index(x,y,comp,ion,Nx)*2],2)+pow(Dcb[c_index(x,y,comp,ion,Nx)*2+1],2))*(cp[c_index(x,y,comp,ion,Nx)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion,Nx)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp,Nx)]-z[ion]*phibath)*dt;
-                ierr = VecSetValue(Res,Ind_1(x,y,ion,comp,Nx),Resc,INSERT_VALUES);CHKERRQ(ierr);
+                ierr = VecSetValue(Res,Ind_2(x,y,ion,comp,Nx),Resc,INSERT_VALUES);CHKERRQ(ierr);
 
             }
         }
@@ -1047,18 +1047,18 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
             {
 
                 Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
-                ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
+                ierr = VecSetValue(Res,Ind_2(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
             }
             //Extracellular term
             comp=Nc-1;
             Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
-            ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
+            ierr = VecSetValue(Res,Ind_2(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
 
             //Residual for water flow
             //Plus modification to electroneutrality for non-zero mem.compacitance
             for(comp=0;comp<Nc-1;comp++) {
                 //Water flow
-                ierr = VecSetValue(Res,Ind_1(x,y,Ni+1,comp,Nx),al[al_index(x,y,comp,Nx)]-alp[al_index(x,y,comp,Nx)]+flux->wflow[al_index(x,y,comp,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
+                ierr = VecSetValue(Res,Ind_2(x,y,Ni+1,comp,Nx),al[al_index(x,y,comp,Nx)]-alp[al_index(x,y,comp,Nx)]+flux->wflow[al_index(x,y,comp,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
 
             }
         }
@@ -1075,9 +1075,9 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
             for(comp=0;comp<Nc-1;comp++)
             {
                 //Extracell voltage
-                ierr = VecSetValue(Res,Ind_1(x,y,Ni,Nc-1,Nx),-cm[comp]*(phi[phi_index(x,y,Nc-1,Nx)]-phi[phi_index(x,y,comp,Nx)]),ADD_VALUES);CHKERRQ(ierr);
+                ierr = VecSetValue(Res,Ind_2(x,y,Ni,Nc-1,Nx),-cm[comp]*(phi[phi_index(x,y,Nc-1,Nx)]-phi[phi_index(x,y,comp,Nx)]),ADD_VALUES);CHKERRQ(ierr);
                 //Intracell voltage mod
-                ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),-cm[comp]*(phi[phi_index(x,y,comp,Nx)]-phi[phi_index(x,y,Nc-1,Nx)]),ADD_VALUES);CHKERRQ(ierr);
+                ierr = VecSetValue(Res,Ind_2(x,y,Ni,comp,Nx),-cm[comp]*(phi[phi_index(x,y,comp,Nx)]-phi[phi_index(x,y,Nc-1,Nx)]),ADD_VALUES);CHKERRQ(ierr);
             }
         }
     }
@@ -1145,10 +1145,10 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                         Fph0x = z[ion]*Ftmpx;
                         // Right c with left c (-Fc0x)
 
-                        ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),-Fc0x,INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x+1,y,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),-Fc0x,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                         //Right c with left phi (-Fph0x)
-                        ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-Fph0x,INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x+1,y,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),-Fph0x,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
 
                     }
@@ -1157,10 +1157,10 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                         Fc1x = Ftmpx/c[c_index(x,y,comp,ion,Nx)];
                         Fph1x = z[ion]*Ftmpx;
                         //left c with right c (-Fc1x)
-                        ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),-Fc1x,INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x-1,y,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),-Fc1x,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                         //Left c with right phi (-Fph1x)
-                        ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-Fph1x,INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x-1,y,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),-Fph1x,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                     }
                     if(y<Ny-1) {
@@ -1168,10 +1168,10 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                         Fc0y = Ftmpy/c[c_index(x,y,comp,ion,Nx)];
                         Fph0y = z[ion]*Ftmpy;
                         // Upper c with lower c (-Fc0y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),-Fc0y,INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x,y+1,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),-Fc0y,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                         //Upper c with lower phi (-Fph0y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-Fph0y,INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x,y+1,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),-Fph0y,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                     }
                     if(y>0) {
@@ -1179,10 +1179,10 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                         Fc1y = Ftmpy/c[c_index(x,y,comp,ion,Nx)];
                         Fph1y = z[ion]*Ftmpy;
                         //Lower c with Upper c (-Fc1y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),-Fc1y,INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x,y-1,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),-Fc1y,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                         //Lower c with Upper phi (-Fph1y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-Fph1y,INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x,y-1,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),-Fph1y,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                     }
                     //Diagonal term contribution
@@ -1195,30 +1195,30 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                     Aphi+=flux->dfdphim[c_index(x,y,comp,ion,Nx)]*dt;
                     // Different Compartment Terms
                     // C Extracellular with C Inside
-                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1,Nx),Ind_1(x,y,ion,comp,Nx),-flux->dfdci[c_index(x,y,comp,ion,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,ion,Nc-1,Nx),Ind_2(x,y,ion,comp,Nx),-flux->dfdci[c_index(x,y,comp,ion,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                     // C Intra with C Extra
-                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp,Nx),Ind_1(x,y,ion,Nc-1,Nx),flux->dfdce[c_index(x,y,comp,ion,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,ion,comp,Nx),Ind_2(x,y,ion,Nc-1,Nx),flux->dfdce[c_index(x,y,comp,ion,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                     // C Extracellular with Phi Inside
-                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1,Nx),Ind_1(x,y,Ni,comp,Nx),-flux->dfdphim[c_index(x,y,comp,ion,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,ion,Nc-1,Nx),Ind_2(x,y,Ni,comp,Nx),-flux->dfdphim[c_index(x,y,comp,ion,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                     // C Intra with Phi Extra
-                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp,Nx),Ind_1(x,y,Ni,Nc-1,Nx),-flux->dfdphim[c_index(x,y,comp,ion,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,ion,comp,Nx),Ind_2(x,y,Ni,Nc-1,Nx),-flux->dfdphim[c_index(x,y,comp,ion,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                     //Volume terms
                     //C extra with intra alpha
-                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1,Nx),Ind_1(x,y,Ni+1,comp,Nx),-c[c_index(x,y,Nc-1,ion,Nx)],INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,ion,Nc-1,Nx),Ind_2(x,y,Ni+1,comp,Nx),-c[c_index(x,y,Nc-1,ion,Nx)],INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                     //C intra with intra alpha
-                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp,Nx),Ind_1(x,y,Ni+1,comp,Nx),c[c_index(x,y,comp,ion,Nx)],INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,ion,comp,Nx),Ind_2(x,y,Ni+1,comp,Nx),c[c_index(x,y,comp,ion,Nx)],INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                     //Same compartment terms
                     // c with c
-                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),Ac,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),Ac,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                     // c with phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),Aphi,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),Aphi,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
 
                 }
@@ -1240,10 +1240,10 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                     Fc0x = Ftmpx/c[c_index(x,y,comp,ion,Nx)];
                     Fph0x = z[ion]*Ftmpx;
                     // Right c with left c (-Fc0x)
-                    ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),-Fc0x,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x+1,y,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),-Fc0x,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                     //Right c with left phi (-Fph0x)
-                    ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-Fph0x,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x+1,y,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),-Fph0x,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
                 if(x>0) {
@@ -1251,10 +1251,10 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                     Fc1x = Ftmpx/c[c_index(x,y,comp,ion,Nx)];
                     Fph1x = z[ion]*Ftmpx;
                     //left c with right c (-Fc1x)
-                    ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),-Fc1x,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x-1,y,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),-Fc1x,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                     //Left c with right phi (-Fph1x)
-                    ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-Fph1x,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x-1,y,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),-Fph1x,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
                 if(y<Ny-1) {
@@ -1262,10 +1262,10 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                     Fc0y = Ftmpy/c[c_index(x,y,comp,ion,Nx)];
                     Fph0y = z[ion]*Ftmpy;
                     // Upper c with lower c (-Fc0y)
-                    ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),-Fc0y,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y+1,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),-Fc0y,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                     //Upper c with lower phi (-Fph0y)
-                    ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-Fph0y,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y+1,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),-Fph0y,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
                 if(y>0) {
@@ -1273,10 +1273,10 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                     Fc1y = Ftmpy/c[c_index(x,y,comp,ion,Nx)];
                     Fph1y = z[ion]*Ftmpy;
                     //Lower c with Upper c (-Fc1y)
-                    ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),-Fc1y,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y-1,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),-Fc1y,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                     //Lower c with Upper phi (-Fph1y)
-                    ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-Fph1y,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y-1,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),-Fph1y,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
 
@@ -1296,10 +1296,10 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
 
                 //Insert extracell to extracell parts
                 // c with c
-                ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1,Nx),Ind_1(x,y,ion,Nc-1,Nx),Ac,INSERT_VALUES);CHKERRQ(ierr);
+                ierr = MatSetValue(Jac,Ind_2(x,y,ion,Nc-1,Nx),Ind_2(x,y,ion,Nc-1,Nx),Ac,INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
                 // c with phi
-                ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1,Nx),Ind_1(x,y,Ni,Nc-1,Nx),Aphi,INSERT_VALUES);CHKERRQ(ierr);
+                ierr = MatSetValue(Jac,Ind_2(x,y,ion,Nc-1,Nx),Ind_2(x,y,Ni,Nc-1,Nx),Aphi,INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
             }
 
@@ -1317,12 +1317,12 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                 for(comp=0;comp<Nc-1;comp++)
                 {
                     //Phi with C entries
-                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,ion,comp,Nx),z[ion]*al[al_index(x,y,comp,Nx)],INSERT_VALUES); CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,Ni,comp,Nx),Ind_2(x,y,ion,comp,Nx),z[ion]*al[al_index(x,y,comp,Nx)],INSERT_VALUES); CHKERRQ(ierr);
                     ind++;
                 }
                 //Phi with C extracellular one
                 comp = Nc-1;
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,ion,comp,Nx),z[ion]*(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)]),INSERT_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValue(Jac,Ind_2(x,y,Ni,comp,Nx),Ind_2(x,y,ion,comp,Nx),z[ion]*(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)]),INSERT_VALUES); CHKERRQ(ierr);
                 ind++;
 
             }
@@ -1333,25 +1333,25 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                 Aphi -= cm[comp];
             }
             //extraphi with extra phi
-            ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni,Nc-1,Nx),Aphi,INSERT_VALUES);CHKERRQ(ierr);
+            ierr = MatSetValue(Jac,Ind_2(x,y,Ni,Nc-1,Nx),Ind_2(x,y,Ni,Nc-1,Nx),Aphi,INSERT_VALUES);CHKERRQ(ierr);
             ind++;
             for(comp=0;comp<Nc-1;comp++)
             {
                 //The next 3 are inserted in init jacobian for the grid
                 //Extra phi with intra phi
-//                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni,comp,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
+//                ierr = MatSetValue(Jac,Ind_2(x,y,Ni,Nc-1,Nx),Ind_2(x,y,Ni,comp,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
 //                ind++;
                 // Intra phi with Extraphi
-//                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni,Nc-1,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
+//                ierr = MatSetValue(Jac,Ind_2(x,y,Ni,comp,Nx),Ind_2(x,y,Ni,Nc-1,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
 //                ind++;
                 //Intra phi with Intra phi
-//                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-cm[comp],INSERT_VALUES);CHKERRQ(ierr);
+//                ierr = MatSetValue(Jac,Ind_2(x,y,Ni,comp,Nx),Ind_2(x,y,Ni,comp,Nx),-cm[comp],INSERT_VALUES);CHKERRQ(ierr);
 //                ind++;
                 //Extra phi with intra-Volume
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni+1,comp,Nx),-cz(c,z,x,y,Nx,Nc-1,user),INSERT_VALUES);CHKERRQ(ierr);
+                ierr = MatSetValue(Jac,Ind_2(x,y,Ni,Nc-1,Nx),Ind_2(x,y,Ni+1,comp,Nx),-cz(c,z,x,y,Nx,Nc-1,user),INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
                 //Intra phi with Intra Vol
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni+1,comp,Nx),cz(c,z,x,y,Nx,comp,user),INSERT_VALUES);CHKERRQ(ierr);
+                ierr = MatSetValue(Jac,Ind_2(x,y,Ni,comp,Nx),Ind_2(x,y,Ni+1,comp,Nx),cz(c,z,x,y,Nx,comp,user),INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
             }
         }
@@ -1363,23 +1363,23 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                 //Water flow volume fraction entries
                 //Volume to Volume
                 Ac=1+(flux->dwdpi[al_index(x,y,comp,Nx)]*(con_vars->ao[phi_index(0,0,Nc-1,Nx)]/(pow(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)],2))+con_vars->ao[phi_index(0,0,comp,Nx)]/pow(al[al_index(x,y,comp,Nx)],2))+flux->dwdal[al_index(x,y,comp,Nx)])*dt;
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,Ni+1,comp,Nx),Ac,INSERT_VALUES);CHKERRQ(ierr);
+                ierr = MatSetValue(Jac,Ind_2(x,y,Ni+1,comp,Nx),Ind_2(x,y,Ni+1,comp,Nx),Ac,INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
                 //Off diagonal (from aNc=1-sum(ak))
                 for (PetscInt l=0; l<comp; l++) {
-                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,Ni+1,l,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*con_vars->ao[phi_index(0,0,Nc-1,Nx)]/pow(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)],2)*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,Ni+1,comp,Nx),Ind_2(x,y,Ni+1,l,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*con_vars->ao[phi_index(0,0,Nc-1,Nx)]/pow(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)],2)*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
                 for (PetscInt l=comp+1; l<Nc-1; l++) {
-                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,Ni+1,l,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*con_vars->ao[phi_index(0,0,Nc-1,Nx)]/((1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)]))*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,Ni+1,comp,Nx),Ind_2(x,y,Ni+1,l,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*con_vars->ao[phi_index(0,0,Nc-1,Nx)]/((1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)]))*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
                 for (ion=0; ion<Ni; ion++) {
                     //Volume to extra c
-                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,ion,Nc-1,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,Ni+1,comp,Nx),Ind_2(x,y,ion,Nc-1,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                     //Volume to intra c
-                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,ion,comp,Nx),-flux->dwdpi[al_index(x,y,comp,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,Ni+1,comp,Nx),Ind_2(x,y,ion,comp,Nx),-flux->dwdpi[al_index(x,y,comp,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
             }
@@ -1452,12 +1452,12 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
             for (y = 0; y < Ny; y++) {
                 for (comp = 0; comp < Nc; comp++) {
                     for (ion = 0; ion < Ni; ion++) {
-                        user->grid_vars->c[c_index(x, y, comp, ion, Nx)] -= temp[Ind_1(x,y,ion,comp,Nx)];
+                        user->grid_vars->c[c_index(x, y, comp, ion, Nx)] -= temp[Ind_2(x,y,ion,comp,Nx)];
                     }
-                    user->grid_vars->phi[phi_index(x, y, comp, Nx)] -= temp[Ind_1(x,y,Ni,comp,Nx)];
+                    user->grid_vars->phi[phi_index(x, y, comp, Nx)] -= temp[Ind_2(x,y,Ni,comp,Nx)];
                 }
                 for (comp = 0; comp < Nc-1; comp++) {
-                    user->grid_vars->alpha[al_index(x, y, comp, Nx)] -= temp[Ind_1(x,y,Ni+1,comp,Nx)];
+                    user->grid_vars->alpha[al_index(x, y, comp, Nx)] -= temp[Ind_2(x,y,Ni+1,comp,Nx)];
                 }
             }
         }
@@ -1598,4 +1598,407 @@ PetscErrorCode Update_Solution(Vec current_state,PetscReal t,struct AppCtx *user
 
     return ierr;
 
+}
+
+PetscErrorCode initialize_grid_jacobian(Mat Jac,struct AppCtx *user,int grid) {
+    printf("Initializing Jacobian Memory\n");
+    PetscErrorCode ierr;
+    PetscInt Nx;
+    PetscInt Ny;
+    if(grid) {
+        Nx = 2 * width_size + 1;
+        Ny = 2 * width_size + 1;
+    }else{
+        Nx = user->Nx;
+        Ny = user->Ny;
+    }
+    PetscInt ind = 0;
+    PetscInt x,y,ion,comp;
+
+    //Ionic concentration equations
+    for(x=0;x<Nx;x++) {
+        for(y=0;y<Ny;y++) {
+            for(ion=0;ion<Ni;ion++) {
+                for(comp=0;comp<Nc-1;comp++) {
+                    //Electrodiffusion contributions
+
+                    if(x<Nx-1)
+                    {
+                        // Right c with left c (-Fc0x)
+                        ierr = MatSetValue(Jac,Ind_2(x+1,y,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                        //Right c with left phi (-Fph0x)
+                        ierr = MatSetValue(Jac,Ind_2(x+1,y,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                        if (use_en_deriv&&!grid) {
+                            //Right phi with left c in voltage eqn
+                            ierr = MatSetValue(Jac,Ind_2(x+1,y,Ni,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                            ind++;
+                        }
+
+
+                    }
+                    if(x>0)
+                    {
+                        //left c with right c (-Fc1x)
+                        ierr = MatSetValue(Jac,Ind_2(x-1,y,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                        //Left c with right phi (-Fph1x)
+                        ierr = MatSetValue(Jac,Ind_2(x-1,y,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                        if (use_en_deriv&&!grid) {
+                            //Left phi with right c in voltage eqn
+                            ierr = MatSetValue(Jac, Ind_2(x - 1, y, Ni, comp,Nx), Ind_2(x, y, ion, comp,Nx), 0,
+                                               INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+                        }
+                    }
+                    if(y<Ny-1)
+                    {
+                        // Upper c with lower c (-Fc0y)
+                        ierr = MatSetValue(Jac,Ind_2(x,y+1,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                        //Upper c with lower phi (-Fph0y)
+                        ierr = MatSetValue(Jac,Ind_2(x,y+1,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                        if (use_en_deriv&&!grid) {
+                            //Upper phi with lower c in voltage eqn
+                            ierr = MatSetValue(Jac, Ind_2(x, y + 1, Ni, comp,Nx), Ind_2(x, y, ion, comp,Nx), 0,
+                                               INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+                        }
+                    }
+                    if(y>0)
+                    {
+                        //Lower c with Upper c (-Fc1y)
+                        ierr = MatSetValue(Jac,Ind_2(x,y-1,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                        //Lower c with Upper phi (-Fph1y)
+                        ierr = MatSetValue(Jac,Ind_2(x,y-1,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                        ind++;
+                        if (use_en_deriv&&!grid) {
+                            //Lower phi with upper c in voltage eqn
+                            ierr = MatSetValue(Jac, Ind_2(x, y - 1, Ni, comp,Nx), Ind_2(x, y, ion, comp,Nx), 0,
+                                               INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+                        }
+                    }
+
+                    // Different Compartment Terms
+                    // C Extracellular with C Inside
+                    ierr = MatSetValue(Jac,Ind_2(x,y,ion,Nc-1,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    // C Intra with C Extra
+                    ierr = MatSetValue(Jac,Ind_2(x,y,ion,comp,Nx),Ind_2(x,y,ion,Nc-1,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    // C Extracellular with Phi Inside
+                    ierr = MatSetValue(Jac,Ind_2(x,y,ion,Nc-1,Nx),Ind_2(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    // C Intra with Phi Extra
+                    ierr = MatSetValue(Jac,Ind_2(x,y,ion,comp,Nx),Ind_2(x,y,Ni,Nc-1,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    if(!separate_vol||grid) {
+                        //Volume terms
+                        //C extra with intra alpha
+                        ierr = MatSetValue(Jac, Ind_2(x, y, ion, Nc - 1,Nx), Ind_2(x, y, Ni + 1, comp,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        //C intra with intra alpha
+                        ierr = MatSetValue(Jac, Ind_2(x, y, ion, comp,Nx), Ind_2(x, y, Ni + 1, comp,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                    //Same compartment terms
+                    // c with c
+                    ierr = MatSetValue(Jac,Ind_2(x,y,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    // c with phi
+                    ierr = MatSetValue(Jac,Ind_2(x,y,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    if (use_en_deriv&&!grid) {
+                        //Intra-Phi with c (voltage eqn)
+                        ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp,Nx), Ind_2(x, y, ion, comp,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        //IntraPhi with c extra(volt eqn)
+                        ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp,Nx), Ind_2(x, y, ion, Nc - 1,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+
+                        //Extra-Phi with intra-c (voltage eqn)
+                        ierr = MatSetValue(Jac, Ind_2(x, y, Ni, Nc - 1,Nx), Ind_2(x, y, ion, comp,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+
+                }
+                //Extracellular terms
+                comp = Nc-1;
+                //Electrodiffusion contributions
+                if(x<Nx-1)
+                {
+                    // Right c with left c (-Fc0x)
+                    ierr = MatSetValue(Jac,Ind_2(x+1,y,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    //Right c with left phi (-Fph0x)
+                    ierr = MatSetValue(Jac,Ind_2(x+1,y,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    if (use_en_deriv&&!grid) {
+                        // left Phi with right c (voltage eqn)
+                        ierr = MatSetValue(Jac, Ind_2(x + 1, y, Ni, comp,Nx), Ind_2(x, y, ion, comp,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                }
+                if(x>0)
+                {
+                    //left c with right c (-Fc1x)
+                    ierr = MatSetValue(Jac,Ind_2(x-1,y,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    //Left c with right phi (-Fph1x)
+                    ierr = MatSetValue(Jac,Ind_2(x-1,y,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    if (use_en_deriv&&!grid) {
+                        // left Phi with right c (voltage eqn)
+                        ierr = MatSetValue(Jac, Ind_2(x - 1, y, Ni, comp,Nx), Ind_2(x, y, ion, comp,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                }
+                if(y<Ny-1)
+                {
+                    // Upper c with lower c (-Fc0y)
+                    ierr = MatSetValue(Jac,Ind_2(x,y+1,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    //Upper c with lower phi (-Fph0y)
+                    ierr = MatSetValue(Jac,Ind_2(x,y+1,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    if (use_en_deriv&&!grid) {
+                        // Upper Phi with lower c (voltage eqn)
+                        ierr = MatSetValue(Jac, Ind_2(x, y + 1, Ni, comp,Nx), Ind_2(x, y, ion, comp,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                }
+                if(y>0)
+                {
+                    //Lower c with Upper c (-Fc1y)
+                    ierr = MatSetValue(Jac,Ind_2(x,y-1,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    //Lower c with Upper phi (-Fph1y)
+                    ierr = MatSetValue(Jac,Ind_2(x,y-1,ion,comp,Nx),Ind_2(x,y,Ni,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                    ind++;
+                    if (use_en_deriv&&!grid) {
+                        // Lower Phi with upper c (voltage eqn)
+                        ierr = MatSetValue(Jac, Ind_2(x, y - 1, Ni, comp,Nx), Ind_2(x, y, ion, comp,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                }
+                //Insert extracell to extracell parts
+                // c with c
+                ierr = MatSetValue(Jac,Ind_2(x,y,ion,Nc-1,Nx),Ind_2(x,y,ion,Nc-1,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+                // c with phi
+                ierr = MatSetValue(Jac,Ind_2(x,y,ion,Nc-1,Nx),Ind_2(x,y,Ni,Nc-1,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
+                if (use_en_deriv&&!grid) {
+                    //phi with c (voltage eqn)
+                    ierr = MatSetValue(Jac, Ind_2(x, y, Ni, Nc - 1,Nx), Ind_2(x, y, ion, Nc - 1,Nx), 0, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+                }
+            }
+            if (use_en_deriv&&!grid) {
+                //Derivative of charge-capacitance
+                for (comp = 0; comp < Nc - 1; comp++) {
+                    if (x < Nx - 1) {
+                        //Right phi with left phi (-Fph0x)
+                        ierr = MatSetValue(Jac, Ind_2(x + 1, y, Ni, comp,Nx), Ind_2(x, y, Ni, comp,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                    if (x > 0) {
+                        //Left phi with right phi (-Fph1x)
+                        ierr = MatSetValue(Jac, Ind_2(x - 1, y, Ni, comp,Nx), Ind_2(x, y, Ni, comp,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                    if (y < Ny - 1) {
+                        //Upper phi with lower phi (-Fph0y)
+                        ierr = MatSetValue(Jac, Ind_2(x, y + 1, Ni, comp,Nx), Ind_2(x, y, Ni, comp,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                    if (y > 0) {
+                        //Lower phi with upper phi (-Fph1y)
+                        ierr = MatSetValue(Jac, Ind_2(x, y - 1, Ni, comp,Nx), Ind_2(x, y, Ni, comp,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                    //Intra-phi with Intra-phi
+                    ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp,Nx), Ind_2(x, y, Ni, comp,Nx), 0, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+                    //Intra-phi with extra-phi
+                    ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp,Nx), Ind_2(x, y, Ni, Nc - 1,Nx), 0, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+                }
+                //Extracellular terms
+                comp = Nc - 1;
+                if (x < Nx - 1) {
+                    //Right phi with left phi (-Fph0x)
+                    ierr = MatSetValue(Jac, Ind_2(x + 1, y, Ni, comp,Nx), Ind_2(x, y, Ni, comp,Nx), 0, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+                }
+                if (x > 0) {
+                    //Left phi with right phi (-Fph1x)
+                    ierr = MatSetValue(Jac, Ind_2(x - 1, y, Ni, comp,Nx), Ind_2(x, y, Ni, comp,Nx), 0, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+                }
+                if (y < Ny - 1) {
+                    //Upper phi with lower phi (-Fph0y)
+                    ierr = MatSetValue(Jac, Ind_2(x, y + 1, Ni, comp,Nx), Ind_2(x, y, Ni, comp,Nx), 0, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+                }
+                if (y > 0) {
+                    //Lower phi with upper phi (-Fph1y)
+                    ierr = MatSetValue(Jac, Ind_2(x, y - 1, Ni, comp,Nx), Ind_2(x, y, Ni, comp,Nx), 0, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+                }
+
+                for (int k = 0; k < Nc - 1; k++) {
+                    //Extra-phi with Intra-phi
+                    ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp,Nx), Ind_2(x, y, Ni, k,Nx), 0, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+                }
+                //extra-phi with extra-phi
+                ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp,Nx), Ind_2(x, y, Ni, comp,Nx), 0, INSERT_VALUES);
+                CHKERRQ(ierr);
+                ind++;
+            }
+
+        }
+    }
+    if(!use_en_deriv||grid) {
+        //Electroneutrality charge-capcitance condition
+        for (x = 0; x < Nx; x++) {
+            for (y = 0; y < Ny; y++) {
+                //electroneutral-concentration entries
+                for (ion = 0; ion < Ni; ion++) {
+                    for (comp = 0; comp < Nc - 1; comp++) {
+                        //Phi with C entries
+                        ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp,Nx), Ind_2(x, y, ion, comp,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                    //Phi with C extracellular one
+                    comp = Nc - 1;
+                    ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp,Nx), Ind_2(x, y, ion, comp,Nx), 0, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+
+                }
+                //electroneutrality-voltage entries
+
+                //extraphi with extra phi
+                ierr = MatSetValue(Jac, Ind_2(x, y, Ni, Nc - 1,Nx), Ind_2(x, y, Ni, Nc - 1,Nx), 0, INSERT_VALUES);
+                CHKERRQ(ierr);
+                ind++;
+                for (comp = 0; comp < Nc - 1; comp++) {
+                    //Extra phi with intra phi
+                    ierr = MatSetValue(Jac, Ind_2(x, y, Ni, Nc - 1,Nx), Ind_2(x, y, Ni, comp,Nx), 0, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+                    // Intra phi with Extraphi
+                    ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp,Nx), Ind_2(x, y, Ni, Nc - 1,Nx), 0, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+                    //Intra phi with Intra phi
+                    ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp,Nx), Ind_2(x, y, Ni, comp,Nx), 0, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+                    if(!separate_vol||grid) {
+                        //Extra phi with intra-Volume
+                        ierr = MatSetValue(Jac, Ind_2(x, y, Ni, Nc - 1,Nx), Ind_2(x, y, Ni + 1, comp,Nx), 0,
+                                           INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        //Intra phi with Intra Vol
+                        ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp,Nx), Ind_2(x, y, Ni + 1, comp,Nx), 0,
+                                           INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                    if(grid) {
+                        //Extra phi with intra phi
+                        ierr = MatSetValue(Jac, Ind_2(x, y, Ni, Nc - 1, Nx), Ind_2(x, y, Ni, comp, Nx), cm[comp],
+                                           INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        // Intra phi with Extraphi
+                        ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp, Nx), Ind_2(x, y, Ni, Nc - 1, Nx), cm[comp],
+                                           INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        //Intra phi with Intra phi
+                        ierr = MatSetValue(Jac, Ind_2(x, y, Ni, comp, Nx), Ind_2(x, y, Ni, comp, Nx), -cm[comp],
+                                           INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+
+                }
+            }
+        }
+    }
+    if(!separate_vol||grid) {
+        //water flow
+        for (x = 0; x < Nx; x++) {
+            for (y = 0; y < Ny; y++) {
+                for (comp = 0; comp < Nc - 1; comp++) {
+                    //Water flow volume fraction entries
+                    //Volume to Volume
+                    ierr = MatSetValue(Jac, Ind_2(x, y, Ni + 1, comp,Nx), Ind_2(x, y, Ni + 1, comp,Nx), 0, INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+                    //Off diagonal (from aNc=1-sum(ak))
+                    for (PetscInt l = 0; l < comp; l++) {
+                        ierr = MatSetValue(Jac, Ind_2(x, y, Ni + 1, comp,Nx), Ind_2(x, y, Ni + 1, l,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                    for (PetscInt l = comp + 1; l < Nc - 1; l++) {
+                        ierr = MatSetValue(Jac, Ind_2(x, y, Ni + 1, comp,Nx), Ind_2(x, y, Ni + 1, l,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                    for (ion = 0; ion < Ni; ion++) {
+                        //Volume to extra c
+                        ierr = MatSetValue(Jac, Ind_2(x, y, Ni + 1, comp,Nx), Ind_2(x, y, ion, Nc - 1,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        //Volume to intra c
+                        ierr = MatSetValue(Jac, Ind_2(x, y, Ni + 1, comp,Nx), Ind_2(x, y, ion, comp,Nx), 0, INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                }
+            }
+        }
+    }
+    ierr = MatAssemblyBegin(Jac,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(Jac,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+
+
+    return ierr;
 }

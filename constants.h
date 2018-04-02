@@ -8,20 +8,25 @@
 
 //set global parameters here (constants)
 
-#define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
-#define separate_vol 0 //if true, will solve c,phi separate from alpha.
+// General options
+
 #define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
 #define mid_points_exct 1
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 #define Profiling_on 0 //Turns timing of functions on/off.
-#define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define trecordstep 0.1//0.5 //determines how often to record
+#define trecordstep 0.01//0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
+
+
+//Solver Type Options
+#define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
+#define separate_vol 1 //if true, will solve c,phi separate from alpha.
+#define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
+#define Predictor 1  // Turns on predictor. Adaptive single point estimated update
+#define width_size  1 //Number of up,down,left,right neighbors to pair in the predictor.
 
 //basic ion extern constants
 #define   Ni  3           //number of ion species (Na, K, Cl)
-//extern const PetscInt z[3]; //valences of ion species
-//extern const PetscReal D[3]; //diffusion coefficients in cm^2/sec
 static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
@@ -38,7 +43,6 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 //#define dx (Lx/Nx)       //grid size in x direction (in cm)
 //#define dy (Ly/Ny)        //grid size in y direction (in cm)
 
-#define width_size  1
 
 //number of variables to be solved for at each grid point
 //#define  Nv  ((Ni+2)*Nc-1) //version if volume is included
