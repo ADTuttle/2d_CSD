@@ -501,11 +501,6 @@ void init_events(struct AppCtx *user)
     PetscLogEventRegister("Water Flux",id,&event[6]);
     PetscLogEventRegister("Volume Update",id,&event[7]);
     PetscLogEventRegister("Write to File",id,&event[8]);
-    PetscLogEventRegister("Predict Jacobian",id,&event[9]);
-    PetscLogEventRegister("Predict Residual",id,&event[10]);
-    PetscLogEventRegister("Predict Solve",id,&event[11]);
-    PetscLogEventRegister("Load Grid",id,&event[12]);
-    PetscLogEventRegister("Unload Grid",id,&event[13]);
 
     //Deactivate Petsc tracking
     PetscLogEvent deactivate;

@@ -134,13 +134,16 @@ int main(int argc, char **argv)
 
     //Reset time step
     user->dt = dt;
+    //Create the excitation
+    excitation(user,0);
     int count = 0;
     PetscInt num_iters,ksp_iters_old,ksp_iters_new,grid_ksp_old;
     PetscInt total_newton = 0;
     int refinement;
     SNESConvergedReason reason;
     PetscTime(&full_tic);
-    for(PetscReal t=dt;t<=Time;t+=dt) {
+    for(PetscReal t=dt;t<=Time;t+=dt)
+    {
         count++;
         //Save the "current" aka past state
         ierr = restore_subarray(user->state_vars_past->v,user->state_vars_past); CHKERRQ(ierr);
@@ -149,7 +152,7 @@ int main(int argc, char **argv)
             memcpy(user->state_vars_past->alpha, user->state_vars->alpha, sizeof(PetscReal) * user->Nx * user->Ny * (Nc - 1));
         }
 
-        //Predict if chosen
+        //Newton update
         if(Predictor) {
             PetscTime(&grid_tic);
             Update_Solution(current_state, t, user);
@@ -166,6 +169,7 @@ int main(int argc, char **argv)
                 grid_ksp_old = ksp_iters_new;
             }
         }
+
         if(separate_vol) {
             //Update volume(uses past c values for wflow)
             volume_update(user->state_vars, user->state_vars_past, user);

@@ -22,7 +22,7 @@
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define Predictor 0  // Turns on predictor. Adaptive single point estimated update
+#define Predictor 1  // Turns on predictor. Adaptive single point estimated update
 #define width_size  1 //Number of up,down,left,right neighbors to pair in the predictor.
 
 //basic ion extern constants
@@ -37,12 +37,18 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 //#define Ly 0.32         //length of domain in cm (y)
 #define Lx 0.5        //width of domain in cm (x)
 #define Ly 0.5         //length of domain in cm (y)
+//#define  Nx  50     //number of grid points in the x direction
+//#define  Ny  50     //number of grid points in the y direction
+//#define dx (Lx/Nx)       //grid size in x direction (in cm)
+//#define dy (Ly/Ny)        //grid size in y direction (in cm)
 
 
 //number of variables to be solved for at each grid point
 //#define  Nv  ((Ni+2)*Nc-1) //version if volume is included
 //#define  Nv  ((Ni+1)*Nc) //version if volume is excluded
 #define Nv  (((Ni+2)*Nc-1)*(!separate_vol)+((Ni+1)*Nc)*separate_vol)  //combining the above two with the separate_vol
+//#define NA  (Nx*Ny*Nv)     //total number of unknowns
+//#define Nz  (Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny)) //number of nonzeros in Jacobian
 
 //Newton solve parameters
 #define  itermax  20      //maximum Newton iterations allowed
@@ -81,6 +87,8 @@ static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
 //set "relaxed" volume fractions and initial volume fractions
 #define  alphaon 0.5         //base neuronal volume fraction
 #define alphaog 0.300000       //base glial volume fraction
+//extern const PetscReal alphao[2];
+//extern const PetscReal alpha0[2];
 static const PetscReal alphao[2]={alphaon,alphaog};
 static const PetscReal alpha0[2]={alphaon,alphaog};
 // membrane parameters
@@ -89,6 +97,7 @@ static const PetscReal alpha0[2]={alphaon,alphaog};
  #define voli  2.16e-9         //intracellular volume in cm^3
 #define vole (0.15*voli)
 #define ell (voli+vole/sa)    //average membrane separation in cm
+//extern const PetscReal cm[2];     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
 static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
 
 
@@ -211,6 +220,6 @@ struct AppCtx{
     PetscReal *dt_space;
     PetscReal t;
 };
-PetscLogEvent event[14];
+PetscLogEvent event[10];
 
 #endif

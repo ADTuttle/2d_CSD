@@ -13,17 +13,22 @@ void mclin(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,PetscRe
 	//compute value and derivatives of the function:
     //mflux=pc.*(log(ci./ce)+z*phim)
     //for trans-membrane flux of an ion obeying a linear current-voltage equation
-    if(ADD) { //If add, we accumulate the result
+    if(ADD) //If add, we accumulate the result
+    {
     	flux->mflux[index] += pc*(log(ci/ce)+zi*phim);
 	    flux->dfdci[index] += pc/ci;
 		flux->dfdce[index] += -pc/ce;
 	  	flux->dfdphim[index] += zi*pc;
-    } else{ //If not add we reninitialize
+    }
+    else //If not add we reninitialize
+    {
 		flux->mflux[index] = pc*(log(ci/ce)+zi*phim);
 	    flux->dfdci[index] = pc/ci;
 		flux->dfdce[index] = -pc/ce;
 	  	flux->dfdphim[index] = zi*pc;
   	}
+
+  	return;
 }
 void mcGoldman(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,PetscReal ci,PetscReal ce,PetscReal phim,PetscInt ADD)
 {
@@ -33,12 +38,17 @@ void mcGoldman(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,Pet
     PetscReal xi = zi*phim/2;
     PetscReal r = exp(xi);
 
+
+
     //compute s=x/sinh(x)
     //Watch out for division by zero
     PetscReal s;
-    if(xi!=0) {
+    if(xi!=0)
+    {
     	s = xi/sinh(xi);
-    } else {
+    }
+    else
+    {
     	s = 1;
     }
     //compute dfdci,dfdce,mflux
@@ -48,6 +58,10 @@ void mcGoldman(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,Pet
     PetscReal me = ce*dfdce;
     PetscReal mflux = mi+me;
     //compute w=(sinh(x)/x-cosh(x))/x
+    //p0 = abs.(xi).<0.2 #treat differently if small
+    //p1 = !p0
+    //x0 = xi[p0] #use Taylor expansion for small values
+    //x1 = xi[p1] #use formula for larger values
     PetscReal w;
     if(fabs(xi)<0.2) //use Taylor expan. for small values
     {
@@ -82,13 +96,16 @@ PetscReal xoverexpminusone(PetscReal v,PetscReal aa,PetscReal bb,PetscReal cc,Pe
  	//computes aa*(v+bb)/(1-exp(-cc*(v+bb)) otherwise
   	//for computing gating variables
   	v+=bb;
-  	if(v==0) {
+  	if(v==0)
+  	{
   		return aa/cc;
   	}
-  	if(dd==0) {
+  	if(dd==0)
+  	{
   		return aa*v/(2*sinh(cc/2*v))*exp(-cc/2*v);
   	}
-  	else {
+  	else
+  	{
   		return aa*v/(2*sinh(cc/2*v))*exp(cc/2*v);
   	}
 }
@@ -119,6 +136,7 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct AppCtx*
 	PetscReal alNcL,alNcR,alNcU;
   	for(PetscInt x=0;x<Nx;x++) {
 	  	for(PetscInt y=0;y<Ny;y++) {
+
 	  		alNcL=1-alp[al_index(x,y,0,Nx)]-alp[al_index(x,y,1,Nx)]; //Left extracell
 			alNcR = 0;
 			if(x<Nx-1) {
@@ -226,7 +244,8 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
   		gate_vars->gKA[0] = pow(gate_vars->mKA[0],2)*gate_vars->hKA[0];
 
   		//Copy them over the remaining Nx by Ny points.
-  		for(PetscInt i=0;i<Nx*Ny;i++) {
+  		for(PetscInt i=0;i<Nx*Ny;i++)
+  		{
   			gate_vars->mNaT[i] = gate_vars->mNaT[0];
   			gate_vars->hNaT[i] = gate_vars->hNaT[0];
   			gate_vars->gNaT[i] = gate_vars->gNaT[0];
@@ -243,10 +262,12 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
   			gate_vars->gKA[i] = gate_vars->gKA[0];
 
   		}
-    } else { //if it's not the firstpass, then we actually have values in v.
+    } else{ //if it's not the firstpass, then we actually have values in v.
 		PetscReal v, alpha,beta;
-		for(PetscInt x=0;x<Nx;x++) {
-			for(PetscInt y=0;y<Ny;y++) {
+		for(PetscInt x=0;x<Nx;x++)
+		{
+			for(PetscInt y=0;y<Ny;y++)
+			{
 				//membrane potential in mV
 				v = (state_vars->phi[phi_index(x,y,0,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)])*RTFC;
 
@@ -402,8 +423,10 @@ void ionmflux(struct AppCtx* user)
     //For calculationg permeabilities
     PetscReal pGHK,pLin;
     PetscReal Ipump,NaKCl;
-    for(PetscInt x=0;x<Nx;x++) {
-        for(PetscInt y=0;y<Ny;y++) {
+    for(PetscInt x=0;x<Nx;x++)
+    {
+        for(PetscInt y=0;y<Ny;y++)
+        {
             vm = state_vars->phi[phi_index(x,y,0,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)];
             vmg = state_vars->phi[phi_index(x,y,1,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)];
             vmgp = state_vars_past->phi[phi_index(x,y,1,Nx)]-state_vars_past->phi[phi_index(x,y,Nc-1,Nx)];
@@ -490,9 +513,11 @@ void ionmflux(struct AppCtx* user)
             flux->mflux[c_index(x,y,1,2,Nx)]+=2*NaKCl; //Cl
 
             //Change units of flux from mmol/cm^2 to mmol/cm^3/s
-            for(PetscInt ion=0;ion<Ni;ion++) {
+            for(PetscInt ion=0;ion<Ni;ion++)
+            {
                 flux->mflux[c_index(x,y,Nc-1,ion,Nx)] = 0;
-                for(PetscInt comp = 0;comp<Nc-1;comp++) {
+                for(PetscInt comp = 0;comp<Nc-1;comp++)
+                {
                     flux->mflux[c_index(x,y,comp,ion,Nx)]=flux->mflux[c_index(x,y,comp,ion,Nx)]/ell;
                     flux->dfdci[c_index(x,y,comp,ion,Nx)]=flux->dfdci[c_index(x,y,comp,ion,Nx)]/ell;
                     flux->dfdce[c_index(x,y,comp,ion,Nx)]=flux->dfdce[c_index(x,y,comp,ion,Nx)]/ell;
@@ -501,6 +526,7 @@ void ionmflux(struct AppCtx* user)
                     //And calculate the extracellular flux
                     flux->mflux[c_index(x,y,Nc-1,ion,Nx)] -= flux->mflux[c_index(x,y,comp,ion,Nx)];
                 }
+
             }
         }
     }
@@ -524,17 +550,22 @@ void wflowm(struct AppCtx *user)
     PetscInt Ny = user->Ny;
 
     PetscReal dwdpi,dwdal,piw,piwNc;
-    for(PetscInt x=0;x<Nx;x++) {
-        for(PetscInt y=0;y<Ny;y++) {
+    for(PetscInt x=0;x<Nx;x++)
+    {
+        for(PetscInt y=0;y<Ny;y++)
+        {
             //Calculate the pi for extracellular
             piwNc = 0;
-            for(PetscInt ion=0;ion<Ni;ion++) {
+            for(PetscInt ion=0;ion<Ni;ion++)
+            {
                 piwNc +=state_vars->c[c_index(x,y,Nc-1,ion,Nx)];
             }
             piwNc +=con_vars->ao[al_index(0,0,Nc-1,Nx)]/(1-state_vars->alpha[al_index(x,y,0,Nx)]-state_vars->alpha[al_index(x,y,1,Nx)]);
-            for(PetscInt comp = 0;comp<Nc-1;comp++) {
+            for(PetscInt comp = 0;comp<Nc-1;comp++)
+            {
                 piw = 0;
-                for(PetscInt ion=0;ion<Ni;ion++) {
+                for(PetscInt ion=0;ion<Ni;ion++)
+                {
                     piw +=state_vars->c[c_index(x,y,comp,ion,Nx)];
                 }
                 piw +=con_vars->ao[al_index(0,0,comp,Nx)]/state_vars->alpha[al_index(x,y,comp,Nx)];
@@ -623,6 +654,8 @@ void grid_ionmflux(struct AppCtx* user)
     PetscReal Ipump,NaKCl;
     for(PetscInt x=0;x<Nx;x++){
         for(PetscInt y=0;y<Ny;y++) {
+
+
             vm = state_vars->phi[phi_index(x, y, 0, Nx)] - state_vars->phi[phi_index(x, y, Nc - 1, Nx)];
             vmg = state_vars->phi[phi_index(x, y, 1, Nx)] - state_vars->phi[phi_index(x, y, Nc - 1, Nx)];
             vmgp = state_vars_past->phi[phi_index(x, y, 1, Nx)] - state_vars_past->phi[phi_index(x, y, Nc - 1, Nx)];
@@ -741,6 +774,8 @@ void gatevars_update_grid(struct GateType *gate_vars,struct SimState *state_vars
 
     for(PetscInt x=0;x<Nx;x++) {
         for (PetscInt y = 0; y < Ny; y++) {
+
+
             //membrane potential in mV
             v = (state_vars->phi[phi_index(x, y, 0, Nx)] - state_vars->phi[phi_index(x, y, Nc - 1, Nx)]) * RTFC;
 
@@ -822,6 +857,8 @@ void excitation_grid(struct AppCtx* user,PetscReal t,PetscInt xi,PetscInt yi)
     PetscReal dy = user->dy;
     for(PetscInt i=0;i<Nx;i++){
         for(PetscInt j=0;j<Ny;j++) {
+
+
             if (one_point_exct) {
                 if (t < texct && i+xi == 0 && j+yi == 0) {
                     pany = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
@@ -834,6 +871,8 @@ void excitation_grid(struct AppCtx* user,PetscReal t,PetscInt xi,PetscInt yi)
                     exct->pK[xy_index(i, j, Nx)] = 0;
                     exct->pCl[xy_index(i, j, Nx)] = 0;
                 }
+
+
             } else {
                 if (mid_points_exct) {
                     radius = sqrt(pow((i+xi + 0.5) * dx - Lx / 2, 2) + pow((j+yi + 0.5) * dy - Lx / 2, 2));
@@ -883,6 +922,7 @@ void grid_diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct Ap
     PetscReal alNcL,alNcR,alNcU;
     for(PetscInt x=0;x<Nx;x++) {
         for(PetscInt y=0;y<Ny;y++) {
+
             alNcL=1-alp[al_index(x,y,0,Nx)]-alp[al_index(x,y,1,Nx)]; //Left extracell
             alNcR = 0;
             if(x<Nx-1) {
