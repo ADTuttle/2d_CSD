@@ -161,7 +161,7 @@ int main(int argc, char **argv)
                     if(user->dt_space[z]<user->dt){refinement++;}
                 }
                 KSPGetTotalIterations(user->grid_slvr->ksp,&ksp_iters_new);
-                printf("Grid Time: %f, #Refined %d, Kspiters/#pts: %.2f\n", grid_toc - grid_tic,refinement,((double)ksp_iters_new-grid_ksp_old)/(user->Nx*user->Ny));
+                printf("Grid Time: %f, Refined %d, AvgKspIters: %.2f\n", grid_toc - grid_tic,refinement,((double)ksp_iters_new-grid_ksp_old)/(user->Nx*user->Ny));
                 save_timestep(fdt,user,numrecords,0);
                 grid_ksp_old = ksp_iters_new;
             }

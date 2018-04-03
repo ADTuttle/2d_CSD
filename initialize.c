@@ -410,7 +410,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 void initialize_data(Vec current_state,struct AppCtx *user)
 {
 
-    //Make a temp solver for just a 3x3 grid for speed
+    //Make a temp solver for just a 1x1 grid for speed
     PetscInt temp_Nx = user->Nx;
     PetscInt temp_Ny = user->Ny;
     user->Nx = 1;
@@ -446,6 +446,7 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     //Compute Gating variables
     //compute gating variables
     gatevars_update(user->gate_vars,user->gate_vars,user->state_vars,0,user,1);
+    gatevars_update(user->gate_vars_past,user->gate_vars_past,user->state_vars,0,user,1);
     restore_subarray(current_state,user->state_vars);
 
     //Initialize and compute the excitation (it's zeros here)
@@ -466,13 +467,15 @@ void initialize_data(Vec current_state,struct AppCtx *user)
             volume_update(user->state_vars, user->state_vars_past, user);
         }
         //compute diffusion coefficients
-        diff_coef(user->Dcs,user->state_vars->alpha,1,user);
+//        diff_coef(user->Dcs,user->state_vars->alpha,1,user);
         //Bath diffusion
         diff_coef(user->Dcb,user->state_vars->alpha,Batheps,user);
+        memset(user->Dcs,0,sizeof(PetscReal)*2*temp_Nx*temp_Ny*Nc*Ni);
         restore_subarray(current_state, user->state_vars);
 
 
         newton_solve(current_state,slvr,user);
+//        SNESSolve(user->slvr->snes,NULL,current_state);
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
 
@@ -486,6 +489,7 @@ void initialize_data(Vec current_state,struct AppCtx *user)
         rsd_v[2] = array_diff_max(user->state_vars->alpha,user->state_vars_past->alpha,(size_t)Nx*Ny*(Nc-1));
         rsd = array_max(rsd_v,3);
         restore_subarray(current_state,user->state_vars);
+
         if(details|| k%1000==0) {
             printf("Tol: %.10e: rsd: c: %.10e, phi: %.10e, al: %.10e\n",tol,rsd_v[0],rsd_v[1],rsd_v[2]);
         }
@@ -512,8 +516,8 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     user->Ny = temp_Ny;
 
     //Copy over the saved variables.
-    for(x=0;x<Nx;x++){
-        for(y=0;y<Ny;y++){
+    for(x=0;x<temp_Nx;x++){
+        for(y=0;y<temp_Ny;y++){
             for(comp=0;comp<Nc;comp++){
                 for(ion=0;ion<Ni;ion++){
                     user->state_vars->c[c_index(x,y,comp,ion,Nx)]=c[c_index(0,0,comp,ion,Nx)];
@@ -551,8 +555,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
     //    Get Nx, Ny, and dt from options if possible
 
-    user->Nx = 32;
-    user->Ny = 32;
+    user->Nx = 64;
+    user->Ny = 64;
     user->dt =0.01;
 
     PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);
@@ -655,15 +659,15 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
     //Gmres type methods
 //     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
-//    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
-//    /*
+    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
+    /*
     ierr = KSPSetType(slvr->ksp,KSPDGMRES); CHKERRQ(ierr);
 
     ierr = KSPGMRESSetRestart(slvr->ksp,40); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_eigen","10"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_max_eigen","100"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_force",""); CHKERRQ(ierr);
-//*/
+*/
 
 
 
@@ -678,13 +682,13 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
      ierr = PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
     */
     // ILU Precond
-//    /*
+    /*
     ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
     ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
     ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
     ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     ierr = PCFactorSetMatOrderingType(slvr->pc,MATORDERINGNATURAL); CHKERRQ(ierr);
-//    */
+    */
 
 
     ierr = SNESSetFromOptions(slvr->snes);CHKERRQ(ierr);
