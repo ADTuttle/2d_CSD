@@ -230,6 +230,8 @@ void init_arrays(struct AppCtx*user)
 
     //Small Grid variables
 
+    // Past membrane voltage storage
+    user->vm_past = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     //Grid Gating variables
     user->grid_gate_vars->mNaT = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
     user->grid_gate_vars->hNaT = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));

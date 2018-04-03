@@ -209,6 +209,7 @@ struct AppCtx{
     PetscInt Ny;
     PetscInt Nz;
     PetscReal *dt_space;
+    PetscReal *vm_past;
     PetscReal t;
 };
 PetscLogEvent event[14];

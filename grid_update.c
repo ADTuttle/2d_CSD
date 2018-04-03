@@ -1552,17 +1552,24 @@ PetscErrorCode Update_Solution(Vec current_state,PetscReal t,struct AppCtx *user
     PetscInt Ny = user->Ny;
     PetscInt nx = 2*width_size+1;
     PetscInt ny = 2*width_size+1;
+    PetscReal vm_new;
+    PetscReal threshhold = 0.1; //mV threshhold for update guess.
 
 
     for(x=0;x<Nx;x++){
-        for(y=0;y<Ny;y++){
+        for(y=0;y<Ny;y++) {
+            vm_new = (user->state_vars->phi[phi_index(x, y, 0, Nx)] -
+                      user->state_vars->phi[phi_index(x, y, Nc - 1, Nx)]) * RTFC;
+
+            if (fabs(vm_new - user->vm_past[xy_index(x, y, Nx)]) > threshhold) {
 //            printf("Updating: (%d,%d)\n",x,y);
-            //Load new gridpoint
-            Load_Grid(user,x,y);
-            //Update new grid
-            Update_Grid(x,y,t,user);
-            //Save the held variable
-            Unload_Grid(user,x,y);
+                // Load new gridpoint
+                Load_Grid(user, x, y);
+                //Update new grid
+                Update_Grid(x, y, t, user);
+                //Save the held variable
+                Unload_Grid(user, x, y);
+            }
         }
     }
 

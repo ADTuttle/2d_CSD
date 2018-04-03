@@ -135,7 +135,7 @@ int main(int argc, char **argv)
     //Reset time step
     user->dt = dt;
     int count = 0;
-    PetscInt num_iters,ksp_iters_old,ksp_iters_new,grid_ksp_old;
+    PetscInt num_iters,ksp_iters_old,ksp_iters_new,grid_ksp_old,x,y,comp,ion;
     PetscInt total_newton = 0;
     int refinement;
     SNESConvergedReason reason;
@@ -143,10 +143,10 @@ int main(int argc, char **argv)
     for(PetscReal t=dt;t<=Time;t+=dt) {
         count++;
         //Save the "current" aka past state
-        ierr = restore_subarray(user->state_vars_past->v,user->state_vars_past); CHKERRQ(ierr);
-        ierr = copy_simstate(current_state,user->state_vars_past); CHKERRQ(ierr);
-        if(separate_vol){
-            memcpy(user->state_vars_past->alpha, user->state_vars->alpha, sizeof(PetscReal) * user->Nx * user->Ny * (Nc - 1));
+        ierr = restore_subarray(user->state_vars_past->v, user->state_vars_past);CHKERRQ(ierr);
+        ierr = copy_simstate(current_state, user->state_vars_past);CHKERRQ(ierr);
+        if (separate_vol) {
+            memcpy(user->state_vars_past->alpha, user->state_vars->alpha,sizeof(PetscReal) * user->Nx * user->Ny * (Nc - 1));
         }
 
         //Predict if chosen
@@ -212,6 +212,14 @@ int main(int argc, char **argv)
         memcpy(user->gate_vars_past->mKA,user->gate_vars->mKA,sizeof(PetscReal)*user->Nx*user->Ny);
         memcpy(user->gate_vars_past->mKDR,user->gate_vars->mKDR,sizeof(PetscReal)*user->Nx*user->Ny);
         memcpy(user->gate_vars_past->gKDR,user->gate_vars->gKDR,sizeof(PetscReal)*user->Nx*user->Ny);
+        //Update the past membrane voltage
+        if(Predictor){
+            for(x=0;x<user->Nx;x++){
+                for(y=0;y<user->Ny;y++){
+                    user->vm_past[xy_index(x,y,user->Nx)]=(user->state_vars_past->phi[phi_index(x,y,0,user->Nx)]-user->state_vars_past->phi[phi_index(x,y,Nc-1,user->Nx)])*RTFC;
+                }
+            }
+        }
 
 
         if(count%krecordfreq==0) {
