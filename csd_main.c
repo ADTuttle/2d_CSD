@@ -93,6 +93,7 @@ int main(int argc, char **argv)
 
     //Init misc. array sizes
     init_arrays(user);
+    parameter_dependence(user);
 
     //Set the constant variables
     set_params(current_state,state_vars,con_vars,gate_vars,flux,user);

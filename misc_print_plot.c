@@ -16,8 +16,8 @@ void print_all(struct AppCtx *user)
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
     printf("ConstVars:\n");
-    printf("%f,%f,%f\n",1e6*con_vars->pNaKCl,1e6*con_vars->Imax,1e6*con_vars->pNaLeak);
-    printf("%f,%f\n",1e6*con_vars->Imaxg,1e6*con_vars->pNaLeakg);
+    printf("%f,%f,%f\n",1e6*con_vars->pNaKCl[0],1e6*con_vars->Imax[0],1e6*con_vars->pNaLeak[0]);
+    printf("%f,%f\n",1e6*con_vars->Imaxg[0],1e6*con_vars->pNaLeakg[0]);
     printf("%f,%f,%f\n",con_vars->ao[0],con_vars->ao[1],con_vars->ao[2]);
     printf("%f,%f,%f\n",con_vars->zo[0],con_vars->zo[1],con_vars->zo[2]);
     printf("%f,%f,%f\n",con_vars->kappa,con_vars->zeta1[0],con_vars->zeta1[1]);

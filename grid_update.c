@@ -294,7 +294,7 @@ PetscErrorCode Grid_Residual(Vec Res,PetscInt xi,PetscInt yi,void *ctx)
         PetscLogEventBegin(event[1], 0, 0, 0, 0);
     }
     //Compute membrane ionic flux relation quantitites
-    grid_ionmflux(user);
+    grid_ionmflux(user,xi,yi);
 
     //Compute membrane water flow related quantities
     grid_wflowm(user);
@@ -944,7 +944,7 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
         PetscLogEventBegin(event[10], 0, 0, 0, 0);
     }
     //Compute membrane ionic flux relation quantitites
-    grid_ionmflux(user);
+    grid_ionmflux(user,xi,yi);
 
     //Compute membrane water flow related quantities
     grid_wflowm(user);

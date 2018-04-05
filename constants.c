@@ -249,5 +249,35 @@ void init_arrays(struct AppCtx*user)
 
 }
 
+void parameter_dependence(struct AppCtx *user)
+{
+    struct ConstVars *con_vars = user->con_vars;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+    PetscInt x,y;
 
+    //Gating variables
+    con_vars->pNaT = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+    con_vars->pNaP = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+    con_vars->pKDR = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+    con_vars->pKA = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+    for(x=0;x<Nx;x++){
+        for(y=0;y<Ny;y++){
+            con_vars->pNaT[xy_index(x,y,Nx)]=basepNaT;
+            con_vars->pNaP[xy_index(x,y,Nx)]=basepNaP;
+            con_vars->pKDR[xy_index(x,y,Nx)]=basepKDR;
+            con_vars->pKA[xy_index(x,y,Nx)]=basepKA;
+        }
+    }
+
+    //Variables that get set during set_params to steady state necessary values
+    con_vars->pNaKCl = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+    con_vars->Imax = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+    con_vars->Imaxg = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+    con_vars->pNaLeak = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+    con_vars->pNaLeakg = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+
+
+
+}
 
