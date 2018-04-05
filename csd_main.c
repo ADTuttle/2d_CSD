@@ -105,6 +105,14 @@ int main(int argc, char **argv)
     //Run Initialization routine to get to steady state
     initialize_data(current_state,user);
 
+    for(PetscInt x=0;x<user->Nx/2;x++){
+        for(PetscInt y=20;y<22;y++){
+            user->con_vars->pNaP[xy_index(x,y,user->Nx)]=0;
+            user->con_vars->pKDR[xy_index(x,y,user->Nx)]=0;
+            user->con_vars->pKA[xy_index(x,y,user->Nx)]=0;
+        }
+    }
+
     if(Profiling_on) {
         PetscLogStage stage2;
         PetscLogStageRegister("Main Loop", &stage2);

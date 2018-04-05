@@ -116,7 +116,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
             //Compute resting organic anion amounts and average valences
             //set extracellular organic anion amounts and valence to ensure electroneutrality
             con_vars->ao[Nc - 1] = 5e-4;
-            PetscReal cmphi[Nc];
+            PetscReal cmphi[Nc]={0,0,0};
             PetscReal osmotic,alNc;
             alNc = 1- alpha[al_index(x,y,0,Nx)]-alpha[al_index(x,y,1,Nx)];
             for (PetscInt k = 0; k < Nc - 1; k++) {
@@ -131,8 +131,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
                 //set average valence to ensure electroneutrality
                 con_vars->zo[k] = (-cz(c, z, x, y, Nx, k, user) * alpha[al_index(x,y,k,Nx)] + cmphi[k]) / con_vars->ao[k];
             }
-            con_vars->zo[Nc - 1] =
-                    (-cz(c, z, x, y, Nx, Nc - 1, user) * alNc - cmphi[Nc - 1]) / con_vars->ao[Nc - 1];
+            con_vars->zo[Nc-1]=(-cz(c,z,x,y,Nx,Nc-1,user)*alNc - cmphi[Nc - 1]) / con_vars->ao[Nc - 1];
 
             //Set kappa to 0 for no flow
             con_vars->kappa = 0;

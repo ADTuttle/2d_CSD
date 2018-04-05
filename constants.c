@@ -277,6 +277,9 @@ void parameter_dependence(struct AppCtx *user)
     con_vars->pNaLeak = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
     con_vars->pNaLeakg = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
 
+    con_vars->zo = (PetscReal*)malloc(sizeof(PetscReal)*Nc);
+    con_vars->ao = (PetscReal*)malloc(sizeof(PetscReal)*Nc);
+    con_vars->zeta1 = (PetscReal*)malloc(sizeof(PetscReal)*(Nc-1));
 
 
 }

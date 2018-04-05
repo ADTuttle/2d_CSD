@@ -1561,7 +1561,8 @@ PetscErrorCode Update_Solution(Vec current_state,PetscReal t,struct AppCtx *user
             vm_new = (user->state_vars->phi[phi_index(x, y, 0, Nx)] -
                       user->state_vars->phi[phi_index(x, y, Nc - 1, Nx)]) * RTFC;
 
-            if (fabs(vm_new - user->vm_past[xy_index(x, y, Nx)]) > threshhold) {
+            //If it's above the threshhold. Or it previously was adaptively refined.
+            if (fabs(vm_new - user->vm_past[xy_index(x, y, Nx)]) > threshhold ||user->dt_space[xy_index(x,y,Nx)]<user->dt) {
 //            printf("Updating: (%d,%d)\n",x,y);
                 // Load new gridpoint
                 Load_Grid(user, x, y);
