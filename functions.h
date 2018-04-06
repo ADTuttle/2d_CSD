@@ -99,7 +99,7 @@ void grid_wflowm(struct AppCtx *);
 void grid_ionmflux(struct AppCtx*,PetscInt,PetscInt);
 void gatevars_update_grid(struct GateType *,struct SimState *,PetscReal ,struct AppCtx *);
 void excitation_grid(struct AppCtx* ,PetscReal ,PetscInt, PetscInt);
-void grid_diff_coef(PetscReal *,const PetscReal *,PetscReal ,struct AppCtx* );
+void grid_diff_coef(PetscReal *,const PetscReal *,PetscReal ,struct AppCtx* ,PetscInt,PetscInt);
 
 PetscErrorCode Grid_Residual(Vec ,PetscInt ,PetscInt ,void *);
 PetscErrorCode Grid_Jacobian(Mat ,PetscInt ,PetscInt ,void *);

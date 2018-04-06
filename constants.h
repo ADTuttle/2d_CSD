@@ -11,9 +11,9 @@
 // General options
 
 #define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
-#define mid_points_exct 0
+#define mid_points_exct 1
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
-#define plane_wave_exct 1 //if true, initiates a uniform plane wave
+#define plane_wave_exct 0 //if true, initiates a uniform plane wave
 #define Profiling_on 1 //Turns timing of functions on/off.
 #define trecordstep 0.1//0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
@@ -31,8 +31,8 @@
 static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
-//#define Time 30.0   //total simulated time in seconds
-#define  Time  60.0//2e-2
+#define Time 8.0   //total simulated time in seconds
+//#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
 //#define Ly 0.32         //length of domain in cm (y)
@@ -106,7 +106,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define pClLeakg  (5e-2*RTFC/FC)
 
 //Glial KIR from Steinberg et al 2005
-#define pKIR  (.13*RTFC/FC)        //conductance in mS/cm^2 converted to mmol/cm^2/s
+#define basepKIR  (.13*RTFC/FC)        //conductance in mS/cm^2 converted to mmol/cm^2/s
 #define pKLeakadjust  1.0       //parameter for varying glial permeability
 
 //pump current, parameters from Yao, Huang, Miura, 2011
@@ -163,21 +163,24 @@ struct ExctType{
 };
 
 struct ConstVars{
-    PetscReal *pNaT;
+    PetscReal *pNaT; //Gating variable arrays
     PetscReal *pNaP;
     PetscReal *pKDR;
     PetscReal *pKA;
-    PetscReal *pNaKCl;
-    PetscReal *Imax;
+    PetscReal *pNaKCl; //Glial NaKCl Cotransporter array
+    PetscReal *Imax;   // Neuronal pump strength
     PetscReal *pNaLeak;
-    PetscReal *Imaxg;
+    PetscReal *Imaxg;   //Glial pump strength
     PetscReal *pNaLeakg;
-    PetscReal *ao;
-    PetscReal *zo;
+    PetscReal *pKIR;   //K inward rectifier in glia
+    PetscReal *ao;  //Immobile ions
+    PetscReal *zo;  //Avg valence
     PetscReal kappa;
     PetscReal *zeta1;
     int S; //boolean
     PetscReal *zetaalpha;
+    PetscReal *DGliaScale; // Glial diffusion scaling
+    PetscReal *DExtracellScale; // Extracellular diffusion scaling
 };
 struct Solver{
     Vec Q;      /* Update*/

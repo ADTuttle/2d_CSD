@@ -261,14 +261,32 @@ void parameter_dependence(struct AppCtx *user)
     con_vars->pNaP = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
     con_vars->pKDR = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
     con_vars->pKA = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+
+
+    con_vars->pKIR = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+
+    //Glial diffusion scaling
+    con_vars->DGliaScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
+    con_vars->DExtracellScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
     for(x=0;x<Nx;x++){
         for(y=0;y<Ny;y++){
             con_vars->pNaT[xy_index(x,y,Nx)]=basepNaT;
             con_vars->pNaP[xy_index(x,y,Nx)]=basepNaP;
             con_vars->pKDR[xy_index(x,y,Nx)]=basepKDR;
             con_vars->pKA[xy_index(x,y,Nx)]=basepKA;
+
+            con_vars->pKIR[xy_index(x,y,Nx)]=basepKIR;
+
+            con_vars->DGliaScale[xy_index(x,y,Nx)*2]=0; //x-direction scale
+            con_vars->DGliaScale[xy_index(x,y,Nx)*2+1]=0.25; // y-direction scale
+            con_vars->DExtracellScale[xy_index(x,y,Nx)*2]=1.0; //x-direction scale
+            con_vars->DExtracellScale[xy_index(x,y,Nx)*2+1]=1.0; // y-direction scale
+
         }
     }
+
+
+
 
     //Variables that get set during set_params to steady state necessary values
     con_vars->pNaKCl = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);

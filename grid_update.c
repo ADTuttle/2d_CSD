@@ -1480,9 +1480,9 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
     memcpy(user->grid_vars_past->alpha,user->grid_vars->alpha,sizeof(PetscReal)*Nx*Ny*(Nc-1));
     //Calculate diffusion
     //compute diffusion coefficients
-    grid_diff_coef(user->Dcs, user->grid_vars_past->alpha, 1, user);
+    grid_diff_coef(user->Dcs, user->grid_vars_past->alpha, 1, user,xi,yi);
     //Bath diffusion
-    grid_diff_coef(user->Dcb, user->grid_vars_past->alpha, Batheps, user);
+    grid_diff_coef(user->Dcb, user->grid_vars_past->alpha, Batheps, user,xi,yi);
 
     excitation_grid(user, t - dt, xi, yi);
 
@@ -1514,9 +1514,9 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
             memcpy(user->grid_vars_past->alpha,user->grid_vars->alpha,sizeof(PetscReal)*Nx*Ny*(Nc-1));
             //Calculate diffusion
             //compute diffusion coefficients
-            grid_diff_coef(user->Dcs, user->grid_vars_past->alpha, 1, user);
+            grid_diff_coef(user->Dcs, user->grid_vars_past->alpha, 1, user,xi,yi);
             //Bath diffusion
-            grid_diff_coef(user->Dcb, user->grid_vars_past->alpha, Batheps, user);
+            grid_diff_coef(user->Dcb, user->grid_vars_past->alpha, Batheps, user,xi,yi);
 
         } else {
             //If we aren't below cutoff. Half the time step.

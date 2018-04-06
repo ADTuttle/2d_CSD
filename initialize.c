@@ -97,7 +97,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 
             //compute K channel currents (glial)
             PetscReal pKLinG =
-                    pKIR * inwardrect(c[c_index(x, y, 1, 1, Nx)], c[c_index(x, y, Nc - 1, 1, Nx)], vmg) * pKLeakadjust;
+                    con_vars->pKIR[xy_index(x,y,Nx)] * inwardrect(c[c_index(x, y, 1, 1, Nx)], c[c_index(x, y, Nc - 1, 1, Nx)], vmg) * pKLeakadjust;
             mclin(flux, c_index(x, y, 1, 1, Nx), pKLinG, 1, c[c_index(x, y, 1, 1, Nx)], c[c_index(x, y, Nc - 1, 1, Nx)],
                   vmg, 0);
             flux->mflux[c_index(x, y, 1, 1, Nx)] += NaKCl;
