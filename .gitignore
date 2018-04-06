@@ -100,3 +100,9 @@ cmake-build-debug/predict_csd_dt.txt
 cmake-build-debug/predict_data_csd.txt
 
 cmake-build-debug/data_csd_long.txt
+
+csd_dt.txt
+
+cmake-build-debug/csd_dt_long.txt
+
+flux_csd.txt

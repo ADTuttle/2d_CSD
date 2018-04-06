@@ -130,7 +130,7 @@ int main(int argc, char **argv)
     FILE *fdt;
     if(Predictor) {
         fdt = fopen("csd_dt.txt", "w");
-        save_timestep(fdt,user,numrecords,1);
+        save_timestep(fdt,user,numrecords-1,1);
     }
 
     FILE *fptime;
@@ -154,9 +154,9 @@ int main(int argc, char **argv)
         if(t==30) {
             for ( x = 0; x < user->Nx / 2; x++) {
                 for ( y = 4; y < 6; y++) {
-                    user->con_vars->pNaP[xy_index(x, y, user->Nx)] = 0;
-                    user->con_vars->pKDR[xy_index(x, y, user->Nx)] = 0;
-                    user->con_vars->pKA[xy_index(x, y, user->Nx)] = 0;
+                    user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
+                    user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
+                    user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
                 }
             }
         }
