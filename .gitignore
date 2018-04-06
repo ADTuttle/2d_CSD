@@ -106,3 +106,5 @@ csd_dt.txt
 cmake-build-debug/csd_dt_long.txt
 
 flux_csd.txt
+
+data_csd_long.txt
