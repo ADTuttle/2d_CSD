@@ -120,7 +120,7 @@ int main(int argc, char **argv)
     FILE *fdt;
     if(Predictor) {
         fdt = fopen("csd_dt.txt", "w");
-        save_timestep(fdt,user,numrecords,1);
+        save_timestep(fdt,user,numrecords-1,1);
     }
 
     FILE *fptime;
