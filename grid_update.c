@@ -1553,7 +1553,8 @@ PetscErrorCode Update_Solution(Vec current_state,PetscReal t,struct AppCtx *user
     PetscInt nx = 2*width_size+1;
     PetscInt ny = 2*width_size+1;
     PetscReal vm_new;
-    PetscReal threshhold = 0.1; //mV threshhold for update guess.
+    PetscReal threshhold = 0.01;//0.1; //mV threshhold for update guess.
+
 
 
     for(x=0;x<Nx;x++){

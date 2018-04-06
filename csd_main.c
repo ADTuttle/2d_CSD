@@ -23,6 +23,7 @@ int main(int argc, char **argv)
     PetscInt Nt = (PetscInt) floor(Time/dt);
     PetscInt numrecords = (PetscInt)floor(Time/trecordstep);
     PetscInt krecordfreq = (PetscInt)floor(trecordstep/dt);
+    PetscInt x,y,comp,ion;
 
     if(Profiling_on) {
         PetscLogStage stage1;
@@ -105,8 +106,8 @@ int main(int argc, char **argv)
     //Run Initialization routine to get to steady state
     initialize_data(current_state,user);
 
-    for(PetscInt x=0;x<user->Nx/2;x++){
-        for(PetscInt y=20;y<22;y++){
+    for(x=0;x<user->Nx/2;x++){
+        for(y=4;y<6;y++){
             user->con_vars->pNaP[xy_index(x,y,user->Nx)]=0;
             user->con_vars->pKDR[xy_index(x,y,user->Nx)]=0;
             user->con_vars->pKA[xy_index(x,y,user->Nx)]=0;
@@ -144,12 +145,21 @@ int main(int argc, char **argv)
     //Reset time step
     user->dt = dt;
     int count = 0;
-    PetscInt num_iters,ksp_iters_old,ksp_iters_new,grid_ksp_old,x,y,comp,ion;
+    PetscInt num_iters,ksp_iters_old,ksp_iters_new,grid_ksp_old;
     PetscInt total_newton = 0;
     int refinement;
     SNESConvergedReason reason;
     PetscTime(&full_tic);
     for(PetscReal t=dt;t<=Time;t+=dt) {
+        if(t==30) {
+            for ( x = 0; x < user->Nx / 2; x++) {
+                for ( y = 4; y < 6; y++) {
+                    user->con_vars->pNaP[xy_index(x, y, user->Nx)] = 0;
+                    user->con_vars->pKDR[xy_index(x, y, user->Nx)] = 0;
+                    user->con_vars->pKA[xy_index(x, y, user->Nx)] = 0;
+                }
+            }
+        }
         count++;
         //Save the "current" aka past state
         ierr = restore_subarray(user->state_vars_past->v, user->state_vars_past);CHKERRQ(ierr);
