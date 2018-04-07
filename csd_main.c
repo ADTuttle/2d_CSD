@@ -128,18 +128,18 @@ int main(int argc, char **argv)
             if(rad1<Lx/4 || (x>3*Nx/8 && x<5*Nx/8 && y<Nx/4)){
 //            if(rad1<3*Lx/4){
 //            if(rad2<3*Lx/4&&rad1>=Lx/4){
-                user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
-                user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
-                user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
+                user->con_vars->pNaP[xy_index(x, y, user->Nx)] = 0;
+                user->con_vars->pKDR[xy_index(x, y, user->Nx)] = 0;
+                user->con_vars->pKA[xy_index(x, y, user->Nx)] = 0;
                 if(y==Ny-1){
                     printf("x\n");
                 }else{
                     printf("x");
                 }
             } else {
-                user->con_vars->pNaP[xy_index(x, y, user->Nx)] = 0;
-                user->con_vars->pKDR[xy_index(x, y, user->Nx)] = 0;
-                user->con_vars->pKA[xy_index(x, y, user->Nx)] = 0;
+                user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
+                user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
+                user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
                 if(y==Ny-1){
                     printf(".\n");
                 }else{
@@ -197,6 +197,20 @@ int main(int argc, char **argv)
                 }
             }
         }*/
+        if(t>100.00 && t<101.00) {
+            for (x = 0; x < Nx; x++) {
+                for (y = 0; y < Ny; y++) {
+//            rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy,2));
+//            rad2 = sqrt(pow((x+0.5)*dx-Lx,2)+pow((y+0.5)*dy,2));
+                    rad1 = sqrt(pow((x + 0.5) * dx - Lx / 2, 2) + pow((y + 0.5) * dy - Ly / 2, 2));
+                    if (rad1 < Lx / 4 || (x > 3 * Nx / 8 && x < 5 * Nx / 8 && y < Nx / 4)) {
+                        user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
+                        user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
+                        user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
+                    }
+                }
+            }
+        }
         count++;
         //Save the "current" aka past state
         ierr = restore_subarray(user->state_vars_past->v, user->state_vars_past);CHKERRQ(ierr);
@@ -283,6 +297,10 @@ int main(int argc, char **argv)
 //            write_point(fp, user,numrecords, 0);
             write_data(fp, user,numrecords, 0);
             measure_flux(fpflux,user,numrecords,0);
+            if(count%1000){
+                fclose(fp);
+                fp = fopen("data_csd.txt","a");
+            }
         }
         ksp_iters_old = ksp_iters_new;
         if(reason<0){
