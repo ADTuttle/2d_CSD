@@ -24,6 +24,10 @@ int main(int argc, char **argv)
     PetscInt numrecords = (PetscInt)floor(Time/trecordstep);
     PetscInt krecordfreq = (PetscInt)floor(trecordstep/dt);
     PetscInt x,y,comp,ion;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+    PetscReal dx = Lx/Nx;
+    PetscReal dy = Ly/Ny;
 
     if(Profiling_on) {
         PetscLogStage stage1;
@@ -106,6 +110,7 @@ int main(int argc, char **argv)
     //Run Initialization routine to get to steady state
     initialize_data(current_state,user);
 
+    /*
     for(x=0;x<user->Nx/2;x++){
         for(y=4;y<6;y++){
             user->con_vars->pNaP[xy_index(x,y,user->Nx)]=0;
@@ -113,6 +118,35 @@ int main(int argc, char **argv)
             user->con_vars->pKA[xy_index(x,y,user->Nx)]=0;
         }
     }
+     */
+    PetscReal rad1,rad2;
+    for(x=0;x<Nx;x++){
+        for(y=0;y<Ny;y++){
+            rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy,2));
+            rad2 = sqrt(pow((x+0.5)*dx-Lx,2)+pow((y+0.5)*dy,2));
+//            if(rad1<3*Lx/4){
+            if(rad2<3*Lx/4&&rad1>=Lx/4){
+                user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
+                user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
+                user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
+                if(y==Ny-1){
+                    printf("x\n");
+                }else{
+                    printf("x");
+                }
+            } else {
+                user->con_vars->pNaP[xy_index(x, y, user->Nx)] = 0;
+                user->con_vars->pKDR[xy_index(x, y, user->Nx)] = 0;
+                user->con_vars->pKA[xy_index(x, y, user->Nx)] = 0;
+                if(y==Ny-1){
+                    printf(".\n");
+                }else{
+                    printf(".");
+                }
+            }
+        }
+    }
+
 
     if(Profiling_on) {
         PetscLogStage stage2;
@@ -151,6 +185,7 @@ int main(int argc, char **argv)
     SNESConvergedReason reason;
     PetscTime(&full_tic);
     for(PetscReal t=dt;t<=Time;t+=dt) {
+        /*
         if(t==30) {
             for ( x = 0; x < user->Nx / 2; x++) {
                 for ( y = 4; y < 6; y++) {
@@ -159,7 +194,7 @@ int main(int argc, char **argv)
                     user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
                 }
             }
-        }
+        }*/
         count++;
         //Save the "current" aka past state
         ierr = restore_subarray(user->state_vars_past->v, user->state_vars_past);CHKERRQ(ierr);

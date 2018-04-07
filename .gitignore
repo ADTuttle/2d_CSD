@@ -108,3 +108,7 @@ cmake-build-debug/csd_dt_long.txt
 flux_csd.txt
 
 data_csd_long.txt
+
+spiral_attempts/csd_dt_slow_diffusion.txt
+
+spiral_attempts/data_csd_slow_diffusion.txt
