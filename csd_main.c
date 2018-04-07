@@ -122,10 +122,12 @@ int main(int argc, char **argv)
     PetscReal rad1,rad2;
     for(x=0;x<Nx;x++){
         for(y=0;y<Ny;y++){
-            rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy,2));
-            rad2 = sqrt(pow((x+0.5)*dx-Lx,2)+pow((y+0.5)*dy,2));
+//            rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy,2));
+//            rad2 = sqrt(pow((x+0.5)*dx-Lx,2)+pow((y+0.5)*dy,2));
+            rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy-Ly/2,2));
+            if(rad1<Lx/4 || (x>3*Nx/8 && x<5*Nx/8 && y<Nx/4)){
 //            if(rad1<3*Lx/4){
-            if(rad2<3*Lx/4&&rad1>=Lx/4){
+//            if(rad2<3*Lx/4&&rad1>=Lx/4){
                 user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
                 user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
                 user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;

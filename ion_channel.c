@@ -340,7 +340,7 @@ void excitation(struct AppCtx* user,PetscReal t)
                 }
             if (plane_wave_exct) {
                 //plane wave at left side
-                if (t < texct && j==0) {
+                if (t < texct && j==0 && i<Nx/2) {
                     num_points++;
                     pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
                     pany = pexct;
@@ -852,7 +852,7 @@ void excitation_grid(struct AppCtx* user,PetscReal t,PetscInt xi,PetscInt yi)
             }
             if (plane_wave_exct) {
                 //plane wave at left side
-                if (t < texct && j+yi==0) {
+                if (t < texct && j+yi==0 && i+xi<Nx/2) {
                     pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
                     pany = pexct;
                     exct->pNa[xy_index(i, j, Nx)] = pany;
