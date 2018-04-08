@@ -187,23 +187,30 @@ int main(int argc, char **argv)
     SNESConvergedReason reason;
     PetscTime(&full_tic);
     for(PetscReal t=dt;t<=Time;t+=dt) {
+        //This makes a spiral
         /*
-        if(t==30) {
-            for ( x = 0; x < user->Nx / 2; x++) {
-                for ( y = 4; y < 6; y++) {
-                    user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
-                    user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
-                    user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
-                }
-            }
-        }*/
         if(t>100.00 && t<101.00) {
             for (x = 0; x < Nx; x++) {
                 for (y = 0; y < Ny; y++) {
-//            rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy,2));
-//            rad2 = sqrt(pow((x+0.5)*dx-Lx,2)+pow((y+0.5)*dy,2));
                     rad1 = sqrt(pow((x + 0.5) * dx - Lx / 2, 2) + pow((y + 0.5) * dy - Ly / 2, 2));
                     if (rad1 < Lx / 4 || (x > 3 * Nx / 8 && x < 5 * Nx / 8 && y < Nx / 4)) {
+                        user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
+                        user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
+                        user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
+                    }
+                }
+            }
+        }*/
+        //This makes a wave along a circle
+        if(t>100.00 && t<101.00) {
+            for (x = 0; x < Nx; x++) {
+                for (y = 0; y < Ny; y++) {
+                    rad1 = sqrt(pow((x + 0.5) * dx - Lx / 2, 2) + pow((y + 0.5) * dy - Ly / 2, 2));
+                    if (rad1 < Lx / 4) {
+                        user->con_vars->pNaP[xy_index(x, y, user->Nx)] = 0;
+                        user->con_vars->pKDR[xy_index(x, y, user->Nx)] = 0;
+                        user->con_vars->pKA[xy_index(x, y, user->Nx)] = 0;
+                    } else{
                         user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
                         user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
                         user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
