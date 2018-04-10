@@ -340,7 +340,13 @@ void excitation(struct AppCtx* user,PetscReal t)
                 }
             if (plane_wave_exct) {
                 //plane wave at left side
-                if (t < texct && j==0 && i<Nx/2) {
+                int region=0;
+                if(Spiral_type==1){
+                    region = (j==0 && i<Nx/2);
+                } else{
+                    region = ((j==0 && i<Nx/2)|| (j==(Ny-1) && i>Nx/2));
+                }
+                if (t < texct && region) {
                     num_points++;
                     pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
                     pany = pexct;
