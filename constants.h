@@ -19,7 +19,7 @@
 #define save_one_var 1 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 
 // Behaviour
-#define Spiral 1 // If true will setup spiral
+#define Spiral 0 // If true will setup spiral
 #define Spiral_type 3 //1:1 spiral from circle. 2: 2 spiral from circle. 3: 2 spirals from line, different speeds
 
 
@@ -35,7 +35,7 @@
 static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
-#define Time 1.0   //total simulated time in seconds
+#define Time 300.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)

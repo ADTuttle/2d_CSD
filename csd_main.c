@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "functions.h"
 
 
@@ -110,15 +111,21 @@ int main(int argc, char **argv)
     //Run Initialization routine to get to steady state
     initialize_data(current_state,user);
 
-    /*
-    for(x=0;x<user->Nx/2;x++){
-        for(y=4;y<6;y++){
-            user->con_vars->pNaP[xy_index(x,y,user->Nx)]=0;
-            user->con_vars->pKDR[xy_index(x,y,user->Nx)]=0;
-            user->con_vars->pKA[xy_index(x,y,user->Nx)]=0;
+
+    srand(time(NULL));
+    double rnd;
+//    /*
+    for(x=0;x<Nx;x++){
+        for(y=0;y<Ny;y++){
+            rnd = (double) rand()/((double)RAND_MAX);
+//            rnd = 2*cos(pi*(x*dx-0.25))*cos(pi*(y*dy-0.25))-0.5;
+            user->con_vars->pNaP[xy_index(x,y,user->Nx)]=basepNaP*rnd;
+            user->con_vars->pKDR[xy_index(x,y,user->Nx)]=basepKDR*rnd;
+            user->con_vars->pKA[xy_index(x,y,user->Nx)]=basepKA*rnd;
+//            user->con_vars->DGliaScale[xy_index(x, y, Nx)] = rnd;
         }
     }
-     */
+//     */
 
     PetscReal rad1;
     if(Spiral && (Spiral_type==1 || Spiral_type==2)){
