@@ -1518,6 +1518,10 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
             //Bath diffusion
             grid_diff_coef(user->Dcb, user->grid_vars_past->alpha, Batheps, user);
 
+            if(xi==16&&yi==16) {
+                write_point(user->fp, user, t - dt+user->dt*steps, 16, 16);
+            }
+
         } else {
             //If we aren't below cutoff. Half the time step.
             user->dt = user->dt / 2;
@@ -1561,7 +1565,7 @@ PetscErrorCode Update_Solution(Vec current_state,PetscReal t,struct AppCtx *user
             vm_new = (user->state_vars->phi[phi_index(x, y, 0, Nx)] -
                       user->state_vars->phi[phi_index(x, y, Nc - 1, Nx)]) * RTFC;
 
-            if (fabs(vm_new - user->vm_past[xy_index(x, y, Nx)]) > threshhold) {
+            if (fabs(vm_new - user->vm_past[xy_index(x, y, Nx)]) > threshhold || user->dt_space[xy_index(x,y,Nx)]<user->dt) {
 //            printf("Updating: (%d,%d)\n",x,y);
                 // Load new gridpoint
                 Load_Grid(user, x, y);

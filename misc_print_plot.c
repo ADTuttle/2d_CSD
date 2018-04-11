@@ -294,7 +294,7 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
         PetscLogEventEnd(event[8], 0, 0, 0, 0);
     }
 }
-void write_point(FILE *fp,struct AppCtx* user,PetscInt numrecords,int start)
+void write_point(FILE *fp,struct AppCtx* user,PetscReal t,PetscInt x,PetscInt y)
 {
     if(Profiling_on) {
         PetscLogEventBegin(event[8], 0, 0, 0, 0);
@@ -302,30 +302,10 @@ void write_point(FILE *fp,struct AppCtx* user,PetscInt numrecords,int start)
     struct SimState *state_vars = user->state_vars;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
-    if (start) {
-        fprintf(fp, "%d,%d,%d,%d,%d,%d,%d,%d\n", Nx, Ny, numrecords, Nc, Ni,use_en_deriv,separate_vol,Linear_Diffusion);
-        write_point(fp, user,numrecords, 0);
-    } else {
-        int ion, comp;
-        int x =10;
-        int y=10;
-        for (ion = 0; ion < Ni; ion++) {
-            for (comp = 0; comp < Nc; comp++) {
-//                    fprintf(fp, "%f,", state_vars->c[c_index(x, y, comp, ion,Nx)]);
-                fprintf(fp, "%.10e,", state_vars->c[c_index(x, y, comp, ion,Nx)]);
-            }
-        }
+    int ion, comp;
+    comp=0;
 
-        for (comp = 0; comp < Nc; comp++) {
-//                fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, comp,Nx)] * RTFC);
-            fprintf(fp, "%.10e,", state_vars->phi[phi_index(x, y, comp,Nx)] * RTFC);
-        }
-        for (comp = 0; comp < Nc - 1; comp++) {
-//                fprintf(fp, "%f,", state_vars->alpha[al_index(x, y, comp,Nx)]);
-            fprintf(fp, "%.10e,", state_vars->alpha[al_index(x, y, comp,Nx)]);
-        }
-        fprintf(fp,"\n");
-    }
+    fprintf(fp, "%f,%.10e\n,",t, (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)]) * RTFC);
 
 
 }

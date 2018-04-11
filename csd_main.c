@@ -114,6 +114,7 @@ int main(int argc, char **argv)
     printf("Beginning Main Routine \n");
     printf("\n\n\n");
     //Open file to write to
+    user->fp = fopen("point_csd.txt","w");
     FILE *fp;
     fp = fopen("data_csd.txt","w");
 
@@ -196,6 +197,7 @@ int main(int argc, char **argv)
 
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
+        write_point(user->fp, user, t, 16, 16);
 
         gatevars_update(user->gate_vars,user->gate_vars_past,user->state_vars,user->dt*1e3,user,0);
 
@@ -245,6 +247,7 @@ int main(int argc, char **argv)
     fprintf(fptime,"%d,%d,%d,%d,%f,%f\n",1,count,user->Nx,user->Ny,user->dt,full_toc-full_tic);
     fclose(fptime);
     fclose(fpflux);
+    fclose(user->fp);
     printf("Finished Running. Full solve time: %.10e\n",full_toc-full_tic);
     printf("Total newton iterations:%d\n",total_newton);
 
