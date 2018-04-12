@@ -305,7 +305,7 @@ void write_point(FILE *fp,struct AppCtx* user,PetscReal t,PetscInt x,PetscInt y)
     int ion, comp;
     comp=0;
 
-    fprintf(fp, "%f,%.10e\n,",t, (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)]) * RTFC);
+    fprintf(fp,"%f,%.10e\n",t, (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)]) * RTFC);
 
 
 }

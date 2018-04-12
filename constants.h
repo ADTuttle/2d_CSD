@@ -18,10 +18,6 @@
 #define trecordstep 0.1//0.5 //determines how often to record
 #define save_one_var 1 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 
-// Behaviour
-#define Spiral 0 // If true will setup spiral
-#define Spiral_type 3 //1:1 spiral from circle. 2: 2 spiral from circle. 3: 2 spirals from line, different speeds
-
 
 //Solver Type Options
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
@@ -99,7 +95,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
-#define basepNaT  1e-4//0                 //1e-4%0%1e-3%if set to 0, recovery possible
+#define basepNaT  0                //1e-4%0%1e-3%if set to 0, recovery possible
 #define basepNaP  2e-5
 #define basepKDR  1e-3
 #define basepKA  1e-4
@@ -183,6 +179,7 @@ struct ConstVars{
     PetscReal *zeta1;
     int S; //boolean
     PetscReal *zetaalpha;
+    PetscReal *DNeuronScale; // Glial diffusion scaling
     PetscReal *DGliaScale; // Glial diffusion scaling
     PetscReal *DExtracellScale; // Extracellular diffusion scaling
 };

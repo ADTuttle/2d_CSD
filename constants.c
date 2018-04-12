@@ -266,6 +266,7 @@ void parameter_dependence(struct AppCtx *user)
     con_vars->pKIR = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
 
     //Glial diffusion scaling
+    con_vars->DNeuronScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
     con_vars->DGliaScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
     con_vars->DExtracellScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
     for(x=0;x<Nx;x++){
@@ -277,6 +278,7 @@ void parameter_dependence(struct AppCtx *user)
 
             con_vars->pKIR[xy_index(x,y,Nx)]=basepKIR;
 
+            con_vars->DNeuronScale[xy_index(x,y,Nx)*2]=0.0;
             con_vars->DGliaScale[xy_index(x,y,Nx)*2]=0.25; //x-direction scale
             con_vars->DGliaScale[xy_index(x,y,Nx)*2+1]=0.25; // y-direction scale
             con_vars->DExtracellScale[xy_index(x,y,Nx)*2]=1.0; //x-direction scale

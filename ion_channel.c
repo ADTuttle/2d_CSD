@@ -140,7 +140,7 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct AppCtx*
                     Dc[c_index(x,y,Nc-1,ion,Nx)*2] = con_vars->DExtracellScale[xy_index(x,y,Nx)*2]*scale*D[ion]/2*(alNcL+alNcR)/(tortuosity*tortuosity);
                 }
                 //diffusion coefficients in neuronal compartment equal to 0
-                Dc[c_index(x,y,0,ion,Nx)*2] = 0.01*scale*D[ion]*alphao[al_index(0,0,0,Nx)]/pow(tortuosity,2) ;
+                Dc[c_index(x,y,0,ion,Nx)*2] = con_vars->DNeuronScale[xy_index(x,y,Nx)*2]*scale*D[ion]*alphao[al_index(0,0,0,Nx)]/pow(tortuosity,2);
                 //diffusion coefficients in glial compartment proportional to default volume fraction
                 Dc[c_index(x,y,1,ion,Nx)*2] = con_vars->DGliaScale[xy_index(x,y,Nx)*2]*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
                 //diffusion coefficients in y direction
@@ -154,7 +154,7 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct AppCtx*
 
                 }
                 //diffusion coefficients in neuronal compartment equal to 0
-                Dc[c_index(x,y,0,ion,Nx)*2+1] =  0.01*scale*D[ion]*alphao[al_index(0,0,0,Nx)]/pow(tortuosity,2);
+                Dc[c_index(x,y,0,ion,Nx)*2+1] =  con_vars->DNeuronScale[xy_index(x,y,Nx)*2+1]*scale*D[ion]*alphao[al_index(0,0,0,Nx)]/pow(tortuosity,2);
                 //diffusion coefficients in glial compartment proportional to default volume fraction
                 Dc[c_index(x,y,1,ion,Nx)*2+1] = con_vars->DGliaScale[xy_index(x,y,Nx)*2+1]*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
 
@@ -340,17 +340,7 @@ void excitation(struct AppCtx* user,PetscReal t)
                 }
             if (plane_wave_exct) {
                 //plane wave at left side
-                int region=0;
-                if(Spiral){
-                    if(Spiral_type==1){
-                        region = (j==0 && i<Nx/2);
-                    } else{
-                        region = ((j==0 && i<Nx/2)|| (j==(Ny-1) && i>Nx/2));
-                    }
-                } else{
-                    region = (j==0);
-                }
-                if (t < texct && region) {
+                if (t < texct && j==0) {
                     num_points++;
                     pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
                     pany = pexct;
@@ -862,7 +852,7 @@ void excitation_grid(struct AppCtx* user,PetscReal t,PetscInt xi,PetscInt yi)
             }
             if (plane_wave_exct) {
                 //plane wave at left side
-                if (t < texct && j+yi==0 && i+xi<Nx/2) {
+                if (t < texct && j+yi==0) {
                     pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
                     pany = pexct;
                     exct->pNa[xy_index(i, j, Nx)] = pany;
@@ -922,27 +912,25 @@ void grid_diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct Ap
                 if(x==(Nx-1)) {
                     //Boundary is zero
                     Dc[c_index(x,y,Nc-1,ion,Nx)*2] = con_vars->DExtracellScale[xy_index(x+xi,y+yi,Nx)*2]*scale*D[ion]*(alNcL)/(tortuosity*tortuosity);
-                }
-                else {
+                } else {
                     //diffusion coefficients in the extracellular space proportional to volume fraction
                     Dc[c_index(x,y,Nc-1,ion,Nx)*2] = con_vars->DExtracellScale[xy_index(x+xi,y+yi,Nx)*2]*scale*D[ion]/2*(alNcL+alNcR)/(tortuosity*tortuosity);
                 }
                 //diffusion coefficients in neuronal compartment equal to 0
-                Dc[c_index(x,y,0,ion,Nx)*2] = 0.01*scale*D[ion]*alphao[al_index(0,0,0,Nx)]/pow(tortuosity,2); ;
+                Dc[c_index(x,y,0,ion,Nx)*2] =  con_vars->DNeuronScale[xy_index(x+xi,y+yi,Nx)*2]*scale*D[ion]*alphao[al_index(0,0,0,Nx)]/pow(tortuosity,2);
                 //diffusion coefficients in glial compartment proportional to default volume fraction
                 Dc[c_index(x,y,1,ion,Nx)*2] = con_vars->DGliaScale[xy_index(x+xi,y+yi,Nx)*2]*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);
                 //diffusion coefficients in y direction
                 if(y==(Ny-1)) {
                     //Boundary is zero
                     Dc[c_index(x,y,Nc-1,ion,Nx)*2+1] = con_vars->DExtracellScale[xy_index(x+xi,y+yi,Nx)*2+1]*scale*D[ion]*(alNcL)/pow(tortuosity,2);
-                }
-                else {
+                } else {
                     //diffusion coefficients in the extracellular space proportional to volume fraction
                     Dc[c_index(x,y,Nc-1,ion,Nx)*2+1] = con_vars->DExtracellScale[xy_index(x+xi,y+yi,Nx)*2+1]*scale*D[ion]/2*(alNcL+alNcU)/pow(tortuosity,2);
 
                 }
                 //diffusion coefficients in neuronal compartment equal to 0
-                Dc[c_index(x,y,0,ion,Nx)*2+1] = 0.01*scale*D[ion]*alphao[al_index(0,0,0,Nx)]/pow(tortuosity,2);;
+                Dc[c_index(x,y,0,ion,Nx)*2+1] = con_vars->DNeuronScale[xy_index(x+xi,y+yi,Nx)*2+1]*scale*D[ion]*alphao[al_index(0,0,0,Nx)]/pow(tortuosity,2);
                 //diffusion coefficients in glial compartment proportional to default volume fraction
 //			    Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2); //0.25
                 Dc[c_index(x,y,1,ion,Nx)*2+1] = con_vars->DGliaScale[xy_index(x+xi,y+yi,Nx)*2+1]*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2);

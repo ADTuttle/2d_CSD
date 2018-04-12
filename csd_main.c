@@ -111,71 +111,6 @@ int main(int argc, char **argv)
     //Run Initialization routine to get to steady state
     initialize_data(current_state,user);
 
-
-//    srand(time(NULL));
-//    double rnd;
-    /*
-    for(x=0;x<Nx;x++){
-        for(y=0;y<Ny;y++){
-            rnd = (double) rand()/((double)RAND_MAX);
-//            rnd = 2*cos(pi*(x*dx-0.25))*cos(pi*(y*dy-0.25))-0.5;
-            user->con_vars->pNaP[xy_index(x,y,user->Nx)]=basepNaP*rnd;
-            user->con_vars->pKDR[xy_index(x,y,user->Nx)]=basepKDR*rnd;
-            user->con_vars->pKA[xy_index(x,y,user->Nx)]=basepKA*rnd;
-//            user->con_vars->DGliaScale[xy_index(x, y, Nx)] = rnd;
-        }
-    }
-     */
-
-    PetscReal rad1;
-    if(Spiral && (Spiral_type==1 || Spiral_type==2)){
-        int region = 0;
-        for(x=0;x<Nx;x++){
-            for(y=0;y<Ny;y++){
-                rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy-Ly/2,2));
-                if(Spiral && Spiral_type==1){
-                    region = (x>3*Nx/8 && x<5*Nx/8 && y<Nx/4);
-                } else{
-                    region = (x>3*Nx/8 && x<5*Nx/8);
-                }
-                if(rad1<Lx/4 || region) {
-                    user->con_vars->pNaP[xy_index(x, y, user->Nx)] = 0;
-                    user->con_vars->pKDR[xy_index(x, y, user->Nx)] = 0;
-                    user->con_vars->pKA[xy_index(x, y, user->Nx)] = 0;
-                    if(y==Ny-1){
-                        printf("x\n");
-                    }else{
-                        printf("x");
-                    }
-                } else {
-                    user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
-                    user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
-                    user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
-                    if(y==Ny-1){
-                        printf(".\n");
-                    }else{
-                        printf(".");
-                    }
-                }
-            }
-        }
-}
-    if(Spiral && Spiral_type==3) {
-        for (x = 0; x < Nx; x++) {
-            for (y = 0; y < Ny; y++) {
-                if (x > 3 * Nx / 8 && x < 5 * Nx / 8) {
-                    user->con_vars->pNaP[xy_index(x, y, user->Nx)] = 0;
-                    user->con_vars->pKDR[xy_index(x, y, user->Nx)] = 0;
-                    user->con_vars->pKA[xy_index(x, y, user->Nx)] = 0;
-                }
-                if (x > Nx / 2) {
-                    user->con_vars->DGliaScale[xy_index(x, y, Nx)] = 0.1;
-                }
-            }
-        }
-    }
-
-
     if(Profiling_on) {
         PetscLogStage stage2;
         PetscLogStageRegister("Main Loop", &stage2);
@@ -214,33 +149,6 @@ int main(int argc, char **argv)
     SNESConvergedReason reason;
     PetscTime(&full_tic);
     for(PetscReal t=dt;t<=Time;t+=dt) {
-        //This makes a spiral
-        if(Spiral && Spiral_type==1) {
-            if (t > 100.00 && t < 101.00) {
-                for (x = 0; x < Nx; x++) {
-                    for (y = 0; y < Ny; y++) {
-                        rad1 = sqrt(pow((x + 0.5) * dx - Lx / 2, 2) + pow((y + 0.5) * dy - Ly / 2, 2));
-                        if (rad1 < Lx / 4 || (x > 3 * Nx / 8 && x < 5 * Nx / 8 && y < Nx / 4)) {
-                            user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
-                            user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
-                            user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
-                        }
-                    }
-                }
-            }
-        }
-        if(Spiral && (Spiral_type==2 || Spiral_type==3)) {
-            if (t > 55.00 && t < 56.00) {
-                for (x = 0; x < Nx; x++) {
-                    for (y = 0; y < Ny; y++) {
-                        user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
-                        user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
-                        user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
-                    }
-                }
-            }
-        }
-
         count++;
         //Save the "current" aka past state
         ierr = restore_subarray(user->state_vars_past->v, user->state_vars_past);CHKERRQ(ierr);
