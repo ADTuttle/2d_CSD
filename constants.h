@@ -35,7 +35,7 @@
 static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
-#define Time 300.0   //total simulated time in seconds
+#define Time 15.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -99,7 +99,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
-#define basepNaT  0                 //1e-4%0%1e-3%if set to 0, recovery possible
+#define basepNaT  1e-4//0                 //1e-4%0%1e-3%if set to 0, recovery possible
 #define basepNaP  2e-5
 #define basepKDR  1e-3
 #define basepKA  1e-4

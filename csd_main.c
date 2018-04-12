@@ -112,9 +112,9 @@ int main(int argc, char **argv)
     initialize_data(current_state,user);
 
 
-    srand(time(NULL));
-    double rnd;
-//    /*
+//    srand(time(NULL));
+//    double rnd;
+    /*
     for(x=0;x<Nx;x++){
         for(y=0;y<Ny;y++){
             rnd = (double) rand()/((double)RAND_MAX);
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 //            user->con_vars->DGliaScale[xy_index(x, y, Nx)] = rnd;
         }
     }
-//     */
+     */
 
     PetscReal rad1;
     if(Spiral && (Spiral_type==1 || Spiral_type==2)){
