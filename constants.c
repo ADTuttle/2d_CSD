@@ -278,11 +278,12 @@ void parameter_dependence(struct AppCtx *user)
 
             con_vars->pKIR[xy_index(x,y,Nx)]=basepKIR;
 
-            con_vars->DNeuronScale[xy_index(x,y,Nx)*2]=0.0;
-            con_vars->DGliaScale[xy_index(x,y,Nx)*2]=0.25; //x-direction scale
-            con_vars->DGliaScale[xy_index(x,y,Nx)*2+1]=0.25; // y-direction scale
-            con_vars->DExtracellScale[xy_index(x,y,Nx)*2]=1.0; //x-direction scale
-            con_vars->DExtracellScale[xy_index(x,y,Nx)*2+1]=1.0; // y-direction scale
+            con_vars->DNeuronScale[xy_index(x,y,Nx)*2]=0.0; //x-direction Neurons
+            con_vars->DNeuronScale[xy_index(x,y,Nx)*2+1]=0.0; //y-direction Neurons
+            con_vars->DGliaScale[xy_index(x,y,Nx)*2]=0.25; //x-direction scale Glia
+            con_vars->DGliaScale[xy_index(x,y,Nx)*2+1]=0.25; // y-direction scale glia
+            con_vars->DExtracellScale[xy_index(x,y,Nx)*2]=1.0; //x-direction scale extracell
+            con_vars->DExtracellScale[xy_index(x,y,Nx)*2+1]=1.0; // y-direction scale Extracell
 
         }
     }
