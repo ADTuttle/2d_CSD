@@ -15,6 +15,7 @@ void initialize_data(Vec,struct AppCtx*);
 
 //Set the paramaters based on the constants
 void set_params(Vec,struct SimState *,struct ConstVars*,struct GateType*,struct FluxData*,struct AppCtx*);
+void parameter_dependence(struct AppCtx *);
 
 //Data management functions
 void init_arrays(struct AppCtx*);
@@ -95,10 +96,10 @@ PetscErrorCode calc_jacobian_linear_deriv(SNES, Vec, Mat,Mat, void*); //void is 
 
 //Functions used in Grid solves
 void grid_wflowm(struct AppCtx *);
-void grid_ionmflux(struct AppCtx* );
-void gatevars_update_grid(struct GateType *,struct SimState *,PetscReal ,struct AppCtx * );
+void grid_ionmflux(struct AppCtx*,PetscInt,PetscInt);
+void gatevars_update_grid(struct GateType *,struct SimState *,PetscReal ,struct AppCtx *);
 void excitation_grid(struct AppCtx* ,PetscReal ,PetscInt, PetscInt);
-void grid_diff_coef(PetscReal *,const PetscReal *,PetscReal ,struct AppCtx* );
+void grid_diff_coef(PetscReal *,const PetscReal *,PetscReal ,struct AppCtx* ,PetscInt,PetscInt);
 
 PetscErrorCode Grid_Residual(Vec ,PetscInt ,PetscInt ,void *);
 PetscErrorCode Grid_Jacobian(Mat ,PetscInt ,PetscInt ,void *);

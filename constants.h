@@ -11,11 +11,16 @@
 // General options
 
 #define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
-#define mid_points_exct 1
+#define mid_points_exct 0
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
+#define plane_wave_exct 1 //if true, initiates a uniform plane wave
 #define Profiling_on 1 //Turns timing of functions on/off.
-#define trecordstep 0.01//0.5 //determines how often to record
-#define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
+#define trecordstep 0.1//0.5 //determines how often to record
+#define save_one_var 1 //Instead of saving all 14 vars, save just 1 (specified in write_data)
+
+// Behaviour
+#define Spiral 0 // If true will setup spiral
+#define Spiral_type 3 //1:1 spiral from circle. 2: 2 spiral from circle. 3: 2 spirals from line, different speeds
 
 
 //Solver Type Options
@@ -75,7 +80,7 @@ static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
 
 //initial state setup
 #define rest_state  1        //if true, membrane parameters are set so that the initial voltages and concentrations are at a rest state
-#define spatially_uniform  0 //if true, all initial values and parameters are spatially uniform
+#define spatially_uniform  1 //if true, all initial values and parameters are spatially uniform
 
 
 //set "relaxed" volume fractions and initial volume fractions
@@ -94,10 +99,10 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
-#define pNaT  0                 //1e-4%0%1e-3%if set to 0, recovery possible
-#define pNaP  2e-5
-#define pKDR  1e-3
-#define pKA  1e-4
+#define basepNaT  1e-4//0                 //1e-4%0%1e-3%if set to 0, recovery possible
+#define basepNaP  2e-5
+#define basepKDR  1e-3
+#define basepKA  1e-4
 
 //Leak conductances in mS/cm^2 from Kager, 2000 or Yao, Huang, Miura, 2011.
 #define pKLeak  (7e-2*RTFC/FC)     //Kager:10e-2,Miura:7e-2%K Leak conductance in mS/cm^2 converted to mmol/cm^2/s
@@ -105,7 +110,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define pClLeakg  (5e-2*RTFC/FC)
 
 //Glial KIR from Steinberg et al 2005
-#define pKIR  (.13*RTFC/FC)        //conductance in mS/cm^2 converted to mmol/cm^2/s
+#define basepKIR  (.13*RTFC/FC)        //conductance in mS/cm^2 converted to mmol/cm^2/s
 #define pKLeakadjust  1.0       //parameter for varying glial permeability
 
 //pump current, parameters from Yao, Huang, Miura, 2011
@@ -162,17 +167,24 @@ struct ExctType{
 };
 
 struct ConstVars{
-    PetscReal pNaKCl;
-    PetscReal Imax;
-    PetscReal pNaLeak;
-    PetscReal Imaxg;
-    PetscReal pNaLeakg;
-    PetscReal *ao;
-    PetscReal *zo;
+    PetscReal *pNaT; //Gating variable arrays
+    PetscReal *pNaP;
+    PetscReal *pKDR;
+    PetscReal *pKA;
+    PetscReal *pNaKCl; //Glial NaKCl Cotransporter array
+    PetscReal *Imax;   // Neuronal pump strength
+    PetscReal *pNaLeak;
+    PetscReal *Imaxg;   //Glial pump strength
+    PetscReal *pNaLeakg;
+    PetscReal *pKIR;   //K inward rectifier in glia
+    PetscReal *ao;  //Immobile ions
+    PetscReal *zo;  //Avg valence
     PetscReal kappa;
     PetscReal *zeta1;
     int S; //boolean
     PetscReal *zetaalpha;
+    PetscReal *DGliaScale; // Glial diffusion scaling
+    PetscReal *DExtracellScale; // Extracellular diffusion scaling
 };
 struct Solver{
     Vec Q;      /* Update*/

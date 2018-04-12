@@ -6,141 +6,7 @@
 #include <stdio.h>
 #include <math.h>
 
-PetscInt c_index(PetscInt x,PetscInt y,PetscInt comp,PetscInt ion,PetscInt Nx)
-{
-    return Nc*Ni* (Nx * y + x) + comp*Ni+ion;
-}
-PetscInt phi_index(PetscInt x,PetscInt y,PetscInt comp,PetscInt Nx)
-{
-    return Nc* (Nx * y + x) + comp;
-}
-PetscInt al_index(PetscInt x,PetscInt y,PetscInt comp,PetscInt Nx)
-{
-    return (Nc-1)* (Nx * y + x) + comp;
-}
-PetscInt xy_index(PetscInt x,PetscInt y,PetscInt Nx)
-{
-    return Nx*y+x;
-}
-//Index based on Nv, which can change to either include or exclude alpha
-PetscInt Ind_1(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp,PetscInt Nx)
-{
-    return Nv*(Nx*y+x)+ion*Nc+comp;
-}
-// Index based on solving c,phi, and alpha.
-PetscInt Ind_2(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp, PetscInt nx)
-{
-    return ((Ni+2)*Nc-1)*(nx*y+x)+ion*Nc+comp;
-}
 
-PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx *user)
-{
-    PetscErrorCode ierr;
-    PetscInt Nx = user->Nx;
-    PetscInt Ny = user->Ny;
-    //Setup indices
-    int x,y,comp,ion;
-    PetscInt *c_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*Nc*Ni);
-    PetscInt *phi_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*Nc);
-    for(x=0;x<Nx;x++){
-        for(y=0;y<Ny;y++){
-            for(comp=0;comp<Nc;comp++)
-            {
-                for(ion=0;ion<Ni;ion++)
-                {
-                    c_ind[c_index(x,y,comp,ion,Nx)] = Ind_1(x,y,ion,comp,Nx);
-                }
-                phi_ind[phi_index(x,y,comp,Nx)] = Ind_1(x,y,Ni,comp,Nx);
-            }
-        }
-    }
-    ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*Ni*Nc,c_ind,PETSC_COPY_VALUES,&state_vars->c_ind); CHKERRQ(ierr);
-    ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*Nc,phi_ind,PETSC_COPY_VALUES,&state_vars->phi_ind); CHKERRQ(ierr);
-
-    free(phi_ind);free(c_ind);
-    if(!separate_vol) {
-        PetscInt *al_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*(Nc-1));
-        for (x = 0; x < Nx; x++) {
-            for (y = 0; y < Ny; y++) {
-                for (comp = 0; comp < Nc - 1; comp++) {
-                    al_ind[al_index(x, y, comp,Nx)] = Ind_1(x, y, Ni + 1, comp,Nx);
-                }
-            }
-        }
-        ierr = ISCreateGeneral(PETSC_COMM_WORLD, Nx * Ny * (Nc - 1), al_ind, PETSC_COPY_VALUES, &state_vars->al_ind);
-        CHKERRQ(ierr);
-        free(al_ind);
-    }
-    else{
-        state_vars->alpha = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*(Nc-1));
-    }
-    extract_subarray(state,state_vars);
-    return ierr;
-}
-
-PetscErrorCode extract_subarray(Vec state,struct SimState *state_vars)
-{
-    if(Profiling_on) {
-        PetscLogEventBegin(event[2], 0, 0, 0, 0);
-    }
-    PetscErrorCode ierr;
-    ierr = VecGetSubVector(state,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
-    ierr = VecGetArray(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
-
-    ierr = VecGetSubVector(state,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
-    ierr = VecGetArray(state_vars->phi_vec,&state_vars->phi); CHKERRQ(ierr);
-    if(!separate_vol) {
-        ierr = VecGetSubVector(state, state_vars->al_ind, &state_vars->al_vec);
-        CHKERRQ(ierr);
-        ierr = VecGetArray(state_vars->al_vec, &state_vars->alpha);
-        CHKERRQ(ierr);
-    }
-    if(Profiling_on) {
-        PetscLogEventEnd(event[2], 0, 0, 0, 0);
-    }
-
-    return ierr;
-
-}
-
-PetscErrorCode restore_subarray(Vec state,struct SimState *state_vars)
-{
-    if(Profiling_on) {
-        PetscLogEventBegin(event[3], 0, 0, 0, 0);
-    }
-    PetscErrorCode ierr;
-
-    ierr = VecRestoreArray(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
-    ierr = VecRestoreSubVector(state,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
-
-
-    ierr = VecRestoreArray(state_vars->phi_vec,&state_vars->phi); CHKERRQ(ierr);
-    ierr = VecRestoreSubVector(state,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
-
-    if(!separate_vol) {
-        ierr = VecRestoreArray(state_vars->al_vec, &state_vars->alpha);
-        CHKERRQ(ierr);
-        ierr = VecRestoreSubVector(state, state_vars->al_ind, &state_vars->al_vec);
-        CHKERRQ(ierr);
-        state_vars->alpha = NULL;
-    }
-
-    state_vars->c = NULL;
-    state_vars->phi = NULL;
-    if(Profiling_on) {
-        PetscLogEventEnd(event[3], 0, 0, 0, 0);
-    }
-
-    return ierr;
-
-}
-PetscErrorCode copy_simstate(Vec current_state,struct SimState *state_vars_past)
-{
-    PetscErrorCode ierr;
-    ierr = VecCopy(current_state,state_vars_past->v); CHKERRQ(ierr);
-    ierr = extract_subarray(state_vars_past->v,state_vars_past); CHKERRQ(ierr);
-    return ierr;
-}
 
 void init(Vec state,struct SimState *state_vars,struct AppCtx*user)
 {
@@ -172,239 +38,127 @@ void init(Vec state,struct SimState *state_vars,struct AppCtx*user)
     restore_subarray(state,state_vars);
 }
 
-void init_arrays(struct AppCtx*user)
-{
-    PetscInt Nx = user->Nx;
-    PetscInt Ny = user->Ny;
-    PetscInt nx = 2*width_size+1;
-    PetscInt ny = 2*width_size+1;
-    //Flux quantities
-    user->flux->mflux = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
-    user->flux->dfdci = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
-    user->flux->dfdce = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
-    user->flux->dfdphim = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
-    user->flux->wflow = (PetscReal*) malloc(Nx*Ny*(Nc-1)*sizeof(PetscReal));
-    user->flux->dwdpi = (PetscReal*) malloc(Nx*Ny*(Nc-1)*sizeof(PetscReal));
-    user->flux->dwdal = (PetscReal*) malloc(Nx*Ny*(Nc-1)*sizeof(PetscReal));
 
-    //Gating variables
-    user->gate_vars->mNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->hNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->gNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->mNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->hNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->gNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->mKDR = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->gKDR = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->mKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->hKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->gKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    //Gating variables
-    user->gate_vars_past->mNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->hNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->gNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->mNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->hNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->gNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->mKDR = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->gKDR = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->mKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->hKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->gKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-
-
-    //Excitation
-    user->gexct->pNa = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gexct->pK = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gexct->pCl = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-
-    //Constant params
-    user->con_vars->ao = (PetscReal*) malloc(Nc*sizeof(PetscReal));
-    user->con_vars->zo = (PetscReal*) malloc(Nc*sizeof(PetscReal));
-    user->con_vars->zeta1 = (PetscReal*) malloc((Nc-1)*sizeof(PetscReal));
-    user->con_vars->zetaalpha = (PetscReal*) malloc((Nc-1)*sizeof(PetscReal));
-
-    //Diffusion in ctx
-    user->Dcs = (PetscReal*) malloc(Nx*Ny*Ni*Nc*2*sizeof(PetscReal));
-    user->Dcb = (PetscReal*) malloc(Nx*Ny*Ni*Nc*2*sizeof(PetscReal));
-
-    //Small Grid variables
-
-    // Past membrane voltage storage
-    user->vm_past = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    //Grid Gating variables
-    user->grid_gate_vars->mNaT = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->hNaT = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->gNaT = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->mNaP = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->hNaP = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->gNaP = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->mKDR = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->gKDR = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->mKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->hKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->gKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-
-    //Grid state_vars
-    user->grid_vars->c = (PetscReal*) malloc(Nc*Ni*nx*ny*sizeof(PetscReal));
-    user->grid_vars->phi = (PetscReal*) malloc(Nc*nx*ny*sizeof(PetscReal));
-    user->grid_vars->alpha = (PetscReal*) malloc((Nc-1)*nx*ny*sizeof(PetscReal));
-    user->grid_vars->v = NULL;
-    user->grid_vars->phi_ind = NULL;
-    user->grid_vars->phi_vec = NULL;
-    user->grid_vars->c_ind = NULL;
-    user->grid_vars->c_vec = NULL;
-    user->grid_vars->al_ind = NULL;
-    user->grid_vars->al_vec = NULL;
-
-    //Grid past state_Vars
-
-    user->grid_vars_past->c = (PetscReal*) malloc(Nc*Ni*nx*ny*sizeof(PetscReal));
-    user->grid_vars_past->phi = (PetscReal*) malloc(Nc*nx*ny*sizeof(PetscReal));
-    user->grid_vars_past->alpha = (PetscReal*) malloc((Nc-1)*nx*ny*sizeof(PetscReal));
-    user->grid_vars_past->v = NULL;
-    user->grid_vars_past->phi_ind = NULL;
-    user->grid_vars_past->phi_vec = NULL;
-    user->grid_vars_past->c_ind = NULL;
-    user->grid_vars_past->c_vec = NULL;
-    user->grid_vars_past->al_ind = NULL;
-    user->grid_vars_past->al_vec = NULL;
-
-    //dt saving
-    user->dt_space = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    for(int x=0;x<Nx;x++){
-        for(int y=0;y<Ny;y++){
-            user->dt_space[xy_index(x,y,Nx)]=user->dt;
-        }
-    }
-
-
-
-}
 void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars,struct GateType* gate_vars,struct FluxData *flux,struct AppCtx*user)
 {
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscReal vm,vmg;
     extract_subarray(state,state_vars);
-    //Everything that follows will assume spatially uniform
-    //At rest state
-    PetscReal c[Ni*Nc];
-    PetscReal phi[Nc];
-    PetscReal alpha[Nc];
-    for(PetscInt comp=0;comp<Nc;comp++) {
-        for(PetscInt ion=0;ion<Ni;ion++) {
-            c[c_index(0,0,comp,ion,Nx)]=state_vars->c[c_index(0,0,comp,ion,Nx)];
-        }
-        phi[phi_index(0,0,comp,Nx)]=state_vars->phi[phi_index(0,0,comp,Nx)];
-        if(comp<Nc-1) {
-            alpha[al_index(0,0,comp,Nx)]=state_vars->alpha[al_index(0,0,comp,Nx)];
-        } else {
-            alpha[al_index(0,0,comp,Nx)]=1; //Adding in the extracellular vol
-            for(PetscInt i=0;i<Nc-1;i++) {
-                alpha[al_index(0,0,comp,Nx)]-=alpha[al_index(0,0,i,Nx)];
-            }
-        }
-    }
-    PetscReal vm = phi[phi_index(0,0,0,Nx)]-phi[phi_index(0,0,2,Nx)]; //neuronal membrane potential
-    PetscReal vmg = phi[phi_index(0,0,1,Nx)]-phi[phi_index(0,0,2,Nx)]; //glial membrane potential
-
-    //compute neuronal Cl concentration (since neuron has only leak conductance, must be at reversal potential for Cl)
-
-    c[c_index(0,0,0,2,Nx)] = c[c_index(0,0,2,2,Nx)]*exp(vm);
-    //set glial Cl concentration equal to neuronal Cl concentration
-    c[c_index(0,0,1,2,Nx)] = c[c_index(0,0,0,2,Nx)];
-
-
-    //compute cotransporter permeability so that glial Cl is at rest
-    mclin(flux,c_index(0,0,1,2,Nx),pClLeakg,-1,c[c_index(0,0,1,2,Nx)],c[c_index(0,0,2,2,Nx)],vmg,0);
-    con_vars->pNaKCl = -flux->mflux[c_index(0,0,1,2,Nx)]/2/log(c[c_index(0,0,1,0,Nx)]*c[c_index(0,0,1,1,Nx)]*c[c_index(0,0,1,2,Nx)]*c[c_index(0,0,1,2,Nx)]/(c[c_index(0,0,2,0,Nx)]*c[c_index(0,0,2,1,Nx)]*c[c_index(0,0,2,2,Nx)]*c[c_index(0,0,2,2,Nx)]));
-    PetscReal NaKCl = -flux->mflux[c_index(0,0,1,2,Nx)]/2;
-
-    //compute gating variables
-    gatevars_update(gate_vars,gate_vars,state_vars,0,user,1);
-
-    //compute K channel currents (neuron)
-    PetscReal pKGHK = pKDR*gate_vars->gKDR[0]+pKA*gate_vars->gKA[0];
-    //Initialize the KGHK flux
-    mcGoldman(flux,c_index(0,0,0,1,Nx),pKGHK,1,c[c_index(0,0,0,1,Nx)],c[c_index(0,0,Nc-1,1,Nx)],vm,0);
-    //Add the KLeak flux to it
-    mclin(flux,c_index(0,0,0,1,Nx),pKLeak,1,c[c_index(0,0,0,1,Nx)],c[c_index(0,0,Nc-1,1,Nx)],vm,1);
-
-    //compute neuronal ATPase value
-    con_vars->Imax = flux->mflux[c_index(0,0,0,1,Nx)]*(pow(1+mK/c[c_index(0,0,Nc-1,1,Nx)],2)*pow(1+mNa/c[c_index(0,0,0,0,Nx)],3))/2;
-
-
-    //compute neuronal sodium currents and leak permeability value
-    PetscReal pNaGHK = pNaT*gate_vars->gNaT[0]+pNaP*gate_vars->gNaP[0];
-    mcGoldman(flux,c_index(0,0,0,0,Nx),pNaGHK,1,c[c_index(0,0,0,0,Nx)],c[c_index(0,0,Nc-1,0,Nx)],vm,0);
-    PetscReal Ipump = npump*con_vars->Imax/(pow((1+mK/c[c_index(0,0,Nc-1,1,Nx)]),2)*pow((1+mNa/c[c_index(0,0,0,0,Nx)]),3));
-    con_vars->pNaLeak = (-flux->mflux[c_index(0,0,0,0,Nx)]-3*Ipump)/(log(c[c_index(0,0,0,0,Nx)]/c[c_index(0,0,Nc-1,0,Nx)])+vm);
-
-    //compute K channel currents (glial)
-    PetscReal pKLinG = pKIR*inwardrect(c[c_index(0,0,1,1,Nx)],c[c_index(0,0,Nc-1,1,Nx)],vmg)*pKLeakadjust;
-    mclin(flux,c_index(0,0,1,1,Nx),pKLinG,1,c[c_index(0,0,1,1,Nx)],c[c_index(0,0,Nc-1,1,Nx)],vmg,0);
-    flux->mflux[c_index(0,0,1,1,Nx)] += NaKCl;
-
-    //compute glial ATPase value
-    con_vars->Imaxg = flux->mflux[c_index(0,0,1,1,Nx)]*pow((1+mK/c[c_index(0,0,Nc-1,1,Nx)]),2)*pow((1+mNa/c[c_index(0,0,1,0,Nx)]),3)/2;
-
-    //compute glial sodium current and leak permeability value
-    PetscReal Ipumpg = glpump*con_vars->Imaxg/(pow((1+mK/c[c_index(0,0,Nc-1,1,Nx)]),2)*pow((1+mNa/c[c_index(0,0,1,0,Nx)]),3));
-    con_vars->pNaLeakg = (-NaKCl-3*Ipumpg)/(log(c[c_index(0,0,1,0,Nx)]/c[c_index(0,0,Nc-1,0,Nx)])+vmg);
-
-    //Compute resting organic anion amounts and average valences
-    //set extracellular organic anion amounts and valence to ensure electroneutrality
-    con_vars->ao[Nc-1] = 5e-4;
-    PetscReal cmphi[Nc];
-    PetscReal osmotic;
-    for(PetscInt k=0;k<Nc-1;k++) {
-        cmphi[k] = cm[k]*(phi[k]-phi[Nc-1]);
-        cmphi[Nc-1] += cmphi[k];
-        //set intracellular organic anion amounts to ensure osmotic pressure balance
-        osmotic=0;
-        for(PetscInt ion=0;ion<Ni;ion++) {
-            osmotic += c[c_index(0,0,Nc-1,ion,Nx)]-c[c_index(0,0,k,ion,Nx)];
-        }
-        con_vars->ao[k] = alpha[k]*(con_vars->ao[Nc-1]/alpha[Nc-1]+osmotic);
-        //set average valence to ensure electroneutrality
-        con_vars->zo[k] = (-cz(c,z,0,0,Nx,k,user)*alpha[k]+cmphi[k])/con_vars->ao[k];
-    }
-    con_vars->zo[Nc-1] = (-cz(c,z,0,0,Nx,Nc-1,user)*alpha[Nc-1]-cmphi[Nc-1])/con_vars->ao[Nc-1];
-    //Copy the point data to vectors.
-    //Only needed for uniform data
+    PetscReal *c = state_vars->c;
+    PetscReal *phi = state_vars->phi;
+    PetscReal *alpha = state_vars->alpha;
     for(PetscInt x=0;x<Nx;x++) {
-        for(PetscInt y=0;y<Ny;y++) {
-            //Gating variables (already set in gatevars_update)
-            //We changed c_index(0,0,0/1,2,Nx), neuronal/glial Cl.
-            state_vars->c[c_index(x,y,0,2,Nx)] = c[c_index(0,0,0,2,Nx)];
-            state_vars->c[c_index(x,y,1,2,Nx)] = c[c_index(0,0,1,2,Nx)];
+        for (PetscInt y = 0; y < Ny; y++) {
+            vm = phi[phi_index(x, y, 0, Nx)] - phi[phi_index(x, y, 2, Nx)]; //neuronal membrane potential
+            vmg = phi[phi_index(x, y, 1, Nx)] - phi[phi_index(x, y, 2, Nx)]; //glial membrane potential
+
+            //compute neuronal Cl concentration (since neuron has only leak conductance, must be at reversal potential for Cl)
+
+            c[c_index(x, y, 0, 2, Nx)] = c[c_index(x, y, 2, 2, Nx)] * exp(vm);
+            //set glial Cl concentration equal to neuronal Cl concentration
+            c[c_index(x, y, 1, 2, Nx)] = c[c_index(x, y, 0, 2, Nx)];
+
+
+            //compute cotransporter permeability so that glial Cl is at rest
+            mclin(flux, c_index(x, y, 1, 2, Nx),pClLeakg, -1,c[c_index(x, y, 1, 2, Nx)],c[c_index(x, y, 2, 2, Nx)],vmg, 0);
+            con_vars->pNaKCl[xy_index(x,y,Nx)] =-flux->mflux[c_index(x, y, 1, 2, Nx)]/2/
+                    log(c[c_index(x, y, 1, 0, Nx)] * c[c_index(x, y, 1, 1, Nx)] *
+                        c[c_index(x, y, 1, 2, Nx)] * c[c_index(x, y, 1, 2, Nx)] /
+                        (c[c_index(x, y, 2, 0, Nx)] * c[c_index(x, y, 2, 1, Nx)] *
+                         c[c_index(x, y, 2, 2, Nx)] * c[c_index(x, y, 2, 2, Nx)]));
+            PetscReal NaKCl = -flux->mflux[c_index(x, y, 1, 2, Nx)] / 2;
+
+            //compute gating variables
+            gatevars_update(gate_vars, gate_vars, state_vars, 0, user, 1);
+
+            //compute K channel currents (neuron)
+            PetscReal pKGHK = con_vars->pKDR[xy_index(x,y,Nx)] * gate_vars->gKDR[xy_index(x,y,Nx)] + con_vars->pKA[xy_index(x,y,Nx)] * gate_vars->gKA[xy_index(x,y,Nx)];
+            //Initialize the KGHK flux
+            mcGoldman(flux, c_index(x, y, 0, 1, Nx), pKGHK, 1, c[c_index(x, y, 0, 1, Nx)],
+                      c[c_index(x, y, Nc - 1, 1, Nx)], vm, 0);
+            //Add the KLeak flux to it
+            mclin(flux, c_index(x, y, 0, 1, Nx), pKLeak, 1, c[c_index(x, y, 0, 1, Nx)], c[c_index(x, y, Nc - 1, 1, Nx)],
+                  vm, 1);
+
+            //compute neuronal ATPase value
+            con_vars->Imax[xy_index(x,y,Nx)] = flux->mflux[c_index(x, y, 0, 1, Nx)] * (pow(1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)], 2) *
+                                                                     pow(1 + mNa / c[c_index(x, y, 0, 0, Nx)], 3)) / 2;
+
+
+            //compute neuronal sodium currents and leak permeability value
+            PetscReal pNaGHK = con_vars->pNaT[xy_index(x,y,Nx)]*gate_vars->gNaT[xy_index(x,y,Nx)]+con_vars->pNaP[xy_index(x,y,Nx)]*gate_vars->gNaP[xy_index(x,y,Nx)];
+            mcGoldman(flux, c_index(x, y, 0, 0, Nx), pNaGHK, 1, c[c_index(x, y, 0, 0, Nx)],
+                      c[c_index(x, y, Nc - 1, 0, Nx)], vm, 0);
+            PetscReal Ipump = npump * con_vars->Imax[xy_index(x,y,Nx)] / (pow((1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)]), 2) *
+                                                        pow((1 + mNa / c[c_index(x, y, 0, 0, Nx)]), 3));
+            con_vars->pNaLeak[xy_index(x,y,Nx)] = (-flux->mflux[c_index(x, y, 0, 0, Nx)] - 3 * Ipump) /
+                                (log(c[c_index(x, y, 0, 0, Nx)] / c[c_index(x, y, Nc - 1, 0, Nx)]) + vm);
+
+            //compute K channel currents (glial)
+            PetscReal pKLinG =
+                    con_vars->pKIR[xy_index(x,y,Nx)] * inwardrect(c[c_index(x, y, 1, 1, Nx)], c[c_index(x, y, Nc - 1, 1, Nx)], vmg) * pKLeakadjust;
+            mclin(flux, c_index(x, y, 1, 1, Nx), pKLinG, 1, c[c_index(x, y, 1, 1, Nx)], c[c_index(x, y, Nc - 1, 1, Nx)],
+                  vmg, 0);
+            flux->mflux[c_index(x, y, 1, 1, Nx)] += NaKCl;
+
+            //compute glial ATPase value
+            con_vars->Imaxg[xy_index(x,y,Nx)] =
+                    flux->mflux[c_index(x, y, 1, 1, Nx)] * pow((1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)]), 2) *
+                    pow((1 + mNa / c[c_index(x, y, 1, 0, Nx)]), 3) / 2;
+
+            //compute glial sodium current and leak permeability value
+            PetscReal Ipumpg = glpump * con_vars->Imaxg[xy_index(x,y,Nx)] / (pow((1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)]), 2) *
+                                                           pow((1 + mNa / c[c_index(x, y, 1, 0, Nx)]), 3));
+            con_vars->pNaLeakg[xy_index(x,y,Nx)] =
+                    (-NaKCl - 3 * Ipumpg) / (log(c[c_index(x, y, 1, 0, Nx)] / c[c_index(x, y, Nc - 1, 0, Nx)]) + vmg);
+
+            //Compute resting organic anion amounts and average valences
+            //set extracellular organic anion amounts and valence to ensure electroneutrality
+            con_vars->ao[Nc - 1] = 5e-4;
+            PetscReal cmphi[Nc]={0,0,0};
+            PetscReal osmotic,alNc;
+            alNc = 1- alpha[al_index(x,y,0,Nx)]-alpha[al_index(x,y,1,Nx)];
+            for (PetscInt k = 0; k < Nc - 1; k++) {
+                cmphi[k] = cm[k] * (phi[phi_index(x,y,k,Nx)] - phi[phi_index(x,y,Nc-1,Nx)]);
+                cmphi[Nc - 1] += cmphi[k];
+                //set intracellular organic anion amounts to ensure osmotic pressure balance
+                osmotic = 0;
+                for (PetscInt ion = 0; ion < Ni; ion++) {
+                    osmotic += c[c_index(x, y, Nc - 1, ion, Nx)] - c[c_index(x, y, k, ion, Nx)];
+                }
+                con_vars->ao[k] = alpha[al_index(x,y,k,Nx)] * (con_vars->ao[Nc - 1] / alNc + osmotic);
+                //set average valence to ensure electroneutrality
+                con_vars->zo[k] = (-cz(c, z, x, y, Nx, k, user) * alpha[al_index(x,y,k,Nx)] + cmphi[k]) / con_vars->ao[k];
+            }
+            con_vars->zo[Nc-1]=(-cz(c,z,x,y,Nx,Nc-1,user)*alNc - cmphi[Nc - 1]) / con_vars->ao[Nc - 1];
+
+            //Set kappa to 0 for no flow
+            con_vars->kappa = 0;
+
+
+            //parameters for osmotic water flow
+
+            PetscReal zetaadjust = 1; //modify glial permeability
+            for (PetscInt comp = 0; comp < Nc - 1; comp++) {
+                //based on B.E. Shapiro dissertation (2000)
+                con_vars->zeta1[comp] = 5.4e-5;  //hydraulic permeability in cm/sec/(mmol/cm^3)
+                con_vars->zeta1[comp] /= ell;  //conversion to 1/sec/(mmol/cm^3)
+                //based on Strieter, Stephenson, Palmer,
+                //Weinstein, Journal or General Physiology, 1990.
+                //zeta=7e-8%6e-10%hydraulic permeability in cm/sec/mmHg
+                //zeta=zeta*7.501e-6%conversion to cm/sec/mPa
+                //zeta=zeta*R*T%conversion to cm/sec/(mmol/cm^3)
+                //zeta=zeta/ell%conversion to 1/sec/(mmol/cm^3)
+                if (comp == 1) {          //parameter for varying glial hydraulic permeability
+                    con_vars->zeta1[comp] *= zetaadjust; //adjust glial hydraulic permeability
+                }
+                con_vars->zetaalpha[comp] = 0;  //stiffness constant or 1/stiffness constant
+            }
+
+            con_vars->S = 1;  //Indicates whether zetaalpha is the stiffness (true) or 1/stiffness (false)
         }
     }
-
-    //Set kappa to 0 for no flow
-    con_vars->kappa = 0;
-
-    //parameters for osmotic water flow
-
-    PetscReal zetaadjust = 1; //modify glial permeability
-    for(PetscInt comp=0;comp<Nc-1;comp++) {
-        //based on B.E. Shapiro dissertation (2000)
-        con_vars->zeta1[comp] = 5.4e-5;  //hydraulic permeability in cm/sec/(mmol/cm^3)
-        con_vars->zeta1[comp] /= ell;  //conversion to 1/sec/(mmol/cm^3)
-        //based on Strieter, Stephenson, Palmer,
-        //Weinstein, Journal or General Physiology, 1990.
-        //zeta=7e-8%6e-10%hydraulic permeability in cm/sec/mmHg
-        //zeta=zeta*7.501e-6%conversion to cm/sec/mPa
-        //zeta=zeta*R*T%conversion to cm/sec/(mmol/cm^3)
-        //zeta=zeta/ell%conversion to 1/sec/(mmol/cm^3)
-        if(comp==1)
-        {          //parameter for varying glial hydraulic permeability
-            con_vars->zeta1[comp] *= zetaadjust; //adjust glial hydraulic permeability
-        }
-        con_vars->zetaalpha[comp] = 0;  //stiffness constant or 1/stiffness constant
-    }
-
-    con_vars->S = 1;  //Indicates whether zetaalpha is the stiffness (true) or 1/stiffness (false)
 
     restore_subarray(state,state_vars);
 }
@@ -661,21 +415,21 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
     //Gmres type methods
 //     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
-    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
-    /*
+//    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
+//    /*
     ierr = KSPSetType(slvr->ksp,KSPDGMRES); CHKERRQ(ierr);
 
     ierr = KSPGMRESSetRestart(slvr->ksp,40); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_eigen","10"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_max_eigen","100"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_force",""); CHKERRQ(ierr);
-*/
+//*/
 
 
 
     ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
     //Multigrid precond
-    ierr = Initialize_PCMG(slvr->pc,slvr->A,user); CHKERRQ(ierr);
+//    ierr = Initialize_PCMG(slvr->pc,slvr->A,user); CHKERRQ(ierr);
 
     //LU Direct solve
     /*
@@ -684,13 +438,13 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
      ierr = PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
     */
     // ILU Precond
-    /*
+//    /*
     ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
     ierr = PCFactorSetFill(slvr->pc,3.0);CHKERRQ(ierr);
     ierr = PCFactorSetLevels(slvr->pc,1);CHKERRQ(ierr);
     ierr = PCFactorSetAllowDiagonalFill(slvr->pc,PETSC_TRUE);CHKERRQ(ierr);
     ierr = PCFactorSetMatOrderingType(slvr->pc,MATORDERINGNATURAL); CHKERRQ(ierr);
-    */
+//    */
 
 
     ierr = SNESSetFromOptions(slvr->snes);CHKERRQ(ierr);
