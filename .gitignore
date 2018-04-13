@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 spiral_attempts/
 
 cmake-build-debug/
+=======
+cmake-build-debug/
+
+spiral_attempts/
+>>>>>>> master
 
 mat.txt
 
@@ -102,4 +108,9 @@ cmake-build-debug/predict_csd_dt.txt
 
 cmake-build-debug/predict_data_csd.txt
 
+<<<<<<< HEAD
+=======
+csd_dt.txt
+
+>>>>>>> master
 flux_csd.txt

@@ -26,10 +26,6 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
 
     PetscReal tol = reltol*array_max(user->state_vars->c,(size_t)Nx*Ny*Ni*Nc);
     restore_subarray(current_state,user->state_vars);
-
-//    PetscReal tol;
-//    ierr = VecNorm(user->state_vars->v,NORM_MAX,&tol);CHKERRQ(ierr);
-//    tol = reltol*tol;
     rsd = tol+1;
 
     for(PetscInt iter=0;iter<1;iter++)
@@ -118,8 +114,6 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
         ierr = VecRestoreArray(slvr->Q,&temp);
         restore_subarray(current_state,user->state_vars);
 
-
-
         if(details)
         {
             printf("Iteration: %d, Residual: %.10e\n",iter,rsd);
@@ -195,15 +189,15 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
                     Rcvx = 0;
                     RcvxRight = 0;
                     if(x>0) {
-                    //First difference term
-                    Rcvx = Dcs[c_index(x-1,y,comp,ion,Nx)*2]*(cp[c_index(x-1,y,comp,ion,Nx)]+cp[c_index(x,y,comp,ion,Nx)])/2;
-                    Rcvx = Rcvx*(log(c[c_index(x,y,comp,ion,Nx)])-log(c[c_index(x-1,y,comp,ion,Nx)])+z[ion]*(phi[phi_index(x,y,comp,Nx)]-phi[phi_index(x-1,y,comp,Nx)]))/dx*dt/dx;
+                        //First difference term
+                        Rcvx = Dcs[c_index(x-1,y,comp,ion,Nx)*2]*(cp[c_index(x-1,y,comp,ion,Nx)]+cp[c_index(x,y,comp,ion,Nx)])/2;
+                        Rcvx = Rcvx*(log(c[c_index(x,y,comp,ion,Nx)])-log(c[c_index(x-1,y,comp,ion,Nx)])+z[ion]*(phi[phi_index(x,y,comp,Nx)]-phi[phi_index(x-1,y,comp,Nx)]))/dx*dt/dx;
                     }
                     //Add Second right moving difference
                     if(x<Nx-1) {
                         RcvxRight = Dcs[c_index(x,y,comp,ion,Nx)*2]*(cp[c_index(x,y,comp,ion,Nx)]+cp[c_index(x+1,y,comp,ion,Nx)])/2;
                         RcvxRight = RcvxRight*(log(c[c_index(x+1,y,comp,ion,Nx)])-log(c[c_index(x,y,comp,ion,Nx)])+z[ion]*(phi[phi_index(x+1,y,comp,Nx)]-phi[phi_index(x,y,comp,Nx)]))/dx*dt/dx;
-                    } 
+                    }
                     Rcvy = 0;
                     RcvyUp = 0;
                     //Up down difference
@@ -235,15 +229,15 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
                 Rcvx = 0;
                 RcvxRight = 0;
                 if(x>0) {
-                //First difference term
-                Rcvx = Dcs[c_index(x-1,y,comp,ion,Nx)*2]*(cp[c_index(x-1,y,comp,ion,Nx)]+cp[c_index(x,y,comp,ion,Nx)])/2;
-                Rcvx = Rcvx*(log(c[c_index(x,y,comp,ion,Nx)])-log(c[c_index(x-1,y,comp,ion,Nx)])+z[ion]*(phi[phi_index(x,y,comp,Nx)]-phi[phi_index(x-1,y,comp,Nx)]))/dx*dt/dx;
+                    //First difference term
+                    Rcvx = Dcs[c_index(x-1,y,comp,ion,Nx)*2]*(cp[c_index(x-1,y,comp,ion,Nx)]+cp[c_index(x,y,comp,ion,Nx)])/2;
+                    Rcvx = Rcvx*(log(c[c_index(x,y,comp,ion,Nx)])-log(c[c_index(x-1,y,comp,ion,Nx)])+z[ion]*(phi[phi_index(x,y,comp,Nx)]-phi[phi_index(x-1,y,comp,Nx)]))/dx*dt/dx;
                 }
                 //Add Second right moving difference
                 if(x<Nx-1) {
                     RcvxRight = Dcs[c_index(x,y,comp,ion,Nx)*2]*(cp[c_index(x,y,comp,ion,Nx)]+cp[c_index(x+1,y,comp,ion,Nx)])/2;
                     RcvxRight = RcvxRight*(log(c[c_index(x+1,y,comp,ion,Nx)])-log(c[c_index(x,y,comp,ion,Nx)])+z[ion]*(phi[phi_index(x+1,y,comp,Nx)]-phi[phi_index(x,y,comp,Nx)]))/dx*dt/dx;
-                } 
+                }
                 Rcvy = 0;
                 RcvyUp = 0;
                 //Up down difference
@@ -295,7 +289,7 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
             ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),ResphN,INSERT_VALUES); CHKERRQ(ierr);
         }
     }
-    
+
 
     for(x=0;x<Nx;x++) {
         for(y=0;y<Ny;y++) {
@@ -446,7 +440,7 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                     Fphph1x[comp]+=z[ion]*Fph1x;
                     Fphph0y[comp]+=z[ion]*Fph0y;
                     Fphph1y[comp]+=z[ion]*Fph1y;
-      
+
                     //membrane current contributions
                     Ac+=flux->dfdci[c_index(x,y,comp,ion,Nx)]*dt;
                     Aphi+=flux->dfdphim[c_index(x,y,comp,ion,Nx)]*dt;
@@ -474,7 +468,7 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                     // c with c
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),Ac,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
-                     // c with phi
+                    // c with phi
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,comp,Nx),Ind_1(x,y,Ni,comp,Nx),Aphi,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
 
@@ -574,7 +568,7 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 Fphph1x[comp]+=z[ion]*Fph1x;
                 Fphph0y[comp]+=z[ion]*Fph0y;
                 Fphph1y[comp]+=z[ion]*Fph1y;
-            
+
                 //Membrane current contribution
                 for(comp=0;comp<Nc-1;comp++) {
                     Ac -= flux->dfdce[c_index(x,y,comp,ion,Nx)]*dt;
@@ -592,7 +586,7 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 // c with c
                 ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1,Nx),Ind_1(x,y,ion,Nc-1,Nx),Ac,INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
-                 // c with phi
+                // c with phi
                 ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1,Nx),Ind_1(x,y,Ni,Nc-1,Nx),Aphi,INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
 
@@ -704,10 +698,10 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                     ind++;
                 }
                 for (ion=0; ion<Ni; ion++) {
-                  //Volume to extra c
+                    //Volume to extra c
                     ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,ion,Nc-1,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
-                  //Volume to intra c
+                    //Volume to intra c
                     ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,ion,comp,Nx),-flux->dwdpi[al_index(x,y,comp,Nx)]*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
@@ -741,7 +735,8 @@ void volume_update(struct SimState *state_vars,struct SimState *state_vars_past,
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
     for(int n=0;n<1;n++) {
-        memcpy(state_vars_past->alpha, state_vars->alpha, sizeof(PetscReal) * Nx * Ny * (Nc - 1));
+
+//        memcpy(state_vars_past->alpha, state_vars->alpha, sizeof(PetscReal) * Nx * Ny * (Nc - 1));
         //Forward Euler update
 /*
     wflowm(user->flux,user->state_vars_past,user->con_vars);
@@ -1461,12 +1456,12 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
             for(comp=0;comp<Nc-1;comp++)
             {
 
-                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
                 ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
             }
             //Extracellular term
             comp=Nc-1;
-            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
             ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
 
             //Residual for water flow
@@ -1499,6 +1494,8 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
 
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
+
+
 
     ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     if(Profiling_on) {
@@ -1764,10 +1761,10 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-cm[comp],INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
                 //Extra phi with intra-Volume
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni+1,comp,Nx),-cz(c,z,x,y,Nc-1,user),INSERT_VALUES);CHKERRQ(ierr);
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni+1,comp,Nx),-cz(c,z,x,y,Nx,Nc-1,user),INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
                 //Intra phi with Intra Vol
-                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni+1,comp,Nx),cz(c,z,x,y,comp,user),INSERT_VALUES);CHKERRQ(ierr);
+                ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni+1,comp,Nx),cz(c,z,x,y,Nx,comp,user),INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
             }
         }
@@ -1938,12 +1935,12 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
             for(comp=0;comp<Nc-1;comp++)
             {
 
-                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
                 ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
             }
             //Extracellular term
             comp=Nc-1;
-            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
             ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
         }
     }

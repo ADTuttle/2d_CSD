@@ -8,20 +8,26 @@
 
 //set global parameters here (constants)
 
-#define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
-#define separate_vol 1 //if true, will solve c,phi separate from alpha.
+// General options
+
 #define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
 #define mid_points_exct 1
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
-#define Profiling_on 0 //Turns timing of functions on/off.
-#define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define trecordstep 0.02//0.5 //determines how often to record
+#define plane_wave_exct 0 //if true, initiates a uniform plane wave
+#define Profiling_on 1 //Turns timing of functions on/off.
+#define trecordstep 0.1//0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
+
+
+//Solver Type Options
+#define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
+#define separate_vol 1 //if true, will solve c,phi separate from alpha.
+#define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
+#define Predictor 0  // Turns on predictor. Adaptive single point estimated update
+#define width_size  1 //Number of up,down,left,right neighbors to pair in the predictor.
 
 //basic ion extern constants
 #define   Ni  3           //number of ion species (Na, K, Cl)
-//extern const PetscInt z[3]; //valences of ion species
-//extern const PetscReal D[3]; //diffusion coefficients in cm^2/sec
 static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 
@@ -33,19 +39,12 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 //#define Ly 0.32         //length of domain in cm (y)
 #define Lx 0.5        //width of domain in cm (x)
 #define Ly 0.5         //length of domain in cm (y)
-//#define  Nx  50     //number of grid points in the x direction
-//#define  Ny  50     //number of grid points in the y direction
-//#define dx (Lx/Nx)       //grid size in x direction (in cm)
-//#define dy (Ly/Ny)        //grid size in y direction (in cm)
-
 
 
 //number of variables to be solved for at each grid point
 //#define  Nv  ((Ni+2)*Nc-1) //version if volume is included
 //#define  Nv  ((Ni+1)*Nc) //version if volume is excluded
 #define Nv  (((Ni+2)*Nc-1)*(!separate_vol)+((Ni+1)*Nc)*separate_vol)  //combining the above two with the separate_vol
-//#define NA  (Nx*Ny*Nv)     //total number of unknowns
-//#define Nz  (Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny)) //number of nonzeros in Jacobian
 
 //Newton solve parameters
 #define  itermax  20      //maximum Newton iterations allowed
@@ -77,32 +76,30 @@ static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
 
 //initial state setup
 #define rest_state  1        //if true, membrane parameters are set so that the initial voltages and concentrations are at a rest state
-#define spatially_uniform  0 //if true, all initial values and parameters are spatially uniform
+#define spatially_uniform  1 //if true, all initial values and parameters are spatially uniform
 
 
 //set "relaxed" volume fractions and initial volume fractions
 #define  alphaon 0.5         //base neuronal volume fraction
 #define alphaog 0.300000       //base glial volume fraction
-//extern const PetscReal alphao[2];
-//extern const PetscReal alpha0[2];
 static const PetscReal alphao[2]={alphaon,alphaog};
 static const PetscReal alpha0[2]={alphaon,alphaog};
 // membrane parameters
 #define  cmt  0.75e-3            //membrane capacitance in mF/cm^2
- #define sa  1.586e-5          //membrane area in cm^2
- #define voli  2.16e-9         //intracellular volume in cm^3
+#define sa  1.586e-5          //membrane area in cm^2
+#define voli  2.16e-9         //intracellular volume in cm^3
 #define vole (0.15*voli)
 #define ell (voli+vole/sa)    //average membrane separation in cm
-//extern const PetscReal cm[2];     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
 static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
 
 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
-#define pNaT  0                 //1e-4%0%1e-3%if set to 0, recovery possible
-#define pNaP  0//2e-5
-#define pKDR  0//1e-3
-#define pKA  0//1e-4
+#define basepNaT  0                 //1e-4%0%1e-3%if set to 0, recovery possible
+#define basepNaP  0//2e-5
+#define basepKDR  0//1e-3
+#define basepKA  0//1e-4
+
 
 //Leak conductances in mS/cm^2 from Kager, 2000 or Yao, Huang, Miura, 2011.
 #define pKLeak  (7e-2*RTFC/FC)     //Kager:10e-2,Miura:7e-2%K Leak conductance in mS/cm^2 converted to mmol/cm^2/s
@@ -110,7 +107,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define pClLeakg  (5e-2*RTFC/FC)
 
 //Glial KIR from Steinberg et al 2005
-#define pKIR  (.13*RTFC/FC)        //conductance in mS/cm^2 converted to mmol/cm^2/s
+#define basepKIR  (.13*RTFC/FC)        //conductance in mS/cm^2 converted to mmol/cm^2/s
 #define pKLeakadjust  1.0       //parameter for varying glial permeability
 
 //pump current, parameters from Yao, Huang, Miura, 2011
@@ -136,66 +133,81 @@ struct SimState{
 };
 
 struct FluxData{
-	PetscReal *mflux;
-	PetscReal *dfdci;
-	PetscReal *dfdce;
-	PetscReal *dfdphim;
-	PetscReal *wflow;
-	PetscReal *dwdpi;
-	PetscReal *dwdal;
+    PetscReal *mflux;
+    PetscReal *dfdci;
+    PetscReal *dfdce;
+    PetscReal *dfdphim;
+    PetscReal *wflow;
+    PetscReal *dwdpi;
+    PetscReal *dwdal;
 };
 
 
 struct GateType{
-	PetscReal *mNaT;
-	PetscReal *hNaT;
-	PetscReal *gNaT;
-	PetscReal *mNaP;
-	PetscReal *hNaP;
-	PetscReal *gNaP;
-	PetscReal *mKDR;
-	PetscReal *gKDR;
-	PetscReal *mKA;
-	PetscReal *hKA;
-	PetscReal *gKA;
+    PetscReal *mNaT;
+    PetscReal *hNaT;
+    PetscReal *gNaT;
+    PetscReal *mNaP;
+    PetscReal *hNaP;
+    PetscReal *gNaP;
+    PetscReal *mKDR;
+    PetscReal *gKDR;
+    PetscReal *mKA;
+    PetscReal *hKA;
+    PetscReal *gKA;
 };
 
 struct ExctType{
-	PetscReal *pNa;
-	PetscReal *pK;
-	PetscReal *pCl;
+    PetscReal *pNa;
+    PetscReal *pK;
+    PetscReal *pCl;
 };
 
 struct ConstVars{
-	PetscReal pNaKCl;
-	PetscReal Imax;
-	PetscReal pNaLeak;
-	PetscReal Imaxg;
-	PetscReal pNaLeakg;
-	PetscReal *ao;
-	PetscReal *zo;
-	PetscReal kappa;
-	PetscReal *zeta1;
-	int S; //boolean
-	PetscReal *zetaalpha;
+    PetscReal *pNaT; //Gating variable arrays
+    PetscReal *pNaP;
+    PetscReal *pKDR;
+    PetscReal *pKA;
+    PetscReal *pNaKCl; //Glial NaKCl Cotransporter array
+    PetscReal *Imax;   // Neuronal pump strength
+    PetscReal *pNaLeak;
+    PetscReal *Imaxg;   //Glial pump strength
+    PetscReal *pNaLeakg;
+    PetscReal *pKIR;   //K inward rectifier in glia
+    PetscReal *ao;  //Immobile ions
+    PetscReal *zo;  //Avg valence
+    PetscReal kappa;
+    PetscReal *zeta1;
+    int S; //boolean
+    PetscReal *zetaalpha;
+    PetscReal *DNeuronScale; // Glial diffusion scaling
+    PetscReal *DGliaScale; // Glial diffusion scaling
+    PetscReal *DExtracellScale; // Extracellular diffusion scaling
 };
 struct Solver{
-	Vec Q;      /* Update*/
-	Vec Res;
-  	Mat A;            /* linear system matrix */
+    Vec Q;      /* Update*/
+    Vec Res;
+    Mat A;            /* linear system matrix */
     SNES snes;       /*Nonlinear solver context*/
-  	KSP ksp;         /* linear solver context */
-  	PC pc;           /* preconditioner context */
-  	PetscMPIInt   size;
+    KSP ksp;         /* linear solver context */
+    PC pc;           /* preconditioner context */
+    PetscMPIInt   size;
+
+    PetscInt NA;
 };
 
 
 struct AppCtx{
     struct SimState *state_vars;
     struct SimState *state_vars_past;
+    struct SimState *grid_vars;
+    struct SimState *grid_vars_past;
     struct Solver *slvr;
+    struct Solver *grid_slvr;
     struct FluxData *flux;
     struct GateType *gate_vars;
+    struct GateType *gate_vars_past;
+    struct GateType *grid_gate_vars;
     struct ExctType *gexct;
     struct ConstVars *con_vars;
     PetscReal *Dcs;
@@ -205,9 +217,12 @@ struct AppCtx{
     PetscReal dy;
     PetscInt Nx;
     PetscInt Ny;
-    PetscInt NA;
     PetscInt Nz;
+    PetscReal *dt_space;
+    PetscReal *vm_past;
+    PetscReal t;
+    FILE *fp;
 };
-PetscLogEvent event[10];
+PetscLogEvent event[14];
 
 #endif
