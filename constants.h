@@ -15,7 +15,7 @@
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 #define Profiling_on 0 //Turns timing of functions on/off.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define trecordstep 0.1//0.5 //determines how often to record
+#define trecordstep 0.02//0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 
 //basic ion extern constants
@@ -101,7 +101,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
 #define pNaT  0                 //1e-4%0%1e-3%if set to 0, recovery possible
 #define pNaP  0//2e-5
-#define pKDR  1e-3
+#define pKDR  0//1e-3
 #define pKA  0//1e-4
 
 //Leak conductances in mS/cm^2 from Kager, 2000 or Yao, Huang, Miura, 2011.
@@ -111,7 +111,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 //Glial KIR from Steinberg et al 2005
 #define pKIR  (.13*RTFC/FC)        //conductance in mS/cm^2 converted to mmol/cm^2/s
-#define pKLeakadjust  10.0       //parameter for varying glial permeability
+#define pKLeakadjust  1.0       //parameter for varying glial permeability
 
 //pump current, parameters from Yao, Huang, Miura, 2011
 #define mK  2e-3                 //pump current constant in mmol/cm^3=mol/l

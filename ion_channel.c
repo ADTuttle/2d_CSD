@@ -372,7 +372,7 @@ void excitation(struct AppCtx* user,PetscReal t)
                         pany = pexct * xexct;
                         exct->pNa[xy_index(i, j,Nx)] = pany;
                         exct->pK[xy_index(i, j,Nx)] = pany;
-                        exct->pCl[xy_index(i, j,Nx)] = pany;
+                        exct->pCl[xy_index(i, j,Nx)] = pany*0;
                     } else {
                         //pexct=0*RTFC/FC
                         exct->pNa[xy_index(i, j,Nx)] = 0;

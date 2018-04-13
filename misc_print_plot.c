@@ -226,6 +226,8 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
         PetscLogEventBegin(event[8], 0, 0, 0, 0);
     }
     struct SimState *state_vars = user->state_vars;
+    PetscReal Na,K,cgp,cep,ce,ci,NaKCl,flux,cg,pLin,vmg;
+    ionmflux(user);
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
     if(!save_one_var) {
@@ -238,10 +240,52 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
                 for (comp = 0; comp < Nc; comp++) {
                     for (y = 0; y < Ny; y++) {
                         for (x = 0; x < Nx; x++) {
-                            if (x == Nx - 1 & y == Ny - 1) {
-                                fprintf(fp, "%f\n", state_vars->c[c_index(x, y, comp, ion,Nx)]);
-                            } else {
-                                fprintf(fp, "%f,", state_vars->c[c_index(x, y, comp, ion,Nx)]);
+                            Na = user->state_vars->c[c_index(x,y,1,0,Nx)];//glia Na
+                            K = user->state_vars->c[c_index(x,y,1,1,Nx)]; // glia K.
+                            cgp = user->state_vars->c[c_index(x,y,1,2,Nx)]; //glia Cl
+
+                            cep = user->state_vars->c[c_index(x,y,Nc-1,0,Nx)];//Ext Na
+                            ce = user->state_vars->c[c_index(x,y,Nc-1,1,Nx)]; // Ext K.
+                            ci = user->state_vars->c[c_index(x,y,Nc-1,2,Nx)]; //Ext Cl
+
+                            cg = user->state_vars->c[c_index(x,y,1,1,Nx)];
+                            vmg = user->state_vars->phi[phi_index(x,y,1,Nx)]-user->state_vars->phi[phi_index(x,y,Nc-1,Nx)];
+
+                            pLin = pKIR*inwardrect(cg,ce,vmg)*pKLeakadjust;
+                            mclin(user->flux,c_index(x,y,1,1,Nx),pLin,1,cg,ce,vmg,0);
+                            if(comp==Nc-1 && ion==0) {
+                                flux = user->flux->mflux[c_index(x, y, 1, 1, Nx)];
+                                if (x == Nx - 1 & y == Ny - 1) {
+                                fprintf(fp, "%.10e\n", flux);
+                                } else {
+                                fprintf(fp, "%.10e,", flux);
+                                }
+                            }
+                            if(comp==Nc-1 && ion==1) {
+
+                                flux = user->con_vars->pNaKCl*log(Na*K*pow(cgp,2)/(cep*ce*pow(ci,2)));
+                                if (x == Nx - 1 & y == Ny - 1) {
+                                    fprintf(fp, "%.10e\n", flux);
+                                } else {
+                                    fprintf(fp, "%.10e,", flux);
+                                }
+                            }
+                            if(comp==Nc-1 && ion==2) {
+                                flux = -2*glpump * user->con_vars->Imaxg / (pow(1 + mK / K, 2) * pow(1 + mNa / Na, 3));
+                                if (x == Nx - 1 & y == Ny - 1) {
+                                    fprintf(fp, "%.10e\n", flux);
+                                } else {
+                                    fprintf(fp, "%.10e,", flux);
+                                }
+                            }
+                            if(comp<Nc-1) {
+                                if (x == Nx - 1 & y == Ny - 1) {
+                                    fprintf(fp, "%f\n", state_vars->c[c_index(x, y, comp, ion, Nx)]);
+//                                fprintf(fp, "%f\n", user->flux->mflux[c_index(x, y, comp, ion,Nx)]);
+                                } else {
+                                    fprintf(fp, "%f,", state_vars->c[c_index(x, y, comp, ion, Nx)]);
+//                                fprintf(fp, "%f,", user->flux->mflux[c_index(x, y, comp, ion,Nx)]);
+                                }
                             }
                         }
                     }
@@ -276,15 +320,38 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
             write_data(fp, user,numrecords, 0);
         } else {
             int ion, comp, x, y;
+            PetscReal Na,K,cgp,cep,ce,ci,NaKCl,flux,cg,pLin,vmg;
+            PetscReal gp;
             comp = 0;
             for (y = 0; y < Ny; y++) {
                 for (x = 0; x < Nx; x++) {
+                    Na = user->state_vars_past->c[c_index(x,y,1,0,Nx)];//glia Na
+                    K = user->state_vars_past->c[c_index(x,y,1,1,Nx)]; // glia K.
+                    cgp = user->state_vars_past->c[c_index(x,y,1,2,Nx)]; //glia Cl
+
+                    cep = user->state_vars_past->c[c_index(x,y,Nc-1,0,Nx)];//Ext Na
+                    ce = user->state_vars_past->c[c_index(x,y,Nc-1,1,Nx)]; // Ext K.
+                    ci = user->state_vars_past->c[c_index(x,y,Nc-1,2,Nx)]; //Ext Cl
+
+                    cg = user->state_vars->c[c_index(x,y,1,1,Nx)];
+                    vmg = user->state_vars->phi[phi_index(x,y,1,Nx)]-user->state_vars->phi[phi_index(x,y,Nc-1,Nx)];
+
+                    pLin = pKIR*inwardrect(cg,ce,vmg)*pKLeakadjust;
+                    mclin(user->flux,c_index(x,y,1,1,Nx),pLin,1,cg,ce,vmg,0);
+//                    flux = user->flux->mflux[c_index(x,y,1,1,Nx)];
+
+                    flux = user->con_vars->pNaKCl*log(Na*K*pow(cgp,2)/(cep*ce*pow(ci,2)));
+//                    flux = glpump*user->con_vars->Imaxg/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
                     if (x == Nx - 1 & y == Ny - 1) {
 //                        fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
-                        fprintf(fp, "%f\n", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
+//                        fprintf(fp, "%f\n", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
+//                        fprintf(fp,"%.6e\n",user->flux->mflux[c_index(x,y,1,1,Nx)]);
+                        fprintf(fp,"%.6e\n",flux);
                     } else {
 //                        fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
-                        fprintf(fp, "%f,", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
+//                        fprintf(fp, "%f,", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
+//                        fprintf(fp,"%.6e,",user->flux->mflux[c_index(x,y,1,1,Nx)]);
+                        fprintf(fp,"%.6e,",flux);
                     }
                 }
             }
@@ -299,6 +366,7 @@ void write_point(FILE *fp,struct AppCtx* user,PetscInt numrecords,int start)
     if(Profiling_on) {
         PetscLogEventBegin(event[8], 0, 0, 0, 0);
     }
+
     struct SimState *state_vars = user->state_vars;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;

@@ -1,3 +1,6 @@
+spiral_attempts/
+
+cmake-build-debug/
 
 mat.txt
 
@@ -98,3 +101,5 @@ cmake-build-debug/csd_dt.txt
 cmake-build-debug/predict_csd_dt.txt
 
 cmake-build-debug/predict_data_csd.txt
+
+flux_csd.txt
