@@ -99,7 +99,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
-#define basepNaT  1e-4//0                 //1e-4%0%1e-3%if set to 0, recovery possible
+#define basepNaT  0                 //1e-4%0%1e-3%if set to 0, recovery possible
 #define basepNaP  2e-5
 #define basepKDR  1e-3
 #define basepKA  1e-4
