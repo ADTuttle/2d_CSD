@@ -128,6 +128,8 @@ void write_data(FILE *,struct AppCtx *,PetscInt,int );
 void write_point(FILE *,struct AppCtx *,PetscReal,PetscInt,PetscInt );
 void measure_flux(FILE *,struct AppCtx *,PetscInt,int );
 void init_events(struct AppCtx *);
+void read_file(struct AppCtx *);
+void save_file(struct AppCtx *);
 
 
 #endif

@@ -239,9 +239,9 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
                     for (y = 0; y < Ny; y++) {
                         for (x = 0; x < Nx; x++) {
                             if (x == Nx - 1 & y == Ny - 1) {
-                                fprintf(fp, "%f\n", state_vars->c[c_index(x, y, comp, ion,Nx)]);
+                                fprintf(fp, "%.10e\n", state_vars->c[c_index(x, y, comp, ion,Nx)]);
                             } else {
-                                fprintf(fp, "%f,", state_vars->c[c_index(x, y, comp, ion,Nx)]);
+                                fprintf(fp, "%.10e,", state_vars->c[c_index(x, y, comp, ion,Nx)]);
                             }
                         }
                     }
@@ -515,4 +515,394 @@ void init_events(struct AppCtx *user)
     PetscLogEventGetId("SNESJacobianEval",&deactivate);
     PetscLogEventDeactivate(deactivate);
 
+}
+
+void save_file(struct AppCtx *user){
+
+    FILE *fp;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+    PetscInt x,y,ion,comp;
+
+    struct SimState *state_vars = user->state_vars;
+    struct GateType *gate_vars = user->gate_vars;
+
+    fp = fopen("save_csd.txt","w");
+
+
+    //Header
+    fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, 1, Nc, Ni);
+
+    //Macro-variables
+    for (ion = 0; ion < Ni; ion++) {
+        for (comp = 0; comp < Nc; comp++) {
+            for (y = 0; y < Ny; y++) {
+                for (x = 0; x < Nx; x++) {
+                    if (x == Nx - 1 & y == Ny - 1) {
+                        fprintf(fp, "%.20e\n", state_vars->c[c_index(x, y, comp, ion,Nx)]);
+                    } else {
+                        fprintf(fp, "%.20e,", state_vars->c[c_index(x, y, comp, ion,Nx)]);
+                    }
+                }
+            }
+        }
+    }
+    for (comp = 0; comp < Nc; comp++) {
+        for (y = 0; y < Ny; y++) {
+            for (x = 0; x < Nx; x++) {
+                if (x == Nx - 1 & y == Ny - 1) {
+                    fprintf(fp, "%.20e\n", state_vars->phi[phi_index(x, y, comp,Nx)]);
+                } else {
+                    fprintf(fp, "%.20e,", state_vars->phi[phi_index(x, y, comp,Nx)]);
+                }
+            }
+        }
+    }
+    for (comp = 0; comp < Nc - 1; comp++) {
+        for (y = 0; y < Ny; y++) {
+            for (x = 0; x < Nx; x++) {
+                if (x == Nx - 1 & y == Ny - 1) {
+                    fprintf(fp, "%.20e\n", state_vars->alpha[al_index(x, y, comp,Nx)]);
+                } else {
+                    fprintf(fp, "%.20e,", state_vars->alpha[al_index(x, y, comp,Nx)]);
+                }
+            }
+        }
+    }
+
+    //Gating Variables
+    for(y=0;y<Ny;y++){
+        for(x=0;x<Nx;x++){
+            if (x == Nx - 1 && y == Ny - 1) {
+                fprintf(fp, "%.20e\n", gate_vars->mNaT[xy_index(x,y,Nx)]);
+            } else {
+                fprintf(fp, "%.20e,", gate_vars->mNaT[xy_index(x,y,Nx)]);
+            }
+        }
+    }
+    for(y=0;y<Ny;y++){
+        for(x=0;x<Nx;x++){
+            if (x == Nx - 1 && y == Ny - 1) {
+                fprintf(fp, "%.20e\n", gate_vars->hNaT[xy_index(x,y,Nx)]);
+            } else {
+                fprintf(fp, "%.20e,", gate_vars->hNaT[xy_index(x,y,Nx)]);
+            }
+        }
+    }
+    for(y=0;y<Ny;y++){
+        for(x=0;x<Nx;x++){
+            if (x == Nx - 1 && y == Ny - 1) {
+                fprintf(fp, "%.20e\n", gate_vars->mNaP[xy_index(x,y,Nx)]);
+            } else {
+                fprintf(fp, "%.20e,", gate_vars->mNaP[xy_index(x,y,Nx)]);
+            }
+        }
+    }
+    for(y=0;y<Ny;y++){
+        for(x=0;x<Nx;x++){
+            if (x == Nx - 1 && y == Ny - 1) {
+                fprintf(fp, "%.20e\n", gate_vars->hNaP[xy_index(x,y,Nx)]);
+            } else {
+                fprintf(fp, "%.20e,", gate_vars->hNaP[xy_index(x,y,Nx)]);
+            }
+        }
+    }
+    for(y=0;y<Ny;y++){
+        for(x=0;x<Nx;x++){
+            if (x == Nx - 1 && y == Ny - 1) {
+                fprintf(fp, "%.20e\n", gate_vars->mKDR[xy_index(x,y,Nx)]);
+            } else {
+                fprintf(fp, "%.20e,", gate_vars->mKDR[xy_index(x,y,Nx)]);
+            }
+        }
+    }
+    for(y=0;y<Ny;y++){
+        for(x=0;x<Nx;x++){
+            if (x == Nx - 1 && y == Ny - 1) {
+                fprintf(fp, "%.20e\n", gate_vars->mKA[xy_index(x,y,Nx)]);
+            } else {
+                fprintf(fp, "%.20e,", gate_vars->mKA[xy_index(x,y,Nx)]);
+            }
+        }
+    }
+    for(y=0;y<Ny;y++){
+        for(x=0;x<Nx;x++){
+            if (x == Nx - 1 && y == Ny - 1) {
+                fprintf(fp, "%.20e\n", gate_vars->hKA[xy_index(x,y,Nx)]);
+            } else {
+                fprintf(fp, "%.20e,", gate_vars->hKA[xy_index(x,y,Nx)]);
+            }
+        }
+    }
+
+
+    fclose(fp);
+
+}
+void read_file(struct AppCtx *user)
+{
+    //Read data_csd.txt and copy it into the current state.
+    int Nx,Ny,numrecords;
+    struct SimState *state_vars = user->state_vars;
+    struct GateType *gate_vars = user->gate_vars;
+    PetscInt x,y,comp,ion;
+
+
+    char *line = (char *) malloc(sizeof(char) * 1024 * 1024);//[1024];
+    char *tmp;
+
+    FILE *fp;
+    fp = fopen("save_csd.txt","r");
+
+
+    if(fp==NULL) {
+        fp = fopen("data_csd.txt", "r");
+        if (fp == NULL) {
+            fprintf(stderr, "File not found....\n");
+            exit(EXIT_FAILURE); /* indicate failure.*/
+        }
+
+        //Read top file details
+        fgets(line, 1024 * 1024, fp);
+
+        tmp = strdup(line);
+
+        Nx = atoi(getfield(tmp, 1));
+
+        tmp = strdup(line);
+        Ny = atoi(getfield(tmp, 2));
+
+        tmp = strdup(line);
+        numrecords = atoi(getfield(tmp, 3));
+
+
+        printf("%d,%d,%d\n", Nx, Ny, numrecords);
+
+        //Zero out for safety
+        for (x = 0; x < Nx; x++) {
+            for (y = 0; y < Ny; y++) {
+                for (comp = 0; comp < Nc; comp++) {
+                    for (ion = 0; ion < Ni; ion++) {
+                        state_vars->c[c_index(x, y, comp, ion, Nx)] = 0;
+                    }
+                    state_vars->phi[phi_index(x, y, comp, Nx)] = 0;
+                }
+                for (comp = 0; comp < Nc - 1; comp++) {
+                    state_vars->alpha[al_index(x, y, comp, Nx)] = 0;
+                }
+            }
+        }
+
+
+        //Get to the last recorded value
+        for (int count = 0; count < ((Ni + 2) * Nc - 1) * (numrecords - 1); count++) {
+            fgets(line, 1024 * 1024, fp);
+        }
+
+        for (ion = 0; ion < Ni; ion++) {
+            for (comp = 0; comp < Nc; comp++) {
+                fgets(line, 1024 * 1024, fp);
+                for (y = 0; y < Ny; y++) {
+                    for (x = 0; x < Nx; x++) {
+                        tmp = strdup(line);
+
+                        state_vars->c[c_index(x, y, comp, ion, Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+
+                    }
+                }
+            }
+        }
+        for (comp = 0; comp < Nc; comp++) {
+            fgets(line, 1024 * 1024, fp);
+            for (y = 0; y < Ny; y++) {
+                for (x = 0; x < Nx; x++) {
+                    tmp = strdup(line);
+
+                    state_vars->phi[phi_index(x, y, comp, Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+
+                }
+            }
+        }
+        for (comp = 0; comp < Nc - 1; comp++) {
+            fgets(line, 1024 * 1024, fp);
+            for (y = 0; y < Ny; y++) {
+                for (x = 0; x < Nx; x++) {
+                    tmp = strdup(line);
+
+                    state_vars->alpha[al_index(x, y, comp, Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+
+                }
+            }
+        }
+        gatevars_update(user->gate_vars,user->gate_vars,state_vars,0,user,1);
+        gatevars_update(user->gate_vars_past,user->gate_vars_past,state_vars,0,user,1);
+    } else{
+        //Read top file details
+        fgets(line, 1024 * 1024, fp);
+
+        tmp = strdup(line);
+
+        Nx = atoi(getfield(tmp, 1));
+
+        tmp = strdup(line);
+        Ny = atoi(getfield(tmp, 2));
+
+        tmp = strdup(line);
+        numrecords = atoi(getfield(tmp, 3));
+
+
+        printf("%d,%d,%d\n", Nx, Ny, numrecords);
+
+        //Zero out for safety
+        for (x = 0; x < Nx; x++) {
+            for (y = 0; y < Ny; y++) {
+                for (comp = 0; comp < Nc; comp++) {
+                    for (ion = 0; ion < Ni; ion++) {
+                        state_vars->c[c_index(x, y, comp, ion, Nx)] = 0;
+                    }
+                    state_vars->phi[phi_index(x, y, comp, Nx)] = 0;
+                }
+                for (comp = 0; comp < Nc - 1; comp++) {
+                    state_vars->alpha[al_index(x, y, comp, Nx)] = 0;
+                }
+            }
+        }
+
+
+        for (ion = 0; ion < Ni; ion++) {
+            for (comp = 0; comp < Nc; comp++) {
+                fgets(line, 1024 * 1024, fp);
+                for (y = 0; y < Ny; y++) {
+                    for (x = 0; x < Nx; x++) {
+                        tmp = strdup(line);
+                        state_vars->c[c_index(x, y, comp, ion, Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+                    }
+                }
+            }
+        }
+        for (comp = 0; comp < Nc; comp++) {
+            fgets(line, 1024 * 1024, fp);
+            for (y = 0; y < Ny; y++) {
+                for (x = 0; x < Nx; x++) {
+                    tmp = strdup(line);
+                    state_vars->phi[phi_index(x, y, comp, Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+                }
+            }
+        }
+        for (comp = 0; comp < Nc - 1; comp++) {
+            fgets(line, 1024 * 1024, fp);
+            for (y = 0; y < Ny; y++) {
+                for (x = 0; x < Nx; x++) {
+                    tmp = strdup(line);
+                    state_vars->alpha[al_index(x, y, comp, Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+                }
+            }
+        }
+        //Gating variables
+        fgets(line, 1024 * 1024, fp);
+        for (y=0;y<Ny;y++){
+            for(x=0;x<Nx;x++){
+                tmp = strdup(line);
+                gate_vars->mNaT[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+            }
+        }
+        fgets(line, 1024 * 1024, fp);
+        for (y=0;y<Ny;y++){
+            for(x=0;x<Nx;x++){
+                tmp = strdup(line);
+                gate_vars->hNaT[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+            }
+        }
+        fgets(line, 1024 * 1024, fp);
+        for (y=0;y<Ny;y++){
+            for(x=0;x<Nx;x++){
+                tmp = strdup(line);
+                gate_vars->mNaP[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+            }
+        }
+        fgets(line, 1024 * 1024, fp);
+        for (y=0;y<Ny;y++){
+            for(x=0;x<Nx;x++){
+                tmp = strdup(line);
+                gate_vars->hNaP[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+            }
+        }
+        fgets(line, 1024 * 1024, fp);
+        for (y=0;y<Ny;y++){
+            for(x=0;x<Nx;x++){
+                tmp = strdup(line);
+                gate_vars->mKDR[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+            }
+        }
+        fgets(line, 1024 * 1024, fp);
+        for (y=0;y<Ny;y++){
+            for(x=0;x<Nx;x++){
+                tmp = strdup(line);
+                gate_vars->mKA[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+            }
+        }
+        fgets(line, 1024 * 1024, fp);
+        for (y=0;y<Ny;y++){
+            for(x=0;x<Nx;x++){
+                tmp = strdup(line);
+                gate_vars->hKA[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+            }
+        }
+
+        //Copy over past vars and calculate g.
+        for(y=0;y<Ny;y++){
+            for(x=0;x<Nx;x++){
+                gate_vars->gNaT[xy_index(x,y,Nx)] = pow(gate_vars->mNaT[xy_index(x,y,Nx)],3)*gate_vars->hNaT[xy_index(x,y,Nx)];
+                gate_vars->gNaP[xy_index(x,y,Nx)] = pow(gate_vars->mNaP[xy_index(x,y,Nx)],2)*gate_vars->hNaP[xy_index(x,y,Nx)];
+                gate_vars->gKDR[xy_index(x,y,Nx)] = pow(gate_vars->mKDR[xy_index(x,y,Nx)],2);
+                gate_vars->gKA[xy_index(x,y,Nx)] = pow(gate_vars->mKA[xy_index(x,y,Nx)],2)*gate_vars->hKA[xy_index(x,y,Nx)];
+
+            }
+        }
+        //Copy old gating variables
+        //Save the gating variables
+        memcpy(user->gate_vars_past->mNaT,user->gate_vars->mNaT,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->hNaT,user->gate_vars->hNaT,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->gNaT,user->gate_vars->gNaT,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->mNaP,user->gate_vars->mNaP,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->hNaP,user->gate_vars->hNaP,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->gNaP,user->gate_vars->gNaP,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->gKA,user->gate_vars->gKA,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->hKA,user->gate_vars->hKA,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->mKA,user->gate_vars->mKA,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->mKDR,user->gate_vars->mKDR,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->gKDR,user->gate_vars->gKDR,sizeof(PetscReal)*user->Nx*user->Ny);
+    }
+
+
+
+    free(tmp);
+    free(line);
+    fclose(fp);
+
+    //Modify beginning of file
+    fp = fopen("data_csd.txt", "r");
+    if (fp == NULL) {
+        fprintf(stderr, "File not found....\n");
+        exit(EXIT_FAILURE); /* indicate failure.*/
+    }
+    //Read top file details
+    fgets(line, 1024 * 1024, fp);
+
+    tmp = strdup(line);
+
+    Nx = atoi(getfield(tmp, 1));
+
+    tmp = strdup(line);
+    Ny = atoi(getfield(tmp, 2));
+
+    tmp = strdup(line);
+    numrecords = atoi(getfield(tmp, 3));
+    fclose(fp);
+
+    fp = fopen("data_csd.txt","r+");
+    fseek( fp, 0, SEEK_SET );
+    fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, numrecords+(PetscInt)floor(Time/trecordstep)-1, Nc, Ni);
+
+    fclose(fp);
 }
