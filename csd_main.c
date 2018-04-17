@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 
     PetscReal dt = user->dt;
     PetscInt Nt = (PetscInt) floor(Time/dt);
-    PetscInt numrecords = (PetscInt)floor(Time/trecordstep);
+    PetscInt numrecords = (PetscInt)floor(Time/trecordstep)+1;
     PetscInt krecordfreq = (PetscInt)floor(trecordstep/dt);
     PetscInt x,y,comp,ion;
     PetscInt Nx = user->Nx;
@@ -105,14 +105,42 @@ int main(int argc, char **argv)
     set_params(current_state,state_vars,con_vars,gate_vars,flux,user);
 
 
+    FILE *fp,*fdt,*fpflux;
 
-    printf("Steady State Routine\n");
+    if(start_at_steady) {
+        printf("Steady State Routine\n");
 
-    //Run Initialization routine to get to steady state
-    initialize_data(current_state,user);
+        //Run Initialization routine to get to steady state
+        initialize_data(current_state, user);
 
+        //Open files to write to
+        fp = fopen("data_csd.txt","w");
+        extract_subarray(current_state,state_vars);
+        write_data(fp,user,numrecords,1);
+        user->fp = fopen("point_csd.txt","w");
+        if(Predictor) {
+            fdt = fopen("csd_dt.txt", "w");
+            save_timestep(fdt,user,numrecords-1,1);
+        }
+        fpflux = fopen("flux_csd.txt","w");
+        measure_flux(fpflux,user,numrecords,1);
 
-//    srand(time(NULL));
+    } else{
+        printf("Reading from File\n");
+        //Read from file
+        extract_subarray(current_state,state_vars);
+        read_file(user);
+        restore_subarray(current_state,state_vars);
+        extract_subarray(current_state,state_vars);
+        //Open files to write to
+        fp = fopen("data_csd.txt","a");
+        user->fp = fopen("point_csd.txt","a");
+        if(Predictor) {
+            fdt = fopen("csd_dt.txt", "a");
+        }
+        fpflux = fopen("flux_csd.txt","a");
+    }
+    srand(time(NULL));
 //    double rnd;
     /*
     for(x=0;x<Nx;x++){
@@ -159,7 +187,7 @@ int main(int argc, char **argv)
                 }
             }
         }
-}
+    }
     if(Spiral && Spiral_type==3) {
         for (x = 0; x < Nx; x++) {
             for (y = 0; y < Ny; y++) {
@@ -174,8 +202,6 @@ int main(int argc, char **argv)
             }
         }
     }
-
-
     if(Profiling_on) {
         PetscLogStage stage2;
         PetscLogStageRegister("Main Loop", &stage2);
@@ -185,25 +211,9 @@ int main(int argc, char **argv)
     }
     printf("Beginning Main Routine \n");
     printf("\n\n\n");
-    //Open file to write to
-    FILE *fp;
-    fp = fopen("data_csd.txt","w");
-
-    FILE *fdt;
-    if(Predictor) {
-        fdt = fopen("csd_dt.txt", "w");
-        save_timestep(fdt,user,numrecords-1,1);
-    }
 
     FILE *fptime;
     fptime = fopen("timing.txt","a");
-    extract_subarray(current_state,state_vars);
-    write_data(fp,user,numrecords,1);
-//    write_point(fp,user,numrecords,1);
-    FILE *fpflux;
-    fpflux = fopen("flux_csd.txt","w");
-    measure_flux(fpflux,user,numrecords,1);
-
     //Reset time step
     user->dt = dt;
     int count = 0;
@@ -239,7 +249,6 @@ int main(int argc, char **argv)
                 }
             }
         }
-
         count++;
         //Save the "current" aka past state
         ierr = restore_subarray(user->state_vars_past->v, user->state_vars_past);CHKERRQ(ierr);
@@ -295,6 +304,7 @@ int main(int argc, char **argv)
 
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
+        write_point(user->fp, user, t, 16, 16);
 
         gatevars_update(user->gate_vars,user->gate_vars_past,user->state_vars,user->dt*1e3,user,0);
 
@@ -343,11 +353,19 @@ int main(int argc, char **argv)
 
     }
     PetscTime(&full_toc);
+
+    //Final save
+    printf("Time: %f,Newton time: %f,iters:%d, Reason: %d \n",Time,toc - tic,num_iters,reason);
+    write_data(fp, user,numrecords, 0);
+    measure_flux(fpflux,user,numrecords,0);
+    save_file(user);
+
     //Close
     fclose(fp);
     fprintf(fptime,"%d,%d,%d,%d,%f,%f\n",1,count,user->Nx,user->Ny,user->dt,full_toc-full_tic);
     fclose(fptime);
     fclose(fpflux);
+    fclose(user->fp);
     printf("Finished Running. Full solve time: %.10e\n",full_toc-full_tic);
     printf("Total newton iterations:%d\n",total_newton);
 

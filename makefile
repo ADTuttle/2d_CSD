@@ -28,7 +28,7 @@ csd:
 
 	gcc -O3 $(LFlags)   -o csd grid_update.o constants.o linear_update.o initialize.o csd_main.o ion_channel.o array_function.o update_solution.o misc_print_plot.o $(Linker) -lpetsc -lf2clapack -lf2cblas -lX11 -ldl
 	#View assembly file?
-	# gcc -O3 $(LFlags)   -S csd initialize.o csd_main.o ion_channel.o array_function.o update_solution.o $(Linker) -lpetsc -lf2clapack -lf2cblas -lX11 -ldl 
+	# gcc -O3 $(LFlags)   -S csd initialize.o csd_main.o ion_channel.o array_function.o update_solution.o $(Linker) -lpetsc -lf2clapack -lf2cblas -lX11 -ldl
 
 	rm csd_main.o constants.o grid_update.o initialize.o linear_update.o ion_channel.o array_function.o update_solution.o misc_print_plot.o
 

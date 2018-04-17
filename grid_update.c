@@ -1418,6 +1418,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
 
         ierr = VecNorm(user->grid_slvr->Res, NORM_MAX, &rsd);CHKERRQ(ierr);
 
+
         if (rsd < tol) {
             if(Profiling_on) {
                 PetscLogEventEnd(event[11], 0, 0, 0, 0);
@@ -1517,6 +1518,10 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
             grid_diff_coef(user->Dcs, user->grid_vars_past->alpha, 1, user,xi,yi);
             //Bath diffusion
             grid_diff_coef(user->Dcb, user->grid_vars_past->alpha, Batheps, user,xi,yi);
+
+            if(xi==16&&yi==16) {
+                write_point(user->fp, user, t - dt+user->dt*steps, 16, 16);
+            }
 
         } else {
             //If we aren't below cutoff. Half the time step.
