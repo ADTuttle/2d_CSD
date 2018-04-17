@@ -239,9 +239,9 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
                     for (y = 0; y < Ny; y++) {
                         for (x = 0; x < Nx; x++) {
                             if (x == Nx - 1 & y == Ny - 1) {
-                                fprintf(fp, "%.10e\n", state_vars->c[c_index(x, y, comp, ion,Nx)]);
+                                fprintf(fp, "%f\n", state_vars->c[c_index(x, y, comp, ion,Nx)]);
                             } else {
-                                fprintf(fp, "%.10e,", state_vars->c[c_index(x, y, comp, ion,Nx)]);
+                                fprintf(fp, "%f,", state_vars->c[c_index(x, y, comp, ion,Nx)]);
                             }
                         }
                     }
@@ -340,6 +340,8 @@ void save_timestep(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
 }
 void measure_flux(FILE *fp, struct AppCtx* user,PetscInt numrecords,int start)
 {
+    velocity_field(fp,user,numrecords,start);
+    /*
     struct SimState *state_vars= user->state_vars;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
@@ -449,20 +451,10 @@ void measure_flux(FILE *fp, struct AppCtx* user,PetscInt numrecords,int start)
                 }
             }
         }
-/*
-        for(comp=Nc-1;comp<Nc;comp++) {
-            printf("Comp: %d\n",comp);
-            printf("pts: %d,FluxC: %.10e, Fluxph: %.10e,FluxBath: %.10e\n", num_points, Fluxc[comp], Fluxph[comp], Fluxbath[comp]);
-            printf("Flux nobath: %.10e, Flux Tot: %.10e\n", Fluxc[comp] + Fluxph[comp], Fluxbath[comp] + Fluxc[comp] + Fluxph[comp]);
-        }
-        */
         fprintf(fp,"%.10e,%.10e,%.10e\n",Fluxc[Nc-1], Fluxph[Nc-1], Fluxbath[Nc-1]);
-        /*
-        printf("All Comps:\n");
-        printf("FluxC: %.10e, Fluxph: %.10e,FluxBath: %.10e\n", Fluxc[0]+Fluxc[1]+Fluxc[2], Fluxph[0]+Fluxph[1]+Fluxph[2], Fluxbath[2]);
-        printf("Flux nobath: %.10e, Flux Tot: %.10e\n", Fluxc[0]+Fluxc[1]+Fluxc[2]+Fluxph[0]+Fluxph[1]+Fluxph[2], Fluxbath[2]+Fluxc[0]+Fluxc[1]+Fluxc[2]+Fluxph[0]+Fluxph[1]+Fluxph[2]);
-    */
+
     }
+*/
 }
 void init_events(struct AppCtx *user)
 {
@@ -905,4 +897,85 @@ void read_file(struct AppCtx *user)
     fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, numrecords+(PetscInt)floor(Time/trecordstep)-1, Nc, Ni);
 
     fclose(fp);
+}
+
+void velocity_field(FILE *fp,struct AppCtx *user,PetscInt numrecords,int start) {
+    if (start) {
+        fprintf(fp, "%d,%d,%d,%d,%d,%d,%d,%d\n", user->Nx, user->Ny, numrecords, Nc, Ni, use_en_deriv, separate_vol,
+                Linear_Diffusion);
+        velocity_field(fp, user, numrecords, 0);
+    } else {
+        PetscReal *c = user->state_vars->c;
+        PetscReal *phi = user->state_vars->phi;
+
+        PetscReal *Dcs = user->Dcs;
+
+        PetscReal dt = user->dt;
+        PetscReal dx = user->dx;
+        PetscReal dy = user->dy;
+        PetscInt Nx = user->Nx;
+        PetscInt Ny = user->Ny;
+
+        PetscInt x, y, ion, comp;
+
+        PetscReal Gradleft, GradRight;
+        PetscReal GradUp, GradDown;
+        PetscInt count_x, count_y;
+
+        PetscReal Gradx, Grady;
+
+
+        for (ion = 0; ion < Ni; ion++) {
+            for (comp = Nc-1; comp < Nc; comp++) {
+                for (y = 0; y < Ny; y++) {
+                    for (x = 0; x < Nx; x++) {
+                        count_x = 0;
+                        count_y = 0;
+
+                        Gradleft = 0;
+                        GradRight = 0;
+                        if (x > 0) {
+                            //First difference term
+                            Gradleft = 1;//Dcs[c_index(x-1,y,comp,ion,Nx)*2]*(c[c_index(x-1,y,comp,ion,Nx)]+c[c_index(x,y,comp,ion,Nx)])/2;
+                            Gradleft = Gradleft *(log(c[c_index(x, y, comp, ion, Nx)])-log(c[c_index(x - 1, y, comp, ion, Nx)])+
+                                    z[ion]*(phi[phi_index(x, y, comp, Nx)] - phi[phi_index(x - 1, y, comp, Nx)]))/dx;
+                            count_x++;
+                        }
+                        //Add Second right moving difference
+                        if (x < Nx - 1) {
+                            GradRight = 1;//Dcs[c_index(x,y,comp,ion,Nx)*2]*(c[c_index(x,y,comp,ion,Nx)]+c[c_index(x+1,y,comp,ion,Nx)])/2;
+                            GradRight = GradRight*(log(c[c_index(x + 1, y, comp, ion, Nx)])-log(c[c_index(x, y, comp, ion, Nx)]) +
+                                         z[ion]*(phi[phi_index(x + 1, y, comp, Nx)] - phi[phi_index(x, y, comp, Nx)]))/dx;
+                            count_x++;
+                        }
+                        GradDown = 0;
+                        GradUp = 0;
+                        //Up down difference
+                        if (y > 0) {
+                            GradDown = 1;//Dcs[c_index(x,y-1,comp,ion,Nx)*2+1]*(c[c_index(x,y-1,comp,ion,Nx)]+c[c_index(x,y,comp,ion,Nx)])/2;
+                            GradDown = GradDown*(log(c[c_index(x, y, comp, ion, Nx)]) - log(c[c_index(x, y - 1, comp, ion, Nx)]) +
+                                        z[ion]*(phi[phi_index(x, y, comp, Nx)] - phi[phi_index(x, y - 1, comp, Nx)]))/dy ;
+                            count_y++;
+                        }
+                        //Next upward difference
+                        if (y < Ny - 1) {
+                            GradUp = 1;//Dcs[c_index(x,y,comp,ion,Nx)*2+1]*(c[c_index(x,y,comp,ion,Nx)]+c[c_index(x,y+1,comp,ion,Nx)])/2;
+                            GradUp = GradUp* (log(c[c_index(x, y + 1, comp, ion, Nx)]) - log(c[c_index(x, y, comp, ion, Nx)]) +
+                                      z[ion]*(phi[phi_index(x, y + 1, comp, Nx)] - phi[phi_index(x, y, comp, Nx)])) / dy;
+                            count_y++;
+                        }
+                        Gradx = (Gradleft + GradRight) / count_x;
+                        Grady = (GradUp + GradDown) / count_y;
+
+                        if (x == Nx - 1 & y == Ny - 1) {
+                            fprintf(fp, "%f,%f\n", Gradx, Grady);
+                        } else {
+                            fprintf(fp, "%f,%f,", Gradx, Grady);
+                        }
+
+                    }
+                }
+            }
+        }
+    }
 }

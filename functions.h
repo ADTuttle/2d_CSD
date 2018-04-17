@@ -130,6 +130,7 @@ void measure_flux(FILE *,struct AppCtx *,PetscInt,int );
 void init_events(struct AppCtx *);
 void read_file(struct AppCtx *);
 void save_file(struct AppCtx *);
+void velocity_field(FILE *,struct AppCtx *,PetscInt,int);
 
 
 #endif
