@@ -17,6 +17,8 @@
 #define Profiling_on 1 //Turns timing of functions on/off.
 #define trecordstep 0.1//0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
+#define start_at_steady 1 //Start at steady state?
+
 
 
 //Solver Type Options
@@ -24,7 +26,7 @@
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
 #define Predictor 1  // Turns on predictor. Adaptive single point estimated update
-#define width_size  1 //Number of up,down,left,right neighbors to pair in the predictor.
+#define width_size  1//1 //Number of up,down,left,right neighbors to pair in the predictor.
 
 //basic ion extern constants
 #define   Ni  3           //number of ion species (Na, K, Cl)

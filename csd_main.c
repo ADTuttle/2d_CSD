@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 
     PetscReal dt = user->dt;
     PetscInt Nt = (PetscInt) floor(Time/dt);
-    PetscInt numrecords = (PetscInt)floor(Time/trecordstep);
+    PetscInt numrecords = (PetscInt)floor(Time/trecordstep)+1;
     PetscInt krecordfreq = (PetscInt)floor(trecordstep/dt);
     PetscInt x,y,comp,ion;
     PetscInt Nx = user->Nx;
@@ -105,12 +105,41 @@ int main(int argc, char **argv)
     set_params(current_state,state_vars,con_vars,gate_vars,flux,user);
 
 
+    FILE *fp,*fdt;
+    FILE **fp_measures; fp_measures= malloc(sizeof(FILE*) * 3);
 
-    printf("Steady State Routine\n");
+    if(start_at_steady) {
+        printf("Steady State Routine\n");
 
-    //Run Initialization routine to get to steady state
-    initialize_data(current_state,user);
+        //Run Initialization routine to get to steady state
+        initialize_data(current_state, user);
 
+        //Open files to write to
+        fp = fopen("data_csd.txt","w");
+        extract_subarray(current_state,state_vars);
+        write_data(fp,user,numrecords,1);
+        user->fp = fopen("point_csd.txt","w");
+        if(Predictor) {
+            fdt = fopen("csd_dt.txt", "w");
+            save_timestep(fdt,user,numrecords-1,1);
+        }
+        record_measurements(fp_measures,user,1,numrecords,1);
+
+    } else{
+        printf("Reading from File\n");
+        //Read from file
+        extract_subarray(current_state,state_vars);
+        read_file(user);
+        restore_subarray(current_state,state_vars);
+        extract_subarray(current_state,state_vars);
+        //Open files to write to
+        fp = fopen("data_csd.txt","a");
+        user->fp = fopen("point_csd.txt","a");
+        if(Predictor) {
+            fdt = fopen("csd_dt.txt", "a");
+        }
+        record_measurements(fp_measures,user,1,numrecords,1);
+    }
     if(Profiling_on) {
         PetscLogStage stage2;
         PetscLogStageRegister("Main Loop", &stage2);
@@ -120,26 +149,9 @@ int main(int argc, char **argv)
     }
     printf("Beginning Main Routine \n");
     printf("\n\n\n");
-    //Open file to write to
-    user->fp = fopen("point_csd.txt","w");
-    FILE *fp;
-    fp = fopen("data_csd.txt","w");
-
-    FILE *fdt;
-    if(Predictor) {
-        fdt = fopen("csd_dt.txt", "w");
-        save_timestep(fdt,user,numrecords-1,1);
-    }
 
     FILE *fptime;
     fptime = fopen("timing.txt","a");
-    extract_subarray(current_state,state_vars);
-    write_data(fp,user,numrecords,1);
-//    write_point(fp,user,numrecords,1);
-    FILE *fpflux;
-    fpflux = fopen("flux_csd.txt","w");
-    measure_flux(fpflux,user,numrecords,1);
-
     //Reset time step
     user->dt = dt;
     int count = 0;
@@ -232,14 +244,14 @@ int main(int argc, char **argv)
 
 
         if(count%krecordfreq==0) {
-            printf("Time: %f,Newton time: %f,iters:%d, Reason: %d,KSPIters: %d\n",t,toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
 //            write_point(fp, user,numrecords, 0);
             write_data(fp, user,numrecords, 0);
-            measure_flux(fpflux,user,numrecords,0);
+            record_measurements(fp_measures,user,count,numrecords,0);
             if(count%1000){
                 fclose(fp);
                 fp = fopen("data_csd.txt","a");
             }
+            printf("Time: %.2f,Newton time: %f,iters:%d, Reason: %d,KSPIters: %d\n",t,toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
         }
         ksp_iters_old = ksp_iters_new;
         if(reason<0){
@@ -253,11 +265,18 @@ int main(int argc, char **argv)
 
     }
     PetscTime(&full_toc);
+
+    //Final save
+    printf("Time: %f,Newton time: %f,iters:%d, Reason: %d \n",Time,toc - tic,num_iters,reason);
+    write_data(fp, user,numrecords, 0);
+    record_measurements(fp_measures,user,count,numrecords,0);
+    save_file(user);
+
     //Close
     fclose(fp);
     fprintf(fptime,"%d,%d,%d,%d,%f,%f\n",1,count,user->Nx,user->Ny,user->dt,full_toc-full_tic);
     fclose(fptime);
-    fclose(fpflux);
+    fclose(fp_measures[0]);fclose(fp_measures[1]);fclose(fp_measures[2]);
     fclose(user->fp);
     printf("Finished Running. Full solve time: %.10e\n",full_toc-full_tic);
     printf("Total newton iterations:%d\n",total_newton);
@@ -265,6 +284,12 @@ int main(int argc, char **argv)
     if(Profiling_on) {
         PetscLogStagePop();
         PetscLogView(PETSC_VIEWER_STDOUT_SELF);
+        PetscViewer view;
+        PetscViewerASCIIOpen(PETSC_COMM_WORLD,"log.txt",&view);
+        PetscLogView(view);
+        PetscViewerDestroy(&view);
+
+
     }
     //Free memory
     VecDestroy(&current_state); VecDestroy(&state_vars_past->v);

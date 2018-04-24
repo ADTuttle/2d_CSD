@@ -128,6 +128,12 @@ void write_data(FILE *,struct AppCtx *,PetscInt,int );
 void write_point(FILE *,struct AppCtx *,PetscReal,PetscInt,PetscInt );
 void measure_flux(FILE *,struct AppCtx *,PetscInt,int );
 void init_events(struct AppCtx *);
+void read_file(struct AppCtx *);
+void save_file(struct AppCtx *);
+void velocity_field(FILE *,struct AppCtx *,PetscInt,int);
+void record_measurements(FILE **,struct AppCtx *,PetscInt,PetscInt ,int );
+void calculate_measures(FILE *, struct AppCtx *,PetscInt ,int );
+void draw_csd(struct AppCtx *);
 
 
 #endif

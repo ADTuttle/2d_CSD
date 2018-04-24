@@ -1418,6 +1418,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
 
         ierr = VecNorm(user->grid_slvr->Res, NORM_MAX, &rsd);CHKERRQ(ierr);
 
+
         if (rsd < tol) {
             if(Profiling_on) {
                 PetscLogEventEnd(event[11], 0, 0, 0, 0);
