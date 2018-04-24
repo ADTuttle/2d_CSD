@@ -269,6 +269,11 @@ void parameter_dependence(struct AppCtx *user)
     con_vars->DNeuronScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
     con_vars->DGliaScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
     con_vars->DExtracellScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
+
+    PetscReal KIR_adjust = 1;
+    PetscOptionsGetReal(NULL,NULL,"-KIR",&KIR_adjust,NULL);
+    PetscReal DGlia = 0.25;
+    PetscOptionsGetReal(NULL,NULL,"-DGlia",&DGlia,NULL);
     for(x=0;x<Nx;x++){
         for(y=0;y<Ny;y++){
             con_vars->pNaT[xy_index(x,y,Nx)]=basepNaT;
@@ -276,12 +281,12 @@ void parameter_dependence(struct AppCtx *user)
             con_vars->pKDR[xy_index(x,y,Nx)]=basepKDR;
             con_vars->pKA[xy_index(x,y,Nx)]=basepKA;
 
-            con_vars->pKIR[xy_index(x,y,Nx)]=basepKIR;
+            con_vars->pKIR[xy_index(x,y,Nx)]=basepKIR*KIR_adjust;
 
             con_vars->DNeuronScale[xy_index(x,y,Nx)*2]=0.0; //x-direction Neurons
             con_vars->DNeuronScale[xy_index(x,y,Nx)*2+1]=0.0; //y-direction Neurons
-            con_vars->DGliaScale[xy_index(x,y,Nx)*2]=0.25; //x-direction scale Glia
-            con_vars->DGliaScale[xy_index(x,y,Nx)*2+1]=0.25; // y-direction scale glia
+            con_vars->DGliaScale[xy_index(x,y,Nx)*2]=DGlia; //x-direction scale Glia
+            con_vars->DGliaScale[xy_index(x,y,Nx)*2+1]=DGlia; // y-direction scale glia
             con_vars->DExtracellScale[xy_index(x,y,Nx)*2]=1.0; //x-direction scale extracell
             con_vars->DExtracellScale[xy_index(x,y,Nx)*2+1]=1.0; // y-direction scale Extracell
 
