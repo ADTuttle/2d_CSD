@@ -254,6 +254,7 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
 
                             pLin = con_vars->pKIR[xy_index(x,y,Nx)]*inwardrect(cg,ce,vmg)*pKLeakadjust;
                             mclin(user->flux,c_index(x,y,1,1,Nx),pLin,1,cg,ce,vmg,0);
+                            /*
                             if(comp==Nc-1 && ion==0) {
                                 flux = user->flux->mflux[c_index(x, y, 1, 1, Nx)];
                                 if (x == Nx - 1 & y == Ny - 1) {
@@ -279,7 +280,8 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
                                     fprintf(fp, "%.10e,", flux);
                                 }
                             }
-                            if(comp<Nc-1) {
+                             */
+//                            if(comp<Nc-1) {
                                 if (x == Nx - 1 & y == Ny - 1) {
                                     fprintf(fp, "%f\n", state_vars->c[c_index(x, y, comp, ion, Nx)]);
 //                                fprintf(fp, "%f\n", user->flux->mflux[c_index(x, y, comp, ion,Nx)]);
@@ -287,7 +289,7 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
                                     fprintf(fp, "%f,", state_vars->c[c_index(x, y, comp, ion, Nx)]);
 //                                fprintf(fp, "%f,", user->flux->mflux[c_index(x, y, comp, ion,Nx)]);
                                 }
-                            }
+//                            }
                         }
                     }
                 }
@@ -544,7 +546,7 @@ void measure_flux(FILE *fp, struct AppCtx* user,PetscInt numrecords,int start)
                 }
             }
         }
-        fprintf(fp,"%.10e,%.10e,%.10e\n",Fluxc[Nc-1], Fluxph[Nc-1], Fluxbath[Nc-1]);
+        fprintf(fp,"%.10e,%.10e,%.10e,%.10e,%.10e,%.10e\n",Fluxc[1], Fluxph[1], Fluxbath[1],Fluxc[Nc-1], Fluxph[Nc-1], Fluxbath[Nc-1]);
 
     }
 }
@@ -1101,26 +1103,42 @@ void calculate_measures(FILE *fp, struct AppCtx *user,PetscInt numrecords,int st
     PetscReal *c= user->state_vars->c;
     PetscReal *al = user->state_vars->alpha;
 
-    PetscReal Neu_Gli_K_diff = 0;
-    PetscReal Glia_K_per_amt = 0;
-    PetscReal total_amt_K=0;
+    PetscReal Neu_Gli_diff = 0;
+    PetscReal Glia_per_amt = 0;
+    PetscReal total_amt=0;
     PetscReal alN;
-    for(x=0;x<Nx;x++){
-        for(y=0;y<Ny;y++){
-            alN = 1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)];
-            total_amt_K += al[al_index(x,y,0,Nx)]*c[c_index(x,y,0,1,Nx)]+al[al_index(x,y,1,Nx)]*c[c_index(x,y,1,1,Nx)]+alN*c[c_index(x,y,Nc-1,1,Nx)];
 
-            Neu_Gli_K_diff += al[al_index(x,y,0,Nx)]*c[c_index(x,y,0,1,Nx)]-al[al_index(x,y,1,Nx)]*c[c_index(x,y,1,1,Nx)];
+    for(int ion=0;ion<Ni;ion++) {
+        Neu_Gli_diff = 0;
+        Glia_per_amt = 0;
+        total_amt = 0;
+        for (x = 0; x < Nx; x++) {
+            for (y = 0; y < Ny; y++) {
+                alN = 1 - al[al_index(x, y, 0, Nx)] - al[al_index(x, y, 1, Nx)];
 
-            Glia_K_per_amt += al[al_index(x,y,1,Nx)]*c[c_index(x,y,1,1,Nx)];
+                total_amt += al[al_index(x, y, 0, Nx)] * c[c_index(x, y, 0, ion, Nx)] +
+                             al[al_index(x, y, 1, Nx)] * c[c_index(x, y, 1, ion, Nx)] +
+                             alN * c[c_index(x, y, Nc - 1, 1, Nx)];
+
+                Neu_Gli_diff += al[al_index(x, y, 0, Nx)] * c[c_index(x, y, 0, ion, Nx)] -
+                                al[al_index(x, y, 1, Nx)] * c[c_index(x, y, 1, ion, Nx)];
+
+                Glia_per_amt += al[al_index(x, y, 1, Nx)] * c[c_index(x, y, 1, ion, Nx)];
+            }
         }
+        Neu_Gli_diff = Neu_Gli_diff * dx * dy;
+
+        Glia_per_amt = (Glia_per_amt * dx * dy) / (total_amt * dx * dy);
+
+
+        if(ion<Ni-1) {
+            fprintf(fp,"%.10e,%.10e,", Neu_Gli_diff, Glia_per_amt);
+        }else{
+            fprintf(fp,"%.10e,%.10e\n", Neu_Gli_diff, Glia_per_amt);
+
+        }
+
     }
-    Neu_Gli_K_diff = Neu_Gli_K_diff*dx*dy;
-
-    Glia_K_per_amt = (Glia_K_per_amt*dx*dy)/(total_amt_K*dx*dy);
-
-
-    fprintf(fp,"%.10e,%.10e\n",Neu_Gli_K_diff,Glia_K_per_amt);
 }
 void draw_csd(struct AppCtx *user)
 {

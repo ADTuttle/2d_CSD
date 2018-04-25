@@ -1,12 +1,8 @@
-<<<<<<< HEAD
 spiral_attempts/
 
 cmake-build-debug/
-=======
-cmake-build-debug/
 
-spiral_attempts/
->>>>>>> master
+data_runs/
 
 mat.txt
 
