@@ -15,7 +15,7 @@
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 #define plane_wave_exct 0 //if true, initiates a uniform plane wave
 #define Profiling_on 0 //Turns timing of functions on/off.
-#define trecordstep 0.1//0.5 //determines how often to record
+#define trecordstep 0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 #define start_at_steady 1 //Start at steady state?
 
@@ -25,7 +25,7 @@
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define Predictor 0  // Turns on predictor. Adaptive single point estimated update
+#define Predictor 1  // Turns on predictor. Adaptive single point estimated update
 #define width_size  1//1 //Number of up,down,left,right neighbors to pair in the predictor.
 
 //basic ion extern constants
@@ -68,12 +68,12 @@ static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
 #define phibath (-0/RTFC) //Voltage of outside bath
 
 //excitation parameters
-//#define pmax  (1e-1/3)          //max value for excitation
-#define pmax  50          //max value for excitation
-#define texct 0.5         //time for excitation
-//#define texct 0.05         //time for excitation
-#define Lexct 0.2
-//#define Lexct 0.05          //Length of region for excitation in each direction
+#define pmax  (1e-1/3)          //max value for excitation
+//#define pmax  50          //max value for excitation
+//#define texct 0.5         //time for excitation
+#define texct 0.05         //time for excitation
+//#define Lexct 0.2
+#define Lexct 0.05          //Length of region for excitation in each direction
 //#define Lexct 0.025          //Length of region for excitation in each direction
 
 //initial state setup
@@ -98,9 +98,9 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
 #define basepNaT  0                 //1e-4%0%1e-3%if set to 0, recovery possible
-#define basepNaP  0//2e-5
-#define basepKDR  0//1e-3
-#define basepKA  0//1e-4
+#define basepNaP  2e-5 //0//2e-5
+#define basepKDR  1e-3 //0//1e-3
+#define basepKA  1e-4//0//1e-4
 
 
 //Leak conductances in mS/cm^2 from Kager, 2000 or Yao, Huang, Miura, 2011.

@@ -242,11 +242,11 @@ int main(int argc, char **argv)
             }
         }
 
-        record_measurements(fp_measures,user,count,numrecords,0);
+//        record_measurements(fp_measures,user,count,numrecords,0);
         if(count%krecordfreq==0) {
 //            write_point(fp, user,numrecords, 0);
             write_data(fp, user,numrecords, 0);
-//            record_measurements(fp_measures,user,count,numrecords,0);
+            record_measurements(fp_measures,user,count,numrecords,0);
             if(count%1000){
                 fclose(fp);
                 fp = fopen("data_csd.txt","a");
