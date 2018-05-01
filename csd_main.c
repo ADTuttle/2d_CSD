@@ -104,7 +104,6 @@ int main(int argc, char **argv)
     //Set the constant variables
     set_params(current_state,state_vars,con_vars,gate_vars,flux,user);
 
-
     FILE *fp,*fdt;
     FILE **fp_measures; fp_measures= malloc(sizeof(FILE*) * 3);
 
