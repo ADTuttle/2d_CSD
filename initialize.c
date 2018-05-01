@@ -43,13 +43,16 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 {
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
-    PetscReal vm,vmg;
+    PetscReal vm,vmg,NaKCl,pKGHK,pNaGHK,Ipump,pKLinG,Ipumpg,osmotic,alNc,zetaadjust;
     extract_subarray(state,state_vars);
     PetscReal *c = state_vars->c;
     PetscReal *phi = state_vars->phi;
     PetscReal *alpha = state_vars->alpha;
-    for(PetscInt x=0;x<Nx;x++) {
-        for (PetscInt y = 0; y < Ny; y++) {
+    PetscReal cmphi[Nc]={0,0,0}; //initializing cmphi
+
+    // Compute Chloride concentration
+    for(PetscInt x=0;x<Nx;x++){
+        for(PetscInt y=0;y<Ny;y++){
             vm = phi[phi_index(x, y, 0, Nx)] - phi[phi_index(x, y, 2, Nx)]; //neuronal membrane potential
             vmg = phi[phi_index(x, y, 1, Nx)] - phi[phi_index(x, y, 2, Nx)]; //glial membrane potential
 
@@ -58,22 +61,29 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
             c[c_index(x, y, 0, 2, Nx)] = c[c_index(x, y, 2, 2, Nx)] * exp(vm);
             //set glial Cl concentration equal to neuronal Cl concentration
             c[c_index(x, y, 1, 2, Nx)] = c[c_index(x, y, 0, 2, Nx)];
+        }
+    }
 
+    //compute gating variables
+    gatevars_update(gate_vars, gate_vars, state_vars, 0, user, 1);
+
+
+    for(PetscInt x=0;x<Nx;x++) {
+        for (PetscInt y = 0; y < Ny; y++) {
+            vm = phi[phi_index(x, y, 0, Nx)] - phi[phi_index(x, y, 2, Nx)]; //neuronal membrane potential
+            vmg = phi[phi_index(x, y, 1, Nx)] - phi[phi_index(x, y, 2, Nx)]; //glial membrane potential
 
             //compute cotransporter permeability so that glial Cl is at rest
             mclin(flux, c_index(x, y, 1, 2, Nx),pClLeakg, -1,c[c_index(x, y, 1, 2, Nx)],c[c_index(x, y, 2, 2, Nx)],vmg, 0);
             con_vars->pNaKCl[xy_index(x,y,Nx)] =-flux->mflux[c_index(x, y, 1, 2, Nx)]/2/
-                    log(c[c_index(x, y, 1, 0, Nx)] * c[c_index(x, y, 1, 1, Nx)] *
-                        c[c_index(x, y, 1, 2, Nx)] * c[c_index(x, y, 1, 2, Nx)] /
-                        (c[c_index(x, y, 2, 0, Nx)] * c[c_index(x, y, 2, 1, Nx)] *
-                         c[c_index(x, y, 2, 2, Nx)] * c[c_index(x, y, 2, 2, Nx)]));
-            PetscReal NaKCl = -flux->mflux[c_index(x, y, 1, 2, Nx)] / 2;
-
-            //compute gating variables
-            gatevars_update(gate_vars, gate_vars, state_vars, 0, user, 1);
+                                                log(c[c_index(x, y, 1, 0, Nx)] * c[c_index(x, y, 1, 1, Nx)] *
+                                                    c[c_index(x, y, 1, 2, Nx)] * c[c_index(x, y, 1, 2, Nx)] /
+                                                    (c[c_index(x, y, 2, 0, Nx)] * c[c_index(x, y, 2, 1, Nx)] *
+                                                     c[c_index(x, y, 2, 2, Nx)] * c[c_index(x, y, 2, 2, Nx)]));
+            NaKCl = -flux->mflux[c_index(x, y, 1, 2, Nx)] / 2;
 
             //compute K channel currents (neuron)
-            PetscReal pKGHK = con_vars->pKDR[xy_index(x,y,Nx)] * gate_vars->gKDR[xy_index(x,y,Nx)] + con_vars->pKA[xy_index(x,y,Nx)] * gate_vars->gKA[xy_index(x,y,Nx)];
+            pKGHK = con_vars->pKDR[xy_index(x,y,Nx)] * gate_vars->gKDR[xy_index(x,y,Nx)] + con_vars->pKA[xy_index(x,y,Nx)] * gate_vars->gKA[xy_index(x,y,Nx)];
             //Initialize the KGHK flux
             mcGoldman(flux, c_index(x, y, 0, 1, Nx), pKGHK, 1, c[c_index(x, y, 0, 1, Nx)],
                       c[c_index(x, y, Nc - 1, 1, Nx)], vm, 0);
@@ -83,21 +93,20 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 
             //compute neuronal ATPase value
             con_vars->Imax[xy_index(x,y,Nx)] = flux->mflux[c_index(x, y, 0, 1, Nx)] * (pow(1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)], 2) *
-                                                                     pow(1 + mNa / c[c_index(x, y, 0, 0, Nx)], 3)) / 2;
+                                                                                       pow(1 + mNa / c[c_index(x, y, 0, 0, Nx)], 3)) / 2;
 
 
             //compute neuronal sodium currents and leak permeability value
-            PetscReal pNaGHK = con_vars->pNaT[xy_index(x,y,Nx)]*gate_vars->gNaT[xy_index(x,y,Nx)]+con_vars->pNaP[xy_index(x,y,Nx)]*gate_vars->gNaP[xy_index(x,y,Nx)];
+            pNaGHK = con_vars->pNaT[xy_index(x,y,Nx)]*gate_vars->gNaT[xy_index(x,y,Nx)]+con_vars->pNaP[xy_index(x,y,Nx)]*gate_vars->gNaP[xy_index(x,y,Nx)];
             mcGoldman(flux, c_index(x, y, 0, 0, Nx), pNaGHK, 1, c[c_index(x, y, 0, 0, Nx)],
                       c[c_index(x, y, Nc - 1, 0, Nx)], vm, 0);
-            PetscReal Ipump = npump * con_vars->Imax[xy_index(x,y,Nx)] / (pow((1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)]), 2) *
-                                                        pow((1 + mNa / c[c_index(x, y, 0, 0, Nx)]), 3));
+            Ipump = npump * con_vars->Imax[xy_index(x,y,Nx)] / (pow((1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)]), 2) *
+                                                                pow((1 + mNa / c[c_index(x, y, 0, 0, Nx)]), 3));
             con_vars->pNaLeak[xy_index(x,y,Nx)] = (-flux->mflux[c_index(x, y, 0, 0, Nx)] - 3 * Ipump) /
-                                (log(c[c_index(x, y, 0, 0, Nx)] / c[c_index(x, y, Nc - 1, 0, Nx)]) + vm);
+                                                  (log(c[c_index(x, y, 0, 0, Nx)] / c[c_index(x, y, Nc - 1, 0, Nx)]) + vm);
 
             //compute K channel currents (glial)
-            PetscReal pKLinG =
-                    con_vars->pKIR[xy_index(x,y,Nx)] * inwardrect(c[c_index(x, y, 1, 1, Nx)], c[c_index(x, y, Nc - 1, 1, Nx)], vmg) * pKLeakadjust;
+            pKLinG = con_vars->pKIR[xy_index(x,y,Nx)] * inwardrect(c[c_index(x, y, 1, 1, Nx)], c[c_index(x, y, Nc - 1, 1, Nx)], vmg) * pKLeakadjust;
             mclin(flux, c_index(x, y, 1, 1, Nx), pKLinG, 1, c[c_index(x, y, 1, 1, Nx)], c[c_index(x, y, Nc - 1, 1, Nx)],
                   vmg, 0);
             flux->mflux[c_index(x, y, 1, 1, Nx)] += NaKCl;
@@ -108,17 +117,17 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
                     pow((1 + mNa / c[c_index(x, y, 1, 0, Nx)]), 3) / 2;
 
             //compute glial sodium current and leak permeability value
-            PetscReal Ipumpg = glpump * con_vars->Imaxg[xy_index(x,y,Nx)] / (pow((1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)]), 2) *
-                                                           pow((1 + mNa / c[c_index(x, y, 1, 0, Nx)]), 3));
+            Ipumpg = glpump * con_vars->Imaxg[xy_index(x,y,Nx)] / (pow((1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)]), 2) *
+                                                                   pow((1 + mNa / c[c_index(x, y, 1, 0, Nx)]), 3));
             con_vars->pNaLeakg[xy_index(x,y,Nx)] =
                     (-NaKCl - 3 * Ipumpg) / (log(c[c_index(x, y, 1, 0, Nx)] / c[c_index(x, y, Nc - 1, 0, Nx)]) + vmg);
 
             //Compute resting organic anion amounts and average valences
             //set extracellular organic anion amounts and valence to ensure electroneutrality
             con_vars->ao[Nc - 1] = 5e-4;
-            PetscReal cmphi[Nc]={0,0,0};
-            PetscReal osmotic,alNc;
             alNc = 1- alpha[al_index(x,y,0,Nx)]-alpha[al_index(x,y,1,Nx)];
+            PetscReal cmphi[Nc]={0,0,0}; //initializing cmphi
+
             for (PetscInt k = 0; k < Nc - 1; k++) {
                 cmphi[k] = cm[k] * (phi[phi_index(x,y,k,Nx)] - phi[phi_index(x,y,Nc-1,Nx)]);
                 cmphi[Nc - 1] += cmphi[k];
@@ -139,7 +148,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 
             //parameters for osmotic water flow
 
-            PetscReal zetaadjust = 1; //modify glial permeability
+            zetaadjust = 1; //modify glial permeability
             for (PetscInt comp = 0; comp < Nc - 1; comp++) {
                 //based on B.E. Shapiro dissertation (2000)
                 con_vars->zeta1[comp] = 5.4e-5;  //hydraulic permeability in cm/sec/(mmol/cm^3)
