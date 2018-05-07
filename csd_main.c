@@ -149,8 +149,10 @@ int main(int argc, char **argv)
     printf("Beginning Main Routine \n");
     printf("\n\n\n");
 
-    FILE *fptime;
+    FILE *fptime,*fpsteptime;
     fptime = fopen("timing.txt","a");
+    fpsteptime=fopen("time_step.txt","w");
+    PetscLogDouble onestep_tic,onestep_toc;
     //Reset time step
     user->dt = dt;
     int count = 0;
@@ -161,6 +163,7 @@ int main(int argc, char **argv)
     PetscTime(&full_tic);
     for(PetscReal t=dt;t<=Time;t+=dt) {
         count++;
+        PetscTime(&onestep_tic);
         //Save the "current" aka past state
         ierr = restore_subarray(user->state_vars_past->v, user->state_vars_past);CHKERRQ(ierr);
         ierr = copy_simstate(current_state, user->state_vars_past);CHKERRQ(ierr);
@@ -261,6 +264,9 @@ int main(int argc, char **argv)
             fclose(fptime);
             fprintf(stderr, "Netwon Iteration did not converge! Stopping at %f...\n",t);
             exit(EXIT_FAILURE); /* indicate failure.*/}
+
+        PetscTime(&onestep_toc);
+        fprintf(fpsteptime,"%f,%.10e\n",t,onestep_toc-onestep_tic);
 
     }
     PetscTime(&full_toc);
