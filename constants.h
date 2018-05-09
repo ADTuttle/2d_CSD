@@ -15,7 +15,7 @@
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
 #define Profiling_on 1 //Turns timing of functions on/off.
-#define trecordstep 0.1 //0.5 //determines how often to record
+#define trecordstep 0.01 //0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 #define start_at_steady 1 //Start at steady state?
 
@@ -28,11 +28,11 @@
 #define width_size  1//1 //Number of up,down,left,right neighbors to pair in the predictor.
 
 //basic ion extern constants
-#define   Ni  3           //number of ion species (Na, K, Cl)
-static const   PetscInt z[3] = {1,1,-1};//valences of ion species
-static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
+#define   Ni  4           //number of ion species (Na, K, Cl)
+static const   PetscInt z[4] = {1,1,-1,0};//valences of ion species
+static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,0};      //diffusion coefficients in cm^2/sec
 
-#define Time 5.0   //total simulated time in seconds
+#define Time 1.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -61,7 +61,7 @@ static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion co
 
 //Bath variables
 //extern PetscReal cbath[3]; //Na, K, and Cl
-static const PetscReal cbath[3]={140*1e-3,3.4*1e-3,120*1e-3}; //Na, K, and Cl
+static const PetscReal cbath[4]={140*1e-3,3.4*1e-3,120*1e-3,2e-8}; //Na, K, and Cl
 #define Batheps 1.0 //Bath diffusion multiplier
 #define phibath (-0/RTFC) //Voltage of outside bath
 
@@ -116,6 +116,12 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define glpump  1.0             //multiplier to change glial pump rate
 #define npump  1.0
 
+// Glutamate parameters
+#define glut_gamma 0.2    //Reabsorbtion ratio (arbitrary)
+#define glut_A 600 //500       //Release rate in mM/sec
+#define glut_B 10              //Decay rate in 1/sec
+#define glut_eps (5/1000)      //Small scaling factor muMol converted to millMol
+#define basepNMDA 5e-5           //NMDA permeability
 
 // Data Structures
 struct SimState{
@@ -155,6 +161,8 @@ struct GateType{
     PetscReal *mKA;
     PetscReal *hKA;
     PetscReal *gKA;
+    PetscReal *yNMDA;
+    PetscReal *gNMDA;
 };
 
 struct ExctType{
@@ -173,6 +181,7 @@ struct ConstVars{
     PetscReal *pNaLeak;
     PetscReal *Imaxg;   //Glial pump strength
     PetscReal *pNaLeakg;
+    PetscReal *pNMDA; //NMDA perm.
     PetscReal *pKIR;   //K inward rectifier in glia
     PetscReal *ao;  //Immobile ions
     PetscReal *zo;  //Avg valence

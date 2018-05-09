@@ -796,16 +796,10 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
     }
     ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     //Compute membrane ionic flux relation quantitites
-//        PetscTime(&tic);
     ionmflux(user);
-//        PetscTime(&toc);
-//        printf("Calc ion flux time: %.10e\n",toc-tic);
 
     //Compute membrane water flow related quantities
-//        PetscTime(&tic);
     wflowm(user);
-//        PetscTime(&toc);
-//        printf("Calc wflow: %.10e\n",toc-tic);
 
     PetscReal *c = user->state_vars->c;
     PetscReal *phi = user->state_vars->phi;
@@ -915,6 +909,7 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
                 //Add bath variables
 
                 Resc -= sqrt(pow(Dcb[c_index(x,y,comp,ion,Nx)*2],2)+pow(Dcb[c_index(x,y,comp,ion,Nx)*2+1],2))*(cp[c_index(x,y,comp,ion,Nx)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion,Nx)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp,Nx)]-z[ion]*phibath)*dt;
+
                 ierr = VecSetValue(Res,Ind_1(x,y,ion,comp,Nx),Resc,INSERT_VALUES);CHKERRQ(ierr);
 
                 //Save values for voltage
@@ -952,6 +947,10 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
 
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
+//    VecView(Res,PETSC_VIEWER_STDOUT_SELF);
+    printf("Phi: %.10e, Glun: %.10e, Glug: %.10e,Glue: %.10e\n",phi[phi_index(0,0,0,Nx)]*RTFC,c[c_index(0,0,0,3,Nx)],c[c_index(0,0,1,3,Nx)],c[c_index(0,0,2,3,Nx)]);
+    printf("NEUR: Na: %.10e, K: %.10e,Cl: %.10e\n",c[c_index(0,0,0,0,Nx)],c[c_index(0,0,0,1,Nx)],c[c_index(0,0,0,2,Nx)]);
+    printf("EXT: Na: %.10e, K: %.10e,Cl: %.10e\n\n",c[c_index(0,0,2,0,Nx)],c[c_index(0,0,2,1,Nx)],c[c_index(0,0,2,2,Nx)]);
     ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     if(Profiling_on) {
         PetscLogEventEnd(event[1], 0, 0, 0, 0);

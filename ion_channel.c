@@ -76,6 +76,31 @@ void mcGoldman(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,Pet
     }
     return;
 }
+
+void glutamate_flux(struct FluxData *flux,PetscInt neuron,PetscInt glia,PetscReal ci,PetscReal ce,PetscReal vm,PetscReal aln,PetscReal ale)
+{
+    PetscReal frac = 1/(ci+glut_eps);
+    PetscReal expo = exp(-0.0044*pow(vm-8.66,2));
+
+    //Neuronal portion
+    flux->mflux[neuron] = -glut_A*aln*ci*frac*expo+glut_gamma*glut_B*ale*ce;
+    flux->dfdci[neuron] = -glut_A*aln*expo*glut_eps*pow(frac,2);
+    flux->dfdce[neuron] = glut_gamma*glut_B*ale;
+    flux->dfdphim[neuron] = -0.0088*(vm-8.66)*expo;
+
+    //Glial Portion
+    flux->mflux[glia] = (1-glut_gamma)*glut_B*ale*ce;
+    flux->dfdci[glia] = 0;
+    flux->dfdce[glia] = (1-glut_gamma)*glut_B*ale;
+    flux->dfdphim[glia] = 0;
+
+    //Extracell portion is = -Neuron-Glia. Which is implemented in the solvers.
+
+    // For uniformity scale these up by ell
+    flux->mflux[neuron]*=ell;
+    flux->mflux[glia]*=ell;
+
+}
 PetscReal xoverexpminusone(PetscReal v,PetscReal aa,PetscReal bb,PetscReal cc,PetscInt dd)
 {
     //computes aa*(v+bb)/(exp(cc*(v+bb))-1) if dd==0
@@ -171,7 +196,7 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
 
-    PetscReal v,alpha,beta;
+    PetscReal v,alpha,beta,Gphi;
     if(firstpass) {
         for(PetscInt x=0;x<Nx;x++) {
             for (PetscInt y = 0; y < Ny; y++) {
@@ -226,6 +251,14 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
                 gate_vars->hKA[xy_index(x,y,Nx)] = alpha / (alpha + beta);
 
                 gate_vars->gKA[xy_index(x,y,Nx)] = pow(gate_vars->mKA[xy_index(x,y,Nx)], 2) * gate_vars->hKA[xy_index(x,y,Nx)];
+
+                //gating variable NMDA
+                alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05); //72*Glu_e/(0.05+Glu_e)
+                beta = 6.6; //just 6.6
+                gate_vars->yNMDA[xy_index(x,y,Nx)] = alpha / (alpha + beta);
+
+                Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
+                gate_vars->gNMDA[xy_index(x,y,Nx)] = gate_vars->yNMDA[xy_index(x,y,Nx)]* Gphi;
             }
         }
     } else { //if it's not the firstpass, then we actually have values in v.
@@ -280,6 +313,14 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
                 gate_vars->hKA[xy_index(x,y,Nx)] = (gate_vars_past->hKA[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
                 gate_vars->gKA[xy_index(x,y,Nx)] = pow(gate_vars->mKA[xy_index(x,y,Nx)],2)*gate_vars->hKA[xy_index(x,y,Nx)];
+
+                //gating variable NMDA
+                alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05); //72*Glu_e/(0.05+Glu_e)
+                beta = 6.6; //just 6.6
+                gate_vars->yNMDA[xy_index(x,y,Nx)] = (gate_vars_past->yNMDA[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+
+                Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
+                gate_vars->gNMDA[xy_index(x,y,Nx)] = gate_vars->yNMDA[xy_index(x,y,Nx)]* Gphi;
             }
         }
     }
@@ -411,7 +452,9 @@ void ionmflux(struct AppCtx* user)
             ce = state_vars->c[c_index(x,y,Nc-1,0,Nx)];
 
             //Neurons
-            pGHK = con_vars->pNaT[xy_index(x,y,Nx)]*gvars->gNaT[xy_index(x,y,Nx)]+con_vars->pNaP[xy_index(x,y,Nx)]*gvars->gNaP[xy_index(x,y,Nx)];
+            pGHK = con_vars->pNaT[xy_index(x,y,Nx)]*gvars->gNaT[xy_index(x,y,Nx)]+
+                    con_vars->pNaP[xy_index(x,y,Nx)]*gvars->gNaP[xy_index(x,y,Nx)]+
+                    con_vars->pNMDA[xy_index(x,y,Nx)]*gvars->gNMDA[xy_index(x,y,Nx)];
             pLin = con_vars->pNaLeak[xy_index(x,y,Nx)] + gexct->pNa[xy_index(x,y,Nx)]; //Add excitation
             //Initialize GHK Flux
             mcGoldman(flux,c_index(x,y,0,0,Nx),pGHK,1,ci,ce,vm,0);
@@ -426,7 +469,9 @@ void ionmflux(struct AppCtx* user)
             ce = state_vars->c[c_index(x,y,Nc-1,1,Nx)];
 
             //Neurons
-            pGHK = con_vars->pKDR[xy_index(x,y,Nx)]*gvars->gKDR[xy_index(x,y,Nx)]+con_vars->pKA[xy_index(x,y,Nx)]*gvars->gKA[xy_index(x,y,Nx)];
+            pGHK = con_vars->pKDR[xy_index(x,y,Nx)]*gvars->gKDR[xy_index(x,y,Nx)]+
+                    con_vars->pKA[xy_index(x,y,Nx)]*gvars->gKA[xy_index(x,y,Nx)]+
+                    con_vars->pNMDA[xy_index(x,y,Nx)]*gvars->gNMDA[xy_index(x,y,Nx)];
             pLin = pKLeak+gexct->pK[xy_index(x,y,Nx)]; //add excitation
             mcGoldman(flux,c_index(x,y,0,1,Nx),pGHK,1,ci,ce,vm,0);
             mclin(flux,c_index(x,y,0,1,Nx),pLin,1,ci,ce,vm,1);
@@ -485,6 +530,12 @@ void ionmflux(struct AppCtx* user)
             flux->mflux[c_index(x,y,1,0,Nx)]+=NaKCl; //Sodium
             flux->mflux[c_index(x,y,1,1,Nx)]+=NaKCl; //K
             flux->mflux[c_index(x,y,1,2,Nx)]+=2*NaKCl; //Cl
+
+            //Glutamate transport
+            ci = state_vars->c[c_index(x,y,0,3,Nx)];
+            ce = state_vars->c[c_index(x,y,Nc-1,3,Nx)];
+            cgp = 1-state_vars->alpha[al_index(x,y,0,Nx)]-state_vars->alpha[al_index(x,y,1,Nx)]; //reuse variable to store extracell. volume
+            glutamate_flux(flux,c_index(x,y,0,3,Nx),c_index(x,y,1,3,Nx),ci,ce,vm*RTFC,state_vars->alpha[al_index(x,y,0,Nx)],cgp);
 
             //Change units of flux from mmol/cm^2 to mmol/cm^3/s
             for(PetscInt ion=0;ion<Ni;ion++) {
@@ -630,7 +681,9 @@ void grid_ionmflux(struct AppCtx* user,PetscInt xi,PetscInt yi)
             ce = state_vars->c[c_index(x, y, Nc - 1, 0, Nx)];
 
             //Neurons
-            pGHK = con_vars->pNaT[xy_index(xi,yi,Nx)] * gvars->gNaT[xy_index(x, y, Nx)] + con_vars->pNaP[xy_index(xi,yi,Nx)] * gvars->gNaP[xy_index(x, y, Nx)];
+            pGHK = con_vars->pNaT[xy_index(xi,yi,Nx)] * gvars->gNaT[xy_index(x, y, Nx)] +
+                    con_vars->pNaP[xy_index(xi,yi,Nx)] * gvars->gNaP[xy_index(x, y, Nx)]+
+                    con_vars->pNMDA[xy_index(xi,yi,Nx)] * gvars->gNMDA[xy_index(x,y,Nx)];
             pLin = con_vars->pNaLeak[xy_index(xi,yi,Nx)] + gexct->pNa[xy_index(x, y, Nx)]; //Add excitation
             //Initialize GHK Flux
             mcGoldman(flux, c_index(x, y, 0, 0, Nx), pGHK, 1, ci, ce, vm, 0);
@@ -645,7 +698,9 @@ void grid_ionmflux(struct AppCtx* user,PetscInt xi,PetscInt yi)
             ce = state_vars->c[c_index(x, y, Nc - 1, 1, Nx)];
 
             //Neurons
-            pGHK = con_vars->pKDR[xy_index(xi,yi,Nx)] * gvars->gKDR[xy_index(x, y, Nx)] + con_vars->pKA[xy_index(xi,yi,Nx)] * gvars->gKA[xy_index(x, y, Nx)];
+            pGHK = con_vars->pKDR[xy_index(xi,yi,Nx)] * gvars->gKDR[xy_index(x, y, Nx)] +
+                    con_vars->pKA[xy_index(xi,yi,Nx)] * gvars->gKA[xy_index(x, y, Nx)] +
+                    con_vars->pNMDA[xy_index(xi,yi,Nx)] * gvars->gNMDA[xy_index(x,y,Nx)];
             pLin = pKLeak + gexct->pK[xy_index(x, y, Nx)]; //add excitation
             mcGoldman(flux, c_index(x, y, 0, 1, Nx), pGHK, 1, ci, ce, vm, 0);
             mclin(flux, c_index(x, y, 0, 1, Nx), pLin, 1, ci, ce, vm, 1);
@@ -705,6 +760,12 @@ void grid_ionmflux(struct AppCtx* user,PetscInt xi,PetscInt yi)
             flux->mflux[c_index(x, y, 1, 1, Nx)] += NaKCl; //K
             flux->mflux[c_index(x, y, 1, 2, Nx)] += 2 * NaKCl; //Cl
 
+            //Glutamate transport
+            ci = state_vars->c[c_index(x,y,0,3,Nx)];
+            ce = state_vars->c[c_index(x,y,Nc-1,3,Nx)];
+            cgp = 1-state_vars->alpha[al_index(x,y,0,Nx)]-state_vars->alpha[al_index(x,y,1,Nx)]; //reuse variable to store extracell. volume
+            glutamate_flux(flux,c_index(x,y,0,3,Nx),c_index(x,y,1,3,Nx),ci,ce,vm*RTFC,state_vars->alpha[al_index(x,y,0,Nx)],cgp);
+
             //Change units of flux from mmol/cm^2 to mmol/cm^3/s
             for (PetscInt ion = 0; ion < Ni; ion++) {
                 flux->mflux[c_index(x, y, Nc - 1, ion, Nx)] = 0;
@@ -734,7 +795,7 @@ void gatevars_update_grid(struct GateType *gate_vars,struct SimState *state_vars
     PetscInt Nx = 2*width_size+1;
     PetscInt Ny = 2*width_size+1;
 
-    PetscReal v, alpha,beta;
+    PetscReal v, alpha,beta,Gphi;
 
     for(PetscInt x=0;x<Nx;x++) {
         for (PetscInt y = 0; y < Ny; y++) {
@@ -797,6 +858,14 @@ void gatevars_update_grid(struct GateType *gate_vars,struct SimState *state_vars
 
             gate_vars->gKA[xy_index(x, y, Nx)] =
                     pow(gate_vars->mKA[xy_index(x, y, Nx)], 2) * gate_vars->hKA[xy_index(x, y, Nx)];
+
+            //gating variable NMDA
+            alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05); //72*Glu_e/(0.05+Glu_e)
+            beta = 6.6; //just 6.6
+            gate_vars->yNMDA[xy_index(x,y,Nx)] = (gate_vars->yNMDA[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+
+            Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
+            gate_vars->gNMDA[xy_index(x,y,Nx)] = gate_vars->yNMDA[xy_index(x,y,Nx)]* Gphi;
 
         }
     }

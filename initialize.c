@@ -32,6 +32,10 @@ void init(Vec state,struct SimState *state_vars,struct AppCtx*user)
             state_vars->c[c_index(x,y,0,2,Nx)] = 10e-3;       //neuronal Cl concentration
             state_vars->c[c_index(x,y,1,2,Nx)] = 10e-3; 		//glial Cl concentraion
             state_vars->c[c_index(x,y,2,2,Nx)] = 120e-3;       //143.5e-3%extracellular Cl
+                                                            //glutamage taken from K. Moussawi, A. Riegel, et al
+            state_vars->c[c_index(x,y,0,3,Nx)] = 10e-3;   //glutamate concentrations
+            state_vars->c[c_index(x,y,1,3,Nx)] =10e-3;  //glial glu
+            state_vars->c[c_index(x,y,Nc-1,3,Nx)] = 2e-8;    //.02 muM-> 2e-5mM
 
         }
     }
@@ -83,7 +87,9 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
             NaKCl = -flux->mflux[c_index(x, y, 1, 2, Nx)] / 2;
 
             //compute K channel currents (neuron)
-            pKGHK = con_vars->pKDR[xy_index(x,y,Nx)] * gate_vars->gKDR[xy_index(x,y,Nx)] + con_vars->pKA[xy_index(x,y,Nx)] * gate_vars->gKA[xy_index(x,y,Nx)];
+            pKGHK = con_vars->pKDR[xy_index(x,y,Nx)] * gate_vars->gKDR[xy_index(x,y,Nx)] +
+                    con_vars->pKA[xy_index(x,y,Nx)] * gate_vars->gKA[xy_index(x,y,Nx)]+
+                    con_vars->pNMDA[xy_index(x,y,Nx)] * gate_vars->gNMDA[xy_index(x,y,Nx)];
             //Initialize the KGHK flux
             mcGoldman(flux, c_index(x, y, 0, 1, Nx), pKGHK, 1, c[c_index(x, y, 0, 1, Nx)],
                       c[c_index(x, y, Nc - 1, 1, Nx)], vm, 0);
@@ -97,7 +103,9 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 
 
             //compute neuronal sodium currents and leak permeability value
-            pNaGHK = con_vars->pNaT[xy_index(x,y,Nx)]*gate_vars->gNaT[xy_index(x,y,Nx)]+con_vars->pNaP[xy_index(x,y,Nx)]*gate_vars->gNaP[xy_index(x,y,Nx)];
+            pNaGHK = con_vars->pNaT[xy_index(x,y,Nx)]*gate_vars->gNaT[xy_index(x,y,Nx)] +
+                    con_vars->pNaP[xy_index(x,y,Nx)]*gate_vars->gNaP[xy_index(x,y,Nx)]+
+                    con_vars->pNMDA[xy_index(x,y,Nx)] * gate_vars->gNMDA[xy_index(x,y,Nx)];
             mcGoldman(flux, c_index(x, y, 0, 0, Nx), pNaGHK, 1, c[c_index(x, y, 0, 0, Nx)],
                       c[c_index(x, y, Nc - 1, 0, Nx)], vm, 0);
             Ipump = npump * con_vars->Imax[xy_index(x,y,Nx)] / (pow((1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)]), 2) *
