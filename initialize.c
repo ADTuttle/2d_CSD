@@ -199,7 +199,9 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     KSPSetType(slvr->ksp,KSPPREONLY);
     KSPGetPC(slvr->ksp,&slvr->pc);
     PCSetType(slvr->pc,PCLU);
-    PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU);
+//    PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU);
+    PCFactorSetMatSolverType(slvr->pc, MATSOLVERSUPERLU);
+
 
 
     PetscReal convtol = 1e-9;
@@ -2108,7 +2110,8 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A,struct AppCtx*user)
     ierr = KSPSetType(coarse_ksp,KSPPREONLY);CHKERRQ(ierr);
     ierr = KSPGetPC(coarse_ksp,&coarse_pc);CHKERRQ(ierr);
     ierr = PCSetType(coarse_pc,PCLU); CHKERRQ(ierr);
-    ierr = PCFactorSetMatSolverPackage(coarse_pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
+//    ierr = PCFactorSetMatSolverPackage(coarse_pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
+    PCFactorSetMatSolverType(coarse_pc, MATSOLVERSUPERLU);
 
     //Make restriction operators
     for (int i=nlevels-1; i>0; i--) {
