@@ -1109,10 +1109,6 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
 
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
-//    VecView(Res,PETSC_VIEWER_STDOUT_SELF);
-    PetscReal norm;
-    VecNorm(Res,NORM_MAX,&norm);
-    printf("Norm: %.10e\n",norm);
     if(Profiling_on) {
         PetscLogEventEnd(event[10], 0, 0, 0, 0);
     }
@@ -1442,6 +1438,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
 
         ierr = VecNorm(user->grid_slvr->Res, NORM_MAX, &rsd);CHKERRQ(ierr);
 
+//        printf("norm: %.10e\n",rsd);
 
         if (rsd < tol) {
             if(Profiling_on) {

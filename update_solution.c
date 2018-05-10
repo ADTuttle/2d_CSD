@@ -95,6 +95,7 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
 //        PetscTime(&tic);
         ierr = VecGetArray(slvr->Q,&temp); CHKERRQ(ierr);
         extract_subarray(current_state,user->state_vars);
+
         for(x=0;x<Nx;x++){
             for(y=0;y<Ny;y++){
                 for(comp=0;comp<Nc;comp++){
@@ -800,7 +801,6 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
 
     //Compute membrane water flow related quantities
     wflowm(user);
-
     PetscReal *c = user->state_vars->c;
     PetscReal *phi = user->state_vars->phi;
     PetscReal *al = user->state_vars->alpha;
@@ -947,10 +947,13 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
 
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
+//    PetscReal norm;
+//    VecNorm(Res,NORM_MAX,&norm);
+//    printf("%.10e\n",norm);
 //    VecView(Res,PETSC_VIEWER_STDOUT_SELF);
-    printf("Phi: %.10e, Glun: %.10e, Glug: %.10e,Glue: %.10e\n",phi[phi_index(0,0,0,Nx)]*RTFC,c[c_index(0,0,0,3,Nx)],c[c_index(0,0,1,3,Nx)],c[c_index(0,0,2,3,Nx)]);
-    printf("NEUR: Na: %.10e, K: %.10e,Cl: %.10e\n",c[c_index(0,0,0,0,Nx)],c[c_index(0,0,0,1,Nx)],c[c_index(0,0,0,2,Nx)]);
-    printf("EXT: Na: %.10e, K: %.10e,Cl: %.10e\n\n",c[c_index(0,0,2,0,Nx)],c[c_index(0,0,2,1,Nx)],c[c_index(0,0,2,2,Nx)]);
+//    printf("Phi: %.10e, Glun: %.10e, Glug: %.10e,Glue: %.10e\n",phi[phi_index(0,0,0,Nx)]*RTFC,c[c_index(0,0,0,3,Nx)],c[c_index(0,0,1,3,Nx)],c[c_index(0,0,2,3,Nx)]);
+//    printf("NEUR: Na: %.10e, K: %.10e,Cl: %.10e\n",c[c_index(0,0,0,0,Nx)],c[c_index(0,0,0,1,Nx)],c[c_index(0,0,0,2,Nx)]);
+//    printf("EXT: Na: %.10e, K: %.10e,Cl: %.10e\n\n",c[c_index(0,0,2,0,Nx)],c[c_index(0,0,2,1,Nx)],c[c_index(0,0,2,2,Nx)]);
     ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
     if(Profiling_on) {
         PetscLogEventEnd(event[1], 0, 0, 0, 0);

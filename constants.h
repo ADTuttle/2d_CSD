@@ -10,7 +10,7 @@
 
 // General options
 
-#define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
+#define details 1 //if true, will show how many iterations were necessary for each newton solve, and the residual
 #define mid_points_exct 0
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
@@ -24,15 +24,15 @@
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define Predictor 1  // Turns on predictor. Adaptive single point estimated update
+#define Predictor 0  // Turns on predictor. Adaptive single point estimated update
 #define width_size  1//1 //Number of up,down,left,right neighbors to pair in the predictor.
 
 //basic ion extern constants
 #define   Ni  4           //number of ion species (Na, K, Cl)
-static const   PetscInt z[4] = {1,1,-1,0};//valences of ion species
+static const   PetscInt z[4] = {1,1,-1,-1}; //valences of ion species
 static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,0};      //diffusion coefficients in cm^2/sec
 
-#define Time 1.0   //total simulated time in seconds
+#define Time 30.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -117,11 +117,11 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define npump  1.0
 
 // Glutamate parameters
-#define glut_gamma 0.2    //Reabsorbtion ratio (arbitrary)
-#define glut_A 600 //500       //Release rate in mM/sec
+#define glut_gamma 1.0//0.2    //Reabsorbtion ratio (arbitrary)
+#define glut_A 600e-3 //500       //Release rate in mmol/cm^3/sec
 #define glut_B 10              //Decay rate in 1/sec
-#define glut_eps (5/1000)      //Small scaling factor muMol converted to millMol
-#define basepNMDA 5e-5           //NMDA permeability
+#define glut_eps 5e-6 //5e-3      //Small scaling factor muMol converted to millMol
+#define basepNMDA 1e-7 //5e-5           //NMDA permeability
 
 // Data Structures
 struct SimState{

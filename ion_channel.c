@@ -79,14 +79,14 @@ void mcGoldman(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,Pet
 
 void glutamate_flux(struct FluxData *flux,PetscInt neuron,PetscInt glia,PetscReal ci,PetscReal ce,PetscReal vm,PetscReal aln,PetscReal ale)
 {
-    PetscReal frac = 1/(ci+glut_eps);
+    PetscReal frac = 1.0/(ci+glut_eps);
     PetscReal expo = exp(-0.0044*pow(vm-8.66,2));
 
     //Neuronal portion
     flux->mflux[neuron] = -glut_A*aln*ci*frac*expo+glut_gamma*glut_B*ale*ce;
     flux->dfdci[neuron] = -glut_A*aln*expo*glut_eps*pow(frac,2);
     flux->dfdce[neuron] = glut_gamma*glut_B*ale;
-    flux->dfdphim[neuron] = -0.0088*(vm-8.66)*expo;
+    flux->dfdphim[neuron] = 0;//-0.0088*(vm-8.66)*expo;
 
     //Glial Portion
     flux->mflux[glia] = (1-glut_gamma)*glut_B*ale*ce;
@@ -97,8 +97,17 @@ void glutamate_flux(struct FluxData *flux,PetscInt neuron,PetscInt glia,PetscRea
     //Extracell portion is = -Neuron-Glia. Which is implemented in the solvers.
 
     // For uniformity scale these up by ell
-    flux->mflux[neuron]*=ell;
-    flux->mflux[glia]*=ell;
+    //Neuronal portion
+//    flux->mflux[neuron] *= ell;
+//    flux->dfdci[neuron] *= ell;
+//    flux->dfdce[neuron] *= ell;
+//    flux->dfdphim[neuron] *= ell;
+
+    //Glial Portion
+    flux->mflux[glia] *= ell;
+    flux->dfdci[glia] *= ell;
+    flux->dfdce[glia] *= ell;
+    flux->dfdphim[glia] *= ell;
 
 }
 PetscReal xoverexpminusone(PetscReal v,PetscReal aa,PetscReal bb,PetscReal cc,PetscInt dd)
@@ -532,6 +541,7 @@ void ionmflux(struct AppCtx* user)
             flux->mflux[c_index(x,y,1,2,Nx)]+=2*NaKCl; //Cl
 
             //Glutamate transport
+            vm = state_vars_past->phi[phi_index(x,y,0,Nx)]-state_vars_past->phi[phi_index(x,y,Nc-1,Nx)];
             ci = state_vars->c[c_index(x,y,0,3,Nx)];
             ce = state_vars->c[c_index(x,y,Nc-1,3,Nx)];
             cgp = 1-state_vars->alpha[al_index(x,y,0,Nx)]-state_vars->alpha[al_index(x,y,1,Nx)]; //reuse variable to store extracell. volume
@@ -761,6 +771,7 @@ void grid_ionmflux(struct AppCtx* user,PetscInt xi,PetscInt yi)
             flux->mflux[c_index(x, y, 1, 2, Nx)] += 2 * NaKCl; //Cl
 
             //Glutamate transport
+            vm = state_vars_past->phi[phi_index(x,y,0,Nx)]-state_vars_past->phi[phi_index(x,y,Nc-1,Nx)];
             ci = state_vars->c[c_index(x,y,0,3,Nx)];
             ce = state_vars->c[c_index(x,y,Nc-1,3,Nx)];
             cgp = 1-state_vars->alpha[al_index(x,y,0,Nx)]-state_vars->alpha[al_index(x,y,1,Nx)]; //reuse variable to store extracell. volume
