@@ -139,7 +139,7 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
     if(Profiling_on) {
         PetscLogEventBegin(event[1], 0, 0, 0, 0);
     }
-    ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = extract_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     //Compute membrane ionic flux relation quantitites
     ionmflux(user);
 
@@ -305,7 +305,7 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
     //Assemble before we add values in on top to modify the electroneutral.
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
-    ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = restore_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
 
     if(Profiling_on) {
         PetscLogEventEnd(event[1], 0, 0, 0, 0);
@@ -323,7 +323,7 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
     if(Profiling_on) {
         PetscLogEventBegin(event[0], 0, 0, 0, 0);
     }
-    ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = extract_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     PetscReal *c = user->state_vars->c;
     PetscReal *al = user->state_vars->alpha;
     PetscReal *cp = user->state_vars_past->c;
@@ -716,7 +716,7 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
         ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
         ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr); }
 
-    ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = restore_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     if(Profiling_on) {
         PetscLogEventEnd(event[0], 0, 0, 0, 0);
     }
@@ -1337,7 +1337,7 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
     if(Profiling_on) {
         PetscLogEventBegin(event[1], 0, 0, 0, 0);
     }
-    ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = extract_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     //Compute membrane ionic flux relation quantitites
     ionmflux(user);
 
@@ -1491,7 +1491,7 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
 
 
 
-    ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = restore_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     if(Profiling_on) {
         PetscLogEventEnd(event[1], 0, 0, 0, 0);
     }
@@ -1508,7 +1508,7 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
     if(Profiling_on) {
         PetscLogEventBegin(event[0], 0, 0, 0, 0);
     }
-    ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = extract_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     PetscReal *c = user->state_vars->c;
     PetscReal *al = user->state_vars->alpha;
     PetscReal *cp = user->state_vars_past->c;
@@ -1800,7 +1800,7 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
         ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
         ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr); }
 
-    ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = restore_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     if(Profiling_on) {
         PetscLogEventEnd(event[0], 0, 0, 0, 0);
     }
@@ -1816,7 +1816,7 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
     if(Profiling_on) {
         PetscLogEventBegin(event[1], 0, 0, 0, 0);
     }
-    ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = extract_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     //Compute membrane ionic flux relation quantitites
     ionmflux(user);
 
@@ -1960,7 +1960,7 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
 
-    ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = restore_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     if(Profiling_on) {
         PetscLogEventEnd(event[1], 0, 0, 0, 0);
     }
@@ -1977,7 +1977,7 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
     if(Profiling_on) {
         PetscLogEventBegin(event[0], 0, 0, 0, 0);
     }
-    ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = extract_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     PetscReal *c = user->state_vars->c;
     PetscReal *al = user->state_vars->alpha;
     PetscReal *cp = user->state_vars_past->c;
@@ -2227,7 +2227,7 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
         ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
         ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr); }
 
-    ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = restore_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     if(Profiling_on) {
         PetscLogEventEnd(event[0], 0, 0, 0, 0);
     }
