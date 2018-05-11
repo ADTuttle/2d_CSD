@@ -7,7 +7,7 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
 
     PetscReal rsd;
     PetscErrorCode ierr = 0;
-    PetscReal *temp;
+    PetscReal const *temp;
     PetscInt num_iter,comp,ion,x,y;
     PetscReal rnorm;
     PetscInt Nx = user->Nx;
@@ -93,7 +93,7 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
         }
 
 //        PetscTime(&tic);
-        ierr = VecGetArray(slvr->Q,&temp); CHKERRQ(ierr);
+        ierr = VecGetArrayRead(slvr->Q,&temp); CHKERRQ(ierr);
         extract_subarray(current_state,user->state_vars);
         for(x=0;x<Nx;x++){
             for(y=0;y<Ny;y++){
@@ -111,7 +111,7 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
             }
         }
 
-        ierr = VecRestoreArray(slvr->Q,&temp);
+        ierr = VecRestoreArrayRead(slvr->Q,&temp);
         restore_subarray(current_state,user->state_vars);
 
         if(details)
@@ -794,18 +794,12 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
     if(Profiling_on) {
         PetscLogEventBegin(event[1], 0, 0, 0, 0);
     }
-    ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = extract_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     //Compute membrane ionic flux relation quantitites
-//        PetscTime(&tic);
     ionmflux(user);
-//        PetscTime(&toc);
-//        printf("Calc ion flux time: %.10e\n",toc-tic);
 
     //Compute membrane water flow related quantities
-//        PetscTime(&tic);
     wflowm(user);
-//        PetscTime(&toc);
-//        printf("Calc wflow: %.10e\n",toc-tic);
 
     PetscReal *c = user->state_vars->c;
     PetscReal *phi = user->state_vars->phi;
@@ -952,7 +946,7 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
 
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
-    ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = restore_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     if(Profiling_on) {
         PetscLogEventEnd(event[1], 0, 0, 0, 0);
     }
@@ -970,7 +964,7 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
     if(Profiling_on) {
         PetscLogEventBegin(event[0], 0, 0, 0, 0);
     }
-    ierr = extract_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = extract_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     PetscReal *c = user->state_vars->c;
     PetscReal *al = user->state_vars->alpha;
     PetscReal *cp = user->state_vars_past->c;
@@ -1327,7 +1321,7 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
         ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
         ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr); }
 
-    ierr = restore_subarray(current_state,user->state_vars); CHKERRQ(ierr);
+    ierr = restore_subarray_Read(current_state,user->state_vars); CHKERRQ(ierr);
     if(Profiling_on) {
         PetscLogEventEnd(event[0], 0, 0, 0, 0);
     }

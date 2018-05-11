@@ -131,6 +131,62 @@ PetscErrorCode restore_subarray(Vec state,struct SimState *state_vars)
     return ierr;
 
 }
+PetscErrorCode extract_subarray_Read(Vec state,struct SimState *state_vars)
+{
+    if(Profiling_on) {
+        PetscLogEventBegin(event[2], 0, 0, 0, 0);
+    }
+    PetscErrorCode ierr;
+    ierr = VecGetSubVector(state,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
+
+    ierr = VecGetSubVector(state,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(state_vars->phi_vec,&state_vars->phi); CHKERRQ(ierr);
+    if(!separate_vol) {
+        ierr = VecGetSubVector(state, state_vars->al_ind, &state_vars->al_vec);
+        CHKERRQ(ierr);
+        ierr = VecGetArrayRead(state_vars->al_vec, &state_vars->alpha);
+        CHKERRQ(ierr);
+    }
+    if(Profiling_on) {
+        PetscLogEventEnd(event[2], 0, 0, 0, 0);
+    }
+
+    return ierr;
+
+}
+
+PetscErrorCode restore_subarray_Read(Vec state,struct SimState *state_vars)
+{
+    if(Profiling_on) {
+        PetscLogEventBegin(event[3], 0, 0, 0, 0);
+    }
+    PetscErrorCode ierr;
+
+    ierr = VecRestoreArrayRead(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
+    ierr = VecRestoreSubVector(state,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
+
+
+    ierr = VecRestoreArrayRead(state_vars->phi_vec,&state_vars->phi); CHKERRQ(ierr);
+    ierr = VecRestoreSubVector(state,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
+
+    if(!separate_vol) {
+        ierr = VecRestoreArrayRead(state_vars->al_vec, &state_vars->alpha);
+        CHKERRQ(ierr);
+        ierr = VecRestoreSubVector(state, state_vars->al_ind, &state_vars->al_vec);
+        CHKERRQ(ierr);
+        state_vars->alpha = NULL;
+    }
+
+    state_vars->c = NULL;
+    state_vars->phi = NULL;
+    if(Profiling_on) {
+        PetscLogEventEnd(event[3], 0, 0, 0, 0);
+    }
+
+    return ierr;
+
+}
 PetscErrorCode copy_simstate(Vec current_state,struct SimState *state_vars_past)
 {
     PetscErrorCode ierr;

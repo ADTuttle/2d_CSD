@@ -1402,7 +1402,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
 
     PetscReal rsd;
     PetscErrorCode ierr = 0;
-    PetscReal *temp;
+    PetscReal const *temp;
 
     PetscInt x,y,comp,ion;
     PetscInt Nx = 2*width_size+1;
@@ -1434,7 +1434,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
         ierr = KSPSolve(user->grid_slvr->ksp, user->grid_slvr->Res, user->grid_slvr->Q);CHKERRQ(ierr);
 
 
-        ierr = VecGetArray(user->grid_slvr->Q, &temp);CHKERRQ(ierr);
+        ierr = VecGetArrayRead(user->grid_slvr->Q, &temp);CHKERRQ(ierr);
         for (x = 0; x < Nx; x++) {
             for (y = 0; y < Ny; y++) {
                 for (comp = 0; comp < Nc; comp++) {
@@ -1448,7 +1448,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
                 }
             }
         }
-        ierr = VecRestoreArray(user->grid_slvr->Q, &temp);CHKERRQ(ierr);
+        ierr = VecRestoreArrayRead(user->grid_slvr->Q, &temp);CHKERRQ(ierr);
 
     }
 
