@@ -126,7 +126,6 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
             //set extracellular organic anion amounts and valence to ensure electroneutrality
             con_vars->ao[Nc - 1] = 5e-4;
             alNc = 1- alpha[al_index(x,y,0,Nx)]-alpha[al_index(x,y,1,Nx)];
-            PetscReal cmphi[Nc]={0,0,0}; //initializing cmphi
 
             for (PetscInt k = 0; k < Nc - 1; k++) {
                 cmphi[k] = cm[k] * (phi[phi_index(x,y,k,Nx)] - phi[phi_index(x,y,Nc-1,Nx)]);
@@ -206,7 +205,6 @@ void initialize_data(Vec current_state,struct AppCtx *user)
 
     PetscReal convtol = 1e-9;
     extract_subarray(current_state,user->state_vars);
-//	PetscReal tol = convtol*array_max(user->state_vars->c,(size_t)Nx*Ny*Nc*Ni);
     PetscReal tol =convtol;
     PetscReal rsd = 1.0;
     PetscReal rsd_v[3];
@@ -222,6 +220,9 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     PetscInt k = 0;
     user->dt = 0.01;
 
+    // For 1x1 grid Dcs is zeros
+    memset(user->Dcs,0,sizeof(PetscReal)*2*temp_Nx*temp_Ny*Nc*Ni);
+
     while(rsd>tol && k<1e5)
     {
         extract_subarray(current_state,user->state_vars);
@@ -233,16 +234,13 @@ void initialize_data(Vec current_state,struct AppCtx *user)
             //Update volume
             volume_update(user->state_vars, user->state_vars_past, user);
         }
-        //compute diffusion coefficients
-//        diff_coef(user->Dcs,user->state_vars->alpha,1,user);
+        //compute diffusion coefficients (Dcs is not used for 1x1)
         //Bath diffusion
         diff_coef(user->Dcb,user->state_vars->alpha,Batheps,user);
-        memset(user->Dcs,0,sizeof(PetscReal)*2*temp_Nx*temp_Ny*Nc*Ni);
         restore_subarray(current_state, user->state_vars);
 
-
+        // Use own solver since we reuse data structs to update a subset
         newton_solve(current_state,slvr,user);
-//        SNESSolve(user->slvr->snes,NULL,current_state);
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
 
@@ -367,6 +365,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     //Create Solver Contexts
     ierr = SNESCreate(PETSC_COMM_WORLD,&slvr->snes); CHKERRQ(ierr);
     ierr = SNESGetKSP(slvr->snes,&slvr->ksp); CHKERRQ(ierr);
+    ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
 
     //Choose solver based on constants.h options.
     if(Linear_Diffusion){
@@ -438,8 +437,6 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 //*/
 
 
-
-    ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
     //Multigrid precond
 //    ierr = Initialize_PCMG(slvr->pc,slvr->A,user); CHKERRQ(ierr);
 
@@ -564,24 +561,18 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
         Ind = &Ind_1;
     }
     //Make sure nnz is initialized to zero
-    for(int i=0;i<NA;i++)
-    {
+    for(int i=0;i<NA;i++) {
         nnz[i]=0;
     }
     int ind = 0;
     int x,y,comp,ion;
     //Ionic concentration equations
-    for(x=0;x<Nx;x++)
-    {
-        for(y=0;y<Ny;y++)
-        {
-            for(ion=0;ion<Ni;ion++)
-            {
-                for(comp=0;comp<Nc-1;comp++)
-                {
+    for(x=0;x<Nx;x++) {
+        for(y=0;y<Ny;y++) {
+            for(ion=0;ion<Ni;ion++) {
+                for(comp=0;comp<Nc-1;comp++) {
                     //Electrodiffusion contributions
-                    if(x<Nx-1)
-                    {
+                    if(x<Nx-1) {
                         nnz[Ind(x+1,y,ion,comp,Nx)]++; //Ind_1(x,y,ion,comp,Nx)
                         ind++;
                         //Right c with left phi (-Fph0x)
@@ -590,8 +581,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                         nnz[Ind(x+1,y,Ni,comp,Nx)]++;
                         ind++;
                     }
-                    if(x>0)
-                    {
+                    if(x>0) {
                         //left c with right c (-Fc1x)
                         nnz[Ind(x-1,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                         ind++;
@@ -601,8 +591,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                         nnz[Ind(x-1,y,Ni,comp,Nx)]++;
                         ind++;
                     }
-                    if(y<Ny-1)
-                    {
+                    if(y<Ny-1) {
                         // Upper c with lower c (-Fc0y)
                         nnz[Ind(x,y+1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx);
                         ind++;
@@ -612,8 +601,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                         nnz[Ind(x,y+1,Ni,comp,Nx)]++;
                         ind++;
                     }
-                    if(y>0)
-                    {
+                    if(y>0) {
                         //Lower c with Upper c (-Fc1y)
                         nnz[Ind(x,y-1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                         ind++;
@@ -668,8 +656,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                 //Extracellular terms
                 comp = Nc-1;
                 //Electrodiffusion contributions
-                if(x<Nx-1)
-                {
+                if(x<Nx-1) {
                     // Right c with left c (-Fc0x)
                     nnz[Ind(x+1,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     ind++;
@@ -679,8 +666,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                     nnz[Ind(x+1,y,Ni,comp,Nx)]++;
                     ind++;
                 }
-                if(x>0)
-                {
+                if(x>0) {
                     //left c with right c (-Fc1x)
                     nnz[Ind(x-1,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     ind++;
@@ -690,8 +676,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                     nnz[Ind(x-1,y,Ni,comp,Nx)]++;
                     ind++;
                 }
-                if(y<Ny-1)
-                {
+                if(y<Ny-1) {
                     // Upper c with lower c (-Fc0y)
                     nnz[Ind(x,y+1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     ind++;
@@ -701,8 +686,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                     nnz[Ind(x,y+1,Ni,comp,Nx)]++;
                     ind++;
                 }
-                if(y>0)
-                {
+                if(y>0) {
                     //Lower c with Upper c (-Fc1y)
                     nnz[Ind(x,y-1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     ind++;
@@ -728,26 +712,22 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
             }
             //Derivative of charge-capacitance
             for(comp=0;comp<Nc-1;comp++){
-                if(x<Nx-1)
-                {
+                if(x<Nx-1) {
                     //Right phi with left phi (-Fph0x)
                     nnz[Ind(x+1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
                 }
-                if(x>0)
-                {
+                if(x>0) {
                     //Left phi with right phi (-Fph1x)
                     nnz[Ind(x-1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
                 }
-                if(y<Ny-1)
-                {
+                if(y<Ny-1) {
                     //Upper phi with lower phi (-Fph0y)
                     nnz[Ind(x,y+1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
                 }
-                if(y>0)
-                {
+                if(y>0) {
                     //Lower phi with upper phi (-Fph1y)
                     nnz[Ind(x,y-1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
@@ -761,26 +741,22 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
             }
             //Extracellular terms
             comp = Nc-1;
-            if(x<Nx-1)
-            {
+            if(x<Nx-1) {
                 //Right phi with left phi (-Fph0x)
                 nnz[Ind(x+1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                 ind++;
             }
-            if(x>0)
-            {
+            if(x>0) {
                 //Left phi with right phi (-Fph1x)
                 nnz[Ind(x-1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                 ind++;
             }
-            if(y<Ny-1)
-            {
+            if(y<Ny-1) {
                 //Upper phi with lower phi (-Fph0y)
                 nnz[Ind(x,y+1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                 ind++;
             }
-            if(y>0)
-            {
+            if(y>0) {
                 //Lower phi with upper phi (-Fph1y)
                 nnz[Ind(x,y-1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                 ind++;
@@ -826,8 +802,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
             }
         }
     }
-    printf("Nz: %d, ind: %d\n",user->Nz,ind);
-    return;
+    printf("Base Nz: %d, Actual Nz: %d\n",user->Nz,ind);
 }
 
 
@@ -852,9 +827,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
             for(ion=0;ion<Ni;ion++) {
                 for(comp=0;comp<Nc-1;comp++) {
                     //Electrodiffusion contributions
-
-                    if(x<Nx-1)
-                    {
+                    if(x<Nx-1) {
                         // Right c with left c (-Fc0x)
                         ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
@@ -866,11 +839,8 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                             ierr = MatSetValue(Jac,Ind_1(x+1,y,Ni,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                             ind++;
                         }
-
-
                     }
-                    if(x>0)
-                    {
+                    if(x>0) {
                         //left c with right c (-Fc1x)
                         ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
@@ -885,8 +855,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                             ind++;
                         }
                     }
-                    if(y<Ny-1)
-                    {
+                    if(y<Ny-1) {
                         // Upper c with lower c (-Fc0y)
                         ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
@@ -901,8 +870,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                             ind++;
                         }
                     }
-                    if(y>0)
-                    {
+                    if(y>0) {
                         //Lower c with Upper c (-Fc1y)
                         ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
@@ -917,7 +885,6 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                             ind++;
                         }
                     }
-
                     // Different Compartment Terms
                     // C Extracellular with C Inside
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
@@ -964,13 +931,11 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         CHKERRQ(ierr);
                         ind++;
                     }
-
                 }
                 //Extracellular terms
                 comp = Nc-1;
                 //Electrodiffusion contributions
-                if(x<Nx-1)
-                {
+                if(x<Nx-1) {
                     // Right c with left c (-Fc0x)
                     ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
@@ -984,8 +949,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         ind++;
                     }
                 }
-                if(x>0)
-                {
+                if(x>0) {
                     //left c with right c (-Fc1x)
                     ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
@@ -999,8 +963,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         ind++;
                     }
                 }
-                if(y<Ny-1)
-                {
+                if(y<Ny-1) {
                     // Upper c with lower c (-Fc0y)
                     ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
@@ -1014,8 +977,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         ind++;
                     }
                 }
-                if(y>0)
-                {
+                if(y>0) {
                     //Lower c with Upper c (-Fc1y)
                     ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
@@ -1137,7 +1099,6 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                     ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp,Nx), Ind_1(x, y, ion, comp,Nx), 0, INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
-
                 }
                 //electroneutrality-voltage entries
 
@@ -1187,7 +1148,6 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         CHKERRQ(ierr);
                         ind++;
                     }
-
                 }
             }
         }

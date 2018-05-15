@@ -25,14 +25,19 @@
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
 #define Predictor 1  // Turns on predictor. Adaptive single point estimated update
-#define width_size  1//1 //Number of up,down,left,right neighbors to pair in the predictor.
+#define width_size  1 //Number of up,down,left,right neighbors to pair in the predictor.
+#define Max_Grid_Refine 256 // Max number of time steps to refine in grid predictor
 
 //basic ion extern constants
 #define   Ni  3           //number of ion species (Na, K, Cl)
 static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
+//Diffusion multipliers {x-dir,y-dir}
+static const PetscReal DNeuronMult[2] = {0,0};
+static const PetscReal DGliaMult[2] = {0.25,0.25};
+static const PetscReal DExtraMult[2] = {1.0,1.0};
 
-#define Time 5.0   //total simulated time in seconds
+#define Time 20.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -123,7 +128,7 @@ struct SimState{
     PetscScalar *phi;
     PetscScalar *alpha;
     Vec v;  // Full variable vec
-    Vec c_vec;  //Inidivual variable vecs
+    Vec c_vec;  //Individual variable vecs
     Vec phi_vec;
     Vec al_vec;
     IS c_ind;    //Indices for c/phi/al.
@@ -131,15 +136,15 @@ struct SimState{
     IS phi_ind;
 
 };
-
+// Flux data plus derivatives
 struct FluxData{
-    PetscReal *mflux;
-    PetscReal *dfdci;
-    PetscReal *dfdce;
-    PetscReal *dfdphim;
-    PetscReal *wflow;
-    PetscReal *dwdpi;
-    PetscReal *dwdal;
+    PetscReal *mflux; //membrane flux
+    PetscReal *dfdci; //intracellular deriv
+    PetscReal *dfdce; //extracell. deriv
+    PetscReal *dfdphim; //membrane voltage deriv (intra volt = + this, extra volt = -this)
+    PetscReal *wflow;  // osmotic water flow
+    PetscReal *dwdpi;  //concentration deriv.
+    PetscReal *dwdal;  //volume deriv
 };
 
 
@@ -156,13 +161,13 @@ struct GateType{
     PetscReal *hKA;
     PetscReal *gKA;
 };
-
+// Excitation permeabilities
 struct ExctType{
     PetscReal *pNa;
     PetscReal *pK;
     PetscReal *pCl;
 };
-
+// Constant params (vary in space set in constants.c)
 struct ConstVars{
     PetscReal *pNaT; //Gating variable arrays
     PetscReal *pNaP;
@@ -178,25 +183,27 @@ struct ConstVars{
     PetscReal *zo;  //Avg valence
     PetscReal kappa;
     PetscReal *zeta1;
-    int S; //boolean
+    int S; //boolean (not used)
     PetscReal *zetaalpha;
     PetscReal *DNeuronScale; // Glial diffusion scaling
     PetscReal *DGliaScale; // Glial diffusion scaling
     PetscReal *DExtracellScale; // Extracellular diffusion scaling
 };
+// All Solver data structs
 struct Solver{
     Vec Q;      /* Update*/
     Vec Res;
     Mat A;            /* linear system matrix */
     SNES snes;       /*Nonlinear solver context*/
-    KSP ksp;         /* linear solver context */
+    KSP ksp;         /* krylov linear solver context */
     PC pc;           /* preconditioner context */
-    PetscMPIInt   size;
+    PetscMPIInt   size;  // MPI ranks
 
-    PetscInt NA;
+    PetscInt NA;  // Total number of variables (Nx*Ny*Nv)
 };
 
-
+// Struct containing all arrays and params
+// This gets passed as "context" to petsc functions
 struct AppCtx{
     struct SimState *state_vars;
     struct SimState *state_vars_past;
@@ -223,6 +230,10 @@ struct AppCtx{
     PetscReal t;
     FILE *fp;
 };
+
+// Logging events during the code for timing
+// Add additional events in misc_print_plot.c -> init_events function
+// May need to allocate a longer array if so.
 PetscLogEvent event[14];
 
 #endif

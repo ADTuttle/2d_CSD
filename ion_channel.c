@@ -60,21 +60,17 @@ void mcGoldman(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,Pet
     }
     //compute dfdphim
     PetscReal dfdphim = (PetscReal)zi/2*(mflux*s*w+mi-me);
-    if(ADD) //If ADD, we accumulate this result
-    {
+    if(ADD) { //If ADD, we accumulate this result
         flux->mflux[index] += mflux;
         flux->dfdce[index] += dfdce;
         flux->dfdci[index] += dfdci;
         flux->dfdphim[index] += dfdphim;
-    }
-    else // If not ADD, we reset the values
-    {
+    } else { // If not ADD, we reset the values
         flux->mflux[index] = mflux;
         flux->dfdce[index] = dfdce;
         flux->dfdci[index] = dfdci;
         flux->dfdphim[index] = dfdphim;
     }
-    return;
 }
 PetscReal xoverexpminusone(PetscReal v,PetscReal aa,PetscReal bb,PetscReal cc,PetscInt dd)
 {
@@ -568,7 +564,6 @@ void grid_wflowm(struct AppCtx *user)
     PetscReal dwdpi,dwdal,piw,piwNc;
     for(PetscInt x=0;x<Nx;x++) {
         for (PetscInt y = 0; y < Ny; y++) {
-
             //Calculate the pi for extracellular
             piwNc = 0;
             for (PetscInt ion = 0; ion < Ni; ion++) {
