@@ -12,7 +12,7 @@
 
 #define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
 #define mid_points_exct 0
-#define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
+#define one_point_exct 0 //if true, triggers SD at origin
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
 #define Profiling_on 1 //Turns timing of functions on/off.
 #define trecordstep 0.01 //0.5 //determines how often to record

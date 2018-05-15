@@ -1431,7 +1431,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
 
         //Solve
         ierr = KSPSolve(user->grid_slvr->ksp, user->grid_slvr->Res, user->grid_slvr->Q);CHKERRQ(ierr);
-        
+
 
         ierr = VecGetArrayRead(user->grid_slvr->Q, &temp);CHKERRQ(ierr);
         for (x = 0; x < Nx; x++) {

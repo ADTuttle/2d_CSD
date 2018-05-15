@@ -126,7 +126,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
             //set extracellular organic anion amounts and valence to ensure electroneutrality
             con_vars->ao[Nc - 1] = 5e-4;
             alNc = 1- alpha[al_index(x,y,0,Nx)]-alpha[al_index(x,y,1,Nx)];
-            PetscReal cmphi[Nc]={0,0,0}; //initializing cmphi
+            cmphi[Nc-1] = 0; //initializing extracell cmphi
 
             for (PetscInt k = 0; k < Nc - 1; k++) {
                 cmphi[k] = cm[k] * (phi[phi_index(x,y,k,Nx)] - phi[phi_index(x,y,Nc-1,Nx)]);
