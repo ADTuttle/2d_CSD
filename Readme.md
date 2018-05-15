@@ -60,25 +60,25 @@ Should be simple.
 ## Options Run down
 Here is a list of all of the types of options in the constants.h and how they effect the program.
 1. General Options:
-	a. details: Choose to see detailed solver info as the program runs. Helps with debugging.
-	b. mid_points_exct: Excite a circle in the center of the domain of size Lexct.
-	c. one_point_exct: Excite bottom left point (0,0).
-	d. plane_wave_exct: Excite a plane wave along left boundary. (If all 3 choices are 0, circular wave at bottom left is used)
-	e. Profiling_on: Turn on Petsc Profiling to track performance.
-	f. trecordstep: How often data is written to data_csd.txt
-	g. save_one_var: Option to save only one variable (change which one in misc_print_plot.c write_data function)
-	h. state_at_steady: If true will run steady state routine. If not true will read from save_csd.txt to restart.
+	* details: Choose to see detailed solver info as the program runs. Helps with debugging.
+	* mid_points_exct: Excite a circle in the center of the domain of size Lexct.
+	* one_point_exct: Excite bottom left point (0,0).
+	* plane_wave_exct: Excite a plane wave along left boundary. (If all 3 choices are 0, circular wave at bottom left is used)
+	* Profiling_on: Turn on Petsc Profiling to track performance.
+	* trecordstep: How often data is written to data_csd.txt
+	* save_one_var: Option to save only one variable (change which one in misc_print_plot.c write_data function)
+	* state_at_steady: If true will run steady state routine. If not true will read from save_csd.txt to restart.
 
 2. Solver Types:
-	a. Use_en_deriv and separate_vol. These will respectively use the derivative of the charge-capacitance relation or solve volume seperately. All 4 combinations of these are possible, but with each set seems to be the most stable.
-	b. Linear_diffusion: Linear discritzation of diffusion. This doesn't perform that stabely (at the moment) but the option is there. Can also be combined with the 4 combinations of the above.
-	c. Predictor: Solve small (2*width_size+1) grids on points that have passed a voltage threshhold. Solve these adaptively until the newton solver takes only 2 iterations. Max_grid_refine is the largest number of substeps to take. (Only really happens if pNaT is turned on)
+	* Use_en_deriv and separate_vol. These will respectively use the derivative of the charge-capacitance relation or solve volume seperately. All 4 combinations of these are possible, but with each set seems to be the most stable.
+	* Linear_diffusion: Linear discritzation of diffusion. This doesn't perform that stabely (at the moment) but the option is there. Can also be combined with the 4 combinations of the above.
+	* Predictor: Solve small (2*width_size+1) grids on points that have passed a voltage threshhold. Solve these adaptively until the newton solver takes only 2 iterations. Max_grid_refine is the largest number of substeps to take. (Only really happens if pNaT is turned on)
 3. Misc. vars
-	a. Time, Lx, Ly: Set durations and size of domain. (Set default Nx,Ny, and dt inside of initialize_petsc otherwise use the commaind line to set e.g "./csd -Nx 64 -Ny 20 -dt 0.005")
-	b. DNeuronMult/DGliaMult/Dextramul: Modify the diffusion multipliers of each compartment.
-	c. Batheps: Modify the strength of the bath. Or bath concentrations
-	d. Excitation: pmax, how big to perturb. texct, how long to perturb (is a sine wave squared so it builds slowly). Lexct, how big a region to perturb (also a sine wave squared).
-	e. Channel permeabilities. Modify these however. npump and glpump multipliars are more sensitive (cannot go above 2.0)
+	* Time, Lx, Ly: Set durations and size of domain. (Set default Nx,Ny, and dt inside of initialize_petsc otherwise use the commaind line to set e.g "./csd -Nx 64 -Ny 20 -dt 0.005")
+	* DNeuronMult/DGliaMult/Dextramul: Modify the diffusion multipliers of each compartment.
+	* Batheps: Modify the strength of the bath. Or bath concentrations
+	* Excitation: pmax, how big to perturb. texct, how long to perturb (is a sine wave squared so it builds slowly). Lexct, how big a region to perturb (also a sine wave squared).
+	* Channel permeabilities. Modify these however. npump and glpump multipliars are more sensitive (cannot go above 2.0)
 
 <a name="data"></a>
 ## Data Structures and Indexing
@@ -222,10 +222,10 @@ The algorithm we use can be summed up as:
 2. Set initial values.
 3. Iterate with a larger time step until steady state is reached.
 4. Begin solve loop.
-	a. (Possibly) Make a prediction
-	b. Update c, phi, alpha (possibly alpha separately).
-	c. Update gating variables.
-	d. Record values every krecordfreq.
+	* (Possibly) Make a prediction
+	* Update c, phi, alpha (possibly alpha separately).
+	* Update gating variables.
+	* Record values every krecordfreq.
 
 The update will always involve solving a nonlinear system via newton's method. Which in term has a matrix being "inverted". The details in this is determined by the petsc settings used. Additionally, my own newton_solve code is implemented and could be used if desired.
 
