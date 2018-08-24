@@ -2,6 +2,8 @@ cmake-build-debug/
 
 spiral_attempts/
 
+data_runs/
+
 mat.txt
 
 data_csd.txt
@@ -107,3 +109,9 @@ csd_dt.txt
 flux_csd.txt
 
 point_csd.txt
+
+grad_field.txt
+
+measures.txt
+
+save_csd.txt

@@ -110,12 +110,66 @@ PetscErrorCode restore_subarray(Vec state,struct SimState *state_vars)
     ierr = VecRestoreArray(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
     ierr = VecRestoreSubVector(state,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
 
-
     ierr = VecRestoreArray(state_vars->phi_vec,&state_vars->phi); CHKERRQ(ierr);
     ierr = VecRestoreSubVector(state,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
 
     if(!separate_vol) {
         ierr = VecRestoreArray(state_vars->al_vec, &state_vars->alpha);
+        CHKERRQ(ierr);
+        ierr = VecRestoreSubVector(state, state_vars->al_ind, &state_vars->al_vec);
+        CHKERRQ(ierr);
+        state_vars->alpha = NULL;
+    }
+
+    state_vars->c = NULL;
+    state_vars->phi = NULL;
+    if(Profiling_on) {
+        PetscLogEventEnd(event[3], 0, 0, 0, 0);
+    }
+
+    return ierr;
+
+}
+PetscErrorCode extract_subarray_Read(Vec state,struct SimState *state_vars)
+{
+    if(Profiling_on) {
+        PetscLogEventBegin(event[2], 0, 0, 0, 0);
+    }
+    PetscErrorCode ierr;
+    ierr = VecGetSubVector(state,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
+
+    ierr = VecGetSubVector(state,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
+    ierr = VecGetArrayRead(state_vars->phi_vec,&state_vars->phi); CHKERRQ(ierr);
+    if(!separate_vol) {
+        ierr = VecGetSubVector(state, state_vars->al_ind, &state_vars->al_vec);
+        CHKERRQ(ierr);
+        ierr = VecGetArrayRead(state_vars->al_vec, &state_vars->alpha);
+        CHKERRQ(ierr);
+    }
+    if(Profiling_on) {
+        PetscLogEventEnd(event[2], 0, 0, 0, 0);
+    }
+
+    return ierr;
+
+}
+
+PetscErrorCode restore_subarray_Read(Vec state,struct SimState *state_vars)
+{
+    if(Profiling_on) {
+        PetscLogEventBegin(event[3], 0, 0, 0, 0);
+    }
+    PetscErrorCode ierr;
+
+    ierr = VecRestoreArrayRead(state_vars->c_vec,&state_vars->c); CHKERRQ(ierr);
+    ierr = VecRestoreSubVector(state,state_vars->c_ind,&state_vars->c_vec); CHKERRQ(ierr);
+
+    ierr = VecRestoreArrayRead(state_vars->phi_vec,&state_vars->phi); CHKERRQ(ierr);
+    ierr = VecRestoreSubVector(state,state_vars->phi_ind,&state_vars->phi_vec); CHKERRQ(ierr);
+
+    if(!separate_vol) {
+        ierr = VecRestoreArrayRead(state_vars->al_vec, &state_vars->alpha);
         CHKERRQ(ierr);
         ierr = VecRestoreSubVector(state, state_vars->al_ind, &state_vars->al_vec);
         CHKERRQ(ierr);
@@ -154,7 +208,7 @@ void init_arrays(struct AppCtx*user)
     user->flux->dwdpi = (PetscReal*) malloc(Nx*Ny*(Nc-1)*sizeof(PetscReal));
     user->flux->dwdal = (PetscReal*) malloc(Nx*Ny*(Nc-1)*sizeof(PetscReal));
 
-    //Gating variables
+    //Gating variables (present)
     user->gate_vars->mNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars->hNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars->gNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
@@ -166,7 +220,7 @@ void init_arrays(struct AppCtx*user)
     user->gate_vars->mKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars->hKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars->gKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    //Gating variables
+    //Gating variables (past)
     user->gate_vars_past->mNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars_past->hNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars_past->gNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
@@ -262,9 +316,7 @@ void parameter_dependence(struct AppCtx *user)
     con_vars->pKDR = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
     con_vars->pKA = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
 
-
     con_vars->pKIR = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
-
     //Glial diffusion scaling
     con_vars->DNeuronScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
     con_vars->DGliaScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
@@ -278,12 +330,12 @@ void parameter_dependence(struct AppCtx *user)
 
             con_vars->pKIR[xy_index(x,y,Nx)]=basepKIR;
 
-            con_vars->DNeuronScale[xy_index(x,y,Nx)*2]=0.0; //x-direction Neurons
-            con_vars->DNeuronScale[xy_index(x,y,Nx)*2+1]=0.0; //y-direction Neurons
-            con_vars->DGliaScale[xy_index(x,y,Nx)*2]=0.25; //x-direction scale Glia
-            con_vars->DGliaScale[xy_index(x,y,Nx)*2+1]=0.25; // y-direction scale glia
-            con_vars->DExtracellScale[xy_index(x,y,Nx)*2]=1.0; //x-direction scale extracell
-            con_vars->DExtracellScale[xy_index(x,y,Nx)*2+1]=1.0; // y-direction scale Extracell
+            con_vars->DNeuronScale[xy_index(x,y,Nx)*2]=DNeuronMult[0]; //x-direction Neurons
+            con_vars->DNeuronScale[xy_index(x,y,Nx)*2+1]=DNeuronMult[1]; //y-direction Neurons
+            con_vars->DGliaScale[xy_index(x,y,Nx)*2]=DGliaMult[0]; //x-direction scale Glia
+            con_vars->DGliaScale[xy_index(x,y,Nx)*2+1]=DGliaMult[1]; // y-direction scale glia
+            con_vars->DExtracellScale[xy_index(x,y,Nx)*2]=DExtraMult[0]; //x-direction scale extracell
+            con_vars->DExtracellScale[xy_index(x,y,Nx)*2+1]=DExtraMult[1]; // y-direction scale Extracell
 
         }
     }

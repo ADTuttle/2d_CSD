@@ -22,6 +22,8 @@ void init_arrays(struct AppCtx*);
 PetscErrorCode init_simstate(Vec,struct SimState*,struct AppCtx*);
 PetscErrorCode extract_subarray(Vec,struct SimState*);
 PetscErrorCode restore_subarray(Vec,struct SimState*);
+PetscErrorCode extract_subarray_Read(Vec,struct SimState*);
+PetscErrorCode restore_subarray_Read(Vec,struct SimState*);
 PetscErrorCode copy_simstate(Vec,struct SimState *state_vars_past);
 
 //Linear current-voltage flux relation
@@ -131,6 +133,10 @@ void init_events(struct AppCtx *);
 void read_file(struct AppCtx *);
 void save_file(struct AppCtx *);
 void velocity_field(FILE *,struct AppCtx *,PetscInt,int);
+void record_measurements(FILE **,struct AppCtx *,PetscInt,PetscInt ,int );
+void calculate_measures(FILE *, struct AppCtx *,PetscInt ,int );
+void draw_csd(struct AppCtx *);
+void calculate_energy(FILE *, struct AppCtx *, PetscInt , int );
 
 
 #endif

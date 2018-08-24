@@ -43,13 +43,16 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 {
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
-    PetscReal vm,vmg;
+    PetscReal vm,vmg,NaKCl,pKGHK,pNaGHK,Ipump,pKLinG,Ipumpg,osmotic,alNc,zetaadjust;
     extract_subarray(state,state_vars);
     PetscReal *c = state_vars->c;
     PetscReal *phi = state_vars->phi;
     PetscReal *alpha = state_vars->alpha;
-    for(PetscInt x=0;x<Nx;x++) {
-        for (PetscInt y = 0; y < Ny; y++) {
+    PetscReal cmphi[Nc]={0,0,0}; //initializing cmphi
+
+    // Compute Chloride concentration
+    for(PetscInt x=0;x<Nx;x++){
+        for(PetscInt y=0;y<Ny;y++){
             vm = phi[phi_index(x, y, 0, Nx)] - phi[phi_index(x, y, 2, Nx)]; //neuronal membrane potential
             vmg = phi[phi_index(x, y, 1, Nx)] - phi[phi_index(x, y, 2, Nx)]; //glial membrane potential
 
@@ -58,22 +61,29 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
             c[c_index(x, y, 0, 2, Nx)] = c[c_index(x, y, 2, 2, Nx)] * exp(vm);
             //set glial Cl concentration equal to neuronal Cl concentration
             c[c_index(x, y, 1, 2, Nx)] = c[c_index(x, y, 0, 2, Nx)];
+        }
+    }
 
+    //compute gating variables
+    gatevars_update(gate_vars, gate_vars, state_vars, 0, user, 1);
+
+
+    for(PetscInt x=0;x<Nx;x++) {
+        for (PetscInt y = 0; y < Ny; y++) {
+            vm = phi[phi_index(x, y, 0, Nx)] - phi[phi_index(x, y, 2, Nx)]; //neuronal membrane potential
+            vmg = phi[phi_index(x, y, 1, Nx)] - phi[phi_index(x, y, 2, Nx)]; //glial membrane potential
 
             //compute cotransporter permeability so that glial Cl is at rest
             mclin(flux, c_index(x, y, 1, 2, Nx),pClLeakg, -1,c[c_index(x, y, 1, 2, Nx)],c[c_index(x, y, 2, 2, Nx)],vmg, 0);
             con_vars->pNaKCl[xy_index(x,y,Nx)] =-flux->mflux[c_index(x, y, 1, 2, Nx)]/2/
-                    log(c[c_index(x, y, 1, 0, Nx)] * c[c_index(x, y, 1, 1, Nx)] *
-                        c[c_index(x, y, 1, 2, Nx)] * c[c_index(x, y, 1, 2, Nx)] /
-                        (c[c_index(x, y, 2, 0, Nx)] * c[c_index(x, y, 2, 1, Nx)] *
-                         c[c_index(x, y, 2, 2, Nx)] * c[c_index(x, y, 2, 2, Nx)]));
-            PetscReal NaKCl = -flux->mflux[c_index(x, y, 1, 2, Nx)] / 2;
-
-            //compute gating variables
-            gatevars_update(gate_vars, gate_vars, state_vars, 0, user, 1);
+                                                log(c[c_index(x, y, 1, 0, Nx)] * c[c_index(x, y, 1, 1, Nx)] *
+                                                    c[c_index(x, y, 1, 2, Nx)] * c[c_index(x, y, 1, 2, Nx)] /
+                                                    (c[c_index(x, y, 2, 0, Nx)] * c[c_index(x, y, 2, 1, Nx)] *
+                                                     c[c_index(x, y, 2, 2, Nx)] * c[c_index(x, y, 2, 2, Nx)]));
+            NaKCl = -flux->mflux[c_index(x, y, 1, 2, Nx)] / 2;
 
             //compute K channel currents (neuron)
-            PetscReal pKGHK = con_vars->pKDR[xy_index(x,y,Nx)] * gate_vars->gKDR[xy_index(x,y,Nx)] + con_vars->pKA[xy_index(x,y,Nx)] * gate_vars->gKA[xy_index(x,y,Nx)];
+            pKGHK = con_vars->pKDR[xy_index(x,y,Nx)] * gate_vars->gKDR[xy_index(x,y,Nx)] + con_vars->pKA[xy_index(x,y,Nx)] * gate_vars->gKA[xy_index(x,y,Nx)];
             //Initialize the KGHK flux
             mcGoldman(flux, c_index(x, y, 0, 1, Nx), pKGHK, 1, c[c_index(x, y, 0, 1, Nx)],
                       c[c_index(x, y, Nc - 1, 1, Nx)], vm, 0);
@@ -83,21 +93,20 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 
             //compute neuronal ATPase value
             con_vars->Imax[xy_index(x,y,Nx)] = flux->mflux[c_index(x, y, 0, 1, Nx)] * (pow(1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)], 2) *
-                                                                     pow(1 + mNa / c[c_index(x, y, 0, 0, Nx)], 3)) / 2;
+                                                                                       pow(1 + mNa / c[c_index(x, y, 0, 0, Nx)], 3)) / 2;
 
 
             //compute neuronal sodium currents and leak permeability value
-            PetscReal pNaGHK = con_vars->pNaT[xy_index(x,y,Nx)]*gate_vars->gNaT[xy_index(x,y,Nx)]+con_vars->pNaP[xy_index(x,y,Nx)]*gate_vars->gNaP[xy_index(x,y,Nx)];
+            pNaGHK = con_vars->pNaT[xy_index(x,y,Nx)]*gate_vars->gNaT[xy_index(x,y,Nx)]+con_vars->pNaP[xy_index(x,y,Nx)]*gate_vars->gNaP[xy_index(x,y,Nx)];
             mcGoldman(flux, c_index(x, y, 0, 0, Nx), pNaGHK, 1, c[c_index(x, y, 0, 0, Nx)],
                       c[c_index(x, y, Nc - 1, 0, Nx)], vm, 0);
-            PetscReal Ipump = npump * con_vars->Imax[xy_index(x,y,Nx)] / (pow((1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)]), 2) *
-                                                        pow((1 + mNa / c[c_index(x, y, 0, 0, Nx)]), 3));
+            Ipump = npump * con_vars->Imax[xy_index(x,y,Nx)] / (pow((1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)]), 2) *
+                                                                pow((1 + mNa / c[c_index(x, y, 0, 0, Nx)]), 3));
             con_vars->pNaLeak[xy_index(x,y,Nx)] = (-flux->mflux[c_index(x, y, 0, 0, Nx)] - 3 * Ipump) /
-                                (log(c[c_index(x, y, 0, 0, Nx)] / c[c_index(x, y, Nc - 1, 0, Nx)]) + vm);
+                                                  (log(c[c_index(x, y, 0, 0, Nx)] / c[c_index(x, y, Nc - 1, 0, Nx)]) + vm);
 
             //compute K channel currents (glial)
-            PetscReal pKLinG =
-                    con_vars->pKIR[xy_index(x,y,Nx)] * inwardrect(c[c_index(x, y, 1, 1, Nx)], c[c_index(x, y, Nc - 1, 1, Nx)], vmg) * pKLeakadjust;
+            pKLinG = con_vars->pKIR[xy_index(x,y,Nx)] * inwardrect(c[c_index(x, y, 1, 1, Nx)], c[c_index(x, y, Nc - 1, 1, Nx)], vmg) * pKLeakadjust;
             mclin(flux, c_index(x, y, 1, 1, Nx), pKLinG, 1, c[c_index(x, y, 1, 1, Nx)], c[c_index(x, y, Nc - 1, 1, Nx)],
                   vmg, 0);
             flux->mflux[c_index(x, y, 1, 1, Nx)] += NaKCl;
@@ -108,17 +117,17 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
                     pow((1 + mNa / c[c_index(x, y, 1, 0, Nx)]), 3) / 2;
 
             //compute glial sodium current and leak permeability value
-            PetscReal Ipumpg = glpump * con_vars->Imaxg[xy_index(x,y,Nx)] / (pow((1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)]), 2) *
-                                                           pow((1 + mNa / c[c_index(x, y, 1, 0, Nx)]), 3));
+            Ipumpg = glpump * con_vars->Imaxg[xy_index(x,y,Nx)] / (pow((1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)]), 2) *
+                                                                   pow((1 + mNa / c[c_index(x, y, 1, 0, Nx)]), 3));
             con_vars->pNaLeakg[xy_index(x,y,Nx)] =
                     (-NaKCl - 3 * Ipumpg) / (log(c[c_index(x, y, 1, 0, Nx)] / c[c_index(x, y, Nc - 1, 0, Nx)]) + vmg);
 
             //Compute resting organic anion amounts and average valences
             //set extracellular organic anion amounts and valence to ensure electroneutrality
             con_vars->ao[Nc - 1] = 5e-4;
-            PetscReal cmphi[Nc]={0,0,0};
-            PetscReal osmotic,alNc;
             alNc = 1- alpha[al_index(x,y,0,Nx)]-alpha[al_index(x,y,1,Nx)];
+            cmphi[Nc-1] = 0; //initializing extracell cmphi
+
             for (PetscInt k = 0; k < Nc - 1; k++) {
                 cmphi[k] = cm[k] * (phi[phi_index(x,y,k,Nx)] - phi[phi_index(x,y,Nc-1,Nx)]);
                 cmphi[Nc - 1] += cmphi[k];
@@ -139,7 +148,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 
             //parameters for osmotic water flow
 
-            PetscReal zetaadjust = 1; //modify glial permeability
+            zetaadjust = 1; //modify glial permeability
             for (PetscInt comp = 0; comp < Nc - 1; comp++) {
                 //based on B.E. Shapiro dissertation (2000)
                 con_vars->zeta1[comp] = 5.4e-5;  //hydraulic permeability in cm/sec/(mmol/cm^3)
@@ -190,12 +199,13 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     KSPSetType(slvr->ksp,KSPPREONLY);
     KSPGetPC(slvr->ksp,&slvr->pc);
     PCSetType(slvr->pc,PCLU);
-    PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU);
+//    PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU);
+    PCFactorSetMatSolverType(slvr->pc, MATSOLVERSUPERLU);
+
 
 
     PetscReal convtol = 1e-9;
     extract_subarray(current_state,user->state_vars);
-//	PetscReal tol = convtol*array_max(user->state_vars->c,(size_t)Nx*Ny*Nc*Ni);
     PetscReal tol =convtol;
     PetscReal rsd = 1.0;
     PetscReal rsd_v[3];
@@ -211,6 +221,9 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     PetscInt k = 0;
     user->dt = 0.01;
 
+    // For 1x1 grid Dcs is zeros
+    memset(user->Dcs,0,sizeof(PetscReal)*2*temp_Nx*temp_Ny*Nc*Ni);
+
     while(rsd>tol && k<1e5)
     {
         extract_subarray(current_state,user->state_vars);
@@ -222,18 +235,16 @@ void initialize_data(Vec current_state,struct AppCtx *user)
             //Update volume
             volume_update(user->state_vars, user->state_vars_past, user);
         }
-        //compute diffusion coefficients
-//        diff_coef(user->Dcs,user->state_vars->alpha,1,user);
+        //compute diffusion coefficients (Dcs is not used for 1x1)
         //Bath diffusion
         diff_coef(user->Dcb,user->state_vars->alpha,Batheps,user);
-        memset(user->Dcs,0,sizeof(PetscReal)*2*temp_Nx*temp_Ny*Nc*Ni);
         restore_subarray(current_state, user->state_vars);
 
-
+        // Use own solver since we reuse data structs to update a subset
         newton_solve(current_state,slvr,user);
-//        SNESSolve(user->slvr->snes,NULL,current_state);
         //Update gating variables
         extract_subarray(current_state,user->state_vars);
+
 
         // Set to be "firstpass" (that's the 1)
         // So that we set to alpha/beta infinity values as if it came to rest
@@ -355,6 +366,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     //Create Solver Contexts
     ierr = SNESCreate(PETSC_COMM_WORLD,&slvr->snes); CHKERRQ(ierr);
     ierr = SNESGetKSP(slvr->snes,&slvr->ksp); CHKERRQ(ierr);
+    ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
 
     //Choose solver based on constants.h options.
     if(Linear_Diffusion){
@@ -426,8 +438,6 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 //*/
 
 
-
-    ierr = KSPGetPC(slvr->ksp,&slvr->pc);CHKERRQ(ierr);
     //Multigrid precond
 //    ierr = Initialize_PCMG(slvr->pc,slvr->A,user); CHKERRQ(ierr);
 
@@ -552,24 +562,18 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
         Ind = &Ind_1;
     }
     //Make sure nnz is initialized to zero
-    for(int i=0;i<NA;i++)
-    {
+    for(int i=0;i<NA;i++) {
         nnz[i]=0;
     }
     int ind = 0;
     int x,y,comp,ion;
     //Ionic concentration equations
-    for(x=0;x<Nx;x++)
-    {
-        for(y=0;y<Ny;y++)
-        {
-            for(ion=0;ion<Ni;ion++)
-            {
-                for(comp=0;comp<Nc-1;comp++)
-                {
+    for(x=0;x<Nx;x++) {
+        for(y=0;y<Ny;y++) {
+            for(ion=0;ion<Ni;ion++) {
+                for(comp=0;comp<Nc-1;comp++) {
                     //Electrodiffusion contributions
-                    if(x<Nx-1)
-                    {
+                    if(x<Nx-1) {
                         nnz[Ind(x+1,y,ion,comp,Nx)]++; //Ind_1(x,y,ion,comp,Nx)
                         ind++;
                         //Right c with left phi (-Fph0x)
@@ -578,8 +582,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                         nnz[Ind(x+1,y,Ni,comp,Nx)]++;
                         ind++;
                     }
-                    if(x>0)
-                    {
+                    if(x>0) {
                         //left c with right c (-Fc1x)
                         nnz[Ind(x-1,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                         ind++;
@@ -589,8 +592,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                         nnz[Ind(x-1,y,Ni,comp,Nx)]++;
                         ind++;
                     }
-                    if(y<Ny-1)
-                    {
+                    if(y<Ny-1) {
                         // Upper c with lower c (-Fc0y)
                         nnz[Ind(x,y+1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx);
                         ind++;
@@ -600,8 +602,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                         nnz[Ind(x,y+1,Ni,comp,Nx)]++;
                         ind++;
                     }
-                    if(y>0)
-                    {
+                    if(y>0) {
                         //Lower c with Upper c (-Fc1y)
                         nnz[Ind(x,y-1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                         ind++;
@@ -656,8 +657,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                 //Extracellular terms
                 comp = Nc-1;
                 //Electrodiffusion contributions
-                if(x<Nx-1)
-                {
+                if(x<Nx-1) {
                     // Right c with left c (-Fc0x)
                     nnz[Ind(x+1,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     ind++;
@@ -667,8 +667,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                     nnz[Ind(x+1,y,Ni,comp,Nx)]++;
                     ind++;
                 }
-                if(x>0)
-                {
+                if(x>0) {
                     //left c with right c (-Fc1x)
                     nnz[Ind(x-1,y,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     ind++;
@@ -678,8 +677,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                     nnz[Ind(x-1,y,Ni,comp,Nx)]++;
                     ind++;
                 }
-                if(y<Ny-1)
-                {
+                if(y<Ny-1) {
                     // Upper c with lower c (-Fc0y)
                     nnz[Ind(x,y+1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     ind++;
@@ -689,8 +687,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
                     nnz[Ind(x,y+1,Ni,comp,Nx)]++;
                     ind++;
                 }
-                if(y>0)
-                {
+                if(y>0) {
                     //Lower c with Upper c (-Fc1y)
                     nnz[Ind(x,y-1,ion,comp,Nx)]++;//Ind_1(x,y,ion,comp,Nx)
                     ind++;
@@ -716,26 +713,22 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
             }
             //Derivative of charge-capacitance
             for(comp=0;comp<Nc-1;comp++){
-                if(x<Nx-1)
-                {
+                if(x<Nx-1) {
                     //Right phi with left phi (-Fph0x)
                     nnz[Ind(x+1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
                 }
-                if(x>0)
-                {
+                if(x>0) {
                     //Left phi with right phi (-Fph1x)
                     nnz[Ind(x-1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
                 }
-                if(y<Ny-1)
-                {
+                if(y<Ny-1) {
                     //Upper phi with lower phi (-Fph0y)
                     nnz[Ind(x,y+1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
                 }
-                if(y>0)
-                {
+                if(y>0) {
                     //Lower phi with upper phi (-Fph1y)
                     nnz[Ind(x,y-1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                     ind++;
@@ -749,26 +742,22 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
             }
             //Extracellular terms
             comp = Nc-1;
-            if(x<Nx-1)
-            {
+            if(x<Nx-1) {
                 //Right phi with left phi (-Fph0x)
                 nnz[Ind(x+1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                 ind++;
             }
-            if(x>0)
-            {
+            if(x>0) {
                 //Left phi with right phi (-Fph1x)
                 nnz[Ind(x-1,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                 ind++;
             }
-            if(y<Ny-1)
-            {
+            if(y<Ny-1) {
                 //Upper phi with lower phi (-Fph0y)
                 nnz[Ind(x,y+1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                 ind++;
             }
-            if(y>0)
-            {
+            if(y>0) {
                 //Lower phi with upper phi (-Fph1y)
                 nnz[Ind(x,y-1,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
                 ind++;
@@ -814,8 +803,7 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
             }
         }
     }
-    printf("Nz: %d, ind: %d\n",user->Nz,ind);
-    return;
+    printf("Base Nz: %d, Actual Nz: %d\n",user->Nz,ind);
 }
 
 
@@ -840,9 +828,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
             for(ion=0;ion<Ni;ion++) {
                 for(comp=0;comp<Nc-1;comp++) {
                     //Electrodiffusion contributions
-
-                    if(x<Nx-1)
-                    {
+                    if(x<Nx-1) {
                         // Right c with left c (-Fc0x)
                         ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
@@ -854,11 +840,8 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                             ierr = MatSetValue(Jac,Ind_1(x+1,y,Ni,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                             ind++;
                         }
-
-
                     }
-                    if(x>0)
-                    {
+                    if(x>0) {
                         //left c with right c (-Fc1x)
                         ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
@@ -873,8 +856,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                             ind++;
                         }
                     }
-                    if(y<Ny-1)
-                    {
+                    if(y<Ny-1) {
                         // Upper c with lower c (-Fc0y)
                         ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
@@ -889,8 +871,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                             ind++;
                         }
                     }
-                    if(y>0)
-                    {
+                    if(y>0) {
                         //Lower c with Upper c (-Fc1y)
                         ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
@@ -905,7 +886,6 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                             ind++;
                         }
                     }
-
                     // Different Compartment Terms
                     // C Extracellular with C Inside
                     ierr = MatSetValue(Jac,Ind_1(x,y,ion,Nc-1,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
@@ -952,13 +932,11 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         CHKERRQ(ierr);
                         ind++;
                     }
-
                 }
                 //Extracellular terms
                 comp = Nc-1;
                 //Electrodiffusion contributions
-                if(x<Nx-1)
-                {
+                if(x<Nx-1) {
                     // Right c with left c (-Fc0x)
                     ierr = MatSetValue(Jac,Ind_1(x+1,y,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
@@ -972,8 +950,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         ind++;
                     }
                 }
-                if(x>0)
-                {
+                if(x>0) {
                     //left c with right c (-Fc1x)
                     ierr = MatSetValue(Jac,Ind_1(x-1,y,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
@@ -987,8 +964,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         ind++;
                     }
                 }
-                if(y<Ny-1)
-                {
+                if(y<Ny-1) {
                     // Upper c with lower c (-Fc0y)
                     ierr = MatSetValue(Jac,Ind_1(x,y+1,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
@@ -1002,8 +978,7 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         ind++;
                     }
                 }
-                if(y>0)
-                {
+                if(y>0) {
                     //Lower c with Upper c (-Fc1y)
                     ierr = MatSetValue(Jac,Ind_1(x,y-1,ion,comp,Nx),Ind_1(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
@@ -1125,7 +1100,6 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                     ierr = MatSetValue(Jac, Ind_1(x, y, Ni, comp,Nx), Ind_1(x, y, ion, comp,Nx), 0, INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
-
                 }
                 //electroneutrality-voltage entries
 
@@ -1175,7 +1149,6 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         CHKERRQ(ierr);
                         ind++;
                     }
-
                 }
             }
         }
@@ -2099,7 +2072,8 @@ PetscErrorCode Initialize_PCMG(PC pc,Mat A,struct AppCtx*user)
     ierr = KSPSetType(coarse_ksp,KSPPREONLY);CHKERRQ(ierr);
     ierr = KSPGetPC(coarse_ksp,&coarse_pc);CHKERRQ(ierr);
     ierr = PCSetType(coarse_pc,PCLU); CHKERRQ(ierr);
-    ierr = PCFactorSetMatSolverPackage(coarse_pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
+//    ierr = PCFactorSetMatSolverPackage(coarse_pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
+    PCFactorSetMatSolverType(coarse_pc, MATSOLVERSUPERLU);
 
     //Make restriction operators
     for (int i=nlevels-1; i>0; i--) {

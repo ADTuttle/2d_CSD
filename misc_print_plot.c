@@ -338,10 +338,36 @@ void save_timestep(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
         PetscLogEventEnd(event[8], 0, 0, 0, 0);
     }
 }
+
+void record_measurements(FILE **fp_measures,struct AppCtx *user,PetscInt count,PetscInt numrecords,int start){
+    if(start){
+        if(start_at_steady) {
+            fp_measures[0] = fopen("flux_csd.txt", "w");
+            fp_measures[1] = fopen("grad_field.txt", "w");
+            fp_measures[2] = fopen("measures.txt", "w");
+
+            measure_flux(fp_measures[0],user,numrecords,start);
+            velocity_field(fp_measures[1],user,numrecords,start);
+//            calculate_measures(fp_measures[2],user,numrecords,start);
+            calculate_energy(fp_measures[2],user,numrecords,start);
+        }else{
+            fp_measures[0] = fopen("flux_csd.txt", "a");
+            fp_measures[1] = fopen("grad_field.txt", "a");
+            fp_measures[2] = fopen("measures.txt", "a");
+        }
+    } else{
+        measure_flux(fp_measures[0],user,numrecords,start);
+        velocity_field(fp_measures[1],user,numrecords,start);
+        //            calculate_measures(fp_measures[2],user,numrecords,start);
+        calculate_energy(fp_measures[2],user,numrecords,start);
+
+        if(count%100==0) {
+            draw_csd(user);
+        }
+    }
+}
 void measure_flux(FILE *fp, struct AppCtx* user,PetscInt numrecords,int start)
 {
-    velocity_field(fp,user,numrecords,start);
-    /*
     struct SimState *state_vars= user->state_vars;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
@@ -454,7 +480,6 @@ void measure_flux(FILE *fp, struct AppCtx* user,PetscInt numrecords,int start)
         fprintf(fp,"%.10e,%.10e,%.10e\n",Fluxc[Nc-1], Fluxph[Nc-1], Fluxbath[Nc-1]);
 
     }
-*/
 }
 void init_events(struct AppCtx *user)
 {
@@ -900,15 +925,21 @@ void read_file(struct AppCtx *user)
 }
 
 void velocity_field(FILE *fp,struct AppCtx *user,PetscInt numrecords,int start) {
+
+
     if (start) {
-        fprintf(fp, "%d,%d,%d,%d,%d,%d,%d,%d\n", user->Nx, user->Ny, numrecords, Nc, Ni, use_en_deriv, separate_vol,
-                Linear_Diffusion);
+            fprintf(fp, "%d,%d,%d,%d,%d,%d,%d,%d\n", user->Nx, user->Ny, numrecords, Nc, Ni, use_en_deriv, separate_vol,
+                    Linear_Diffusion);
+
         velocity_field(fp, user, numrecords, 0);
     } else {
         PetscReal *c = user->state_vars->c;
         PetscReal *phi = user->state_vars->phi;
+        PetscReal *al = user->state_vars->alpha;
 
+        diff_coef(user->Dcs, al, 1, user);
         PetscReal *Dcs = user->Dcs;
+
 
         PetscReal dt = user->dt;
         PetscReal dx = user->dx;
@@ -918,64 +949,185 @@ void velocity_field(FILE *fp,struct AppCtx *user,PetscInt numrecords,int start) 
 
         PetscInt x, y, ion, comp;
 
-        PetscReal Gradleft, GradRight;
-        PetscReal GradUp, GradDown;
-        PetscInt count_x, count_y;
+         PetscReal Gradleft, GradRight;
+            PetscReal GradUp, GradDown;
+            PetscInt count_x, count_y;
+            PetscReal alNc, alNcRight, alNcUp;
+            PetscReal vx, vy;
 
-        PetscReal Gradx, Grady;
+            PetscReal Gradx, Grady;
 
 
-        for (ion = 0; ion < Ni; ion++) {
-            for (comp = Nc-1; comp < Nc; comp++) {
-                for (y = 0; y < Ny; y++) {
-                    for (x = 0; x < Nx; x++) {
-                        count_x = 0;
-                        count_y = 0;
+            for (ion = 0; ion < Ni; ion++) {
+                for (comp = Nc - 1; comp < Nc; comp++) {
+                    for (y = 0; y < Ny; y++) {
+                        for (x = 0; x < Nx; x++) {
+                            count_x = 0;
+                            count_y = 0;
 
-                        Gradleft = 0;
-                        GradRight = 0;
-                        if (x > 0) {
-                            //First difference term
-                            Gradleft = 1;//Dcs[c_index(x-1,y,comp,ion,Nx)*2]*(c[c_index(x-1,y,comp,ion,Nx)]+c[c_index(x,y,comp,ion,Nx)])/2;
-                            Gradleft = Gradleft *(log(c[c_index(x, y, comp, ion, Nx)])-log(c[c_index(x - 1, y, comp, ion, Nx)])+
-                                    z[ion]*(phi[phi_index(x, y, comp, Nx)] - phi[phi_index(x - 1, y, comp, Nx)]))/dx;
-                            count_x++;
+                            Gradleft = 0;
+                            GradRight = 0;
+                            if (x > 0) {
+                                //First difference term
+                                Gradleft = 1;//Dcs[c_index(x-1,y,comp,ion,Nx)*2]*(c[c_index(x-1,y,comp,ion,Nx)]+c[c_index(x,y,comp,ion,Nx)])/2;
+                                Gradleft = Gradleft * (log(c[c_index(x, y, comp, ion, Nx)]) -
+                                                       log(c[c_index(x - 1, y, comp, ion, Nx)]) +
+                                                       z[ion] * (phi[phi_index(x, y, comp, Nx)] -
+                                                                 phi[phi_index(x - 1, y, comp, Nx)])) / dx;
+                                count_x++;
+                            }
+                            //Add Second right moving difference
+                            if (x < Nx - 1) {
+                                GradRight = 1;//Dcs[c_index(x,y,comp,ion,Nx)*2]*(c[c_index(x,y,comp,ion,Nx)]+c[c_index(x+1,y,comp,ion,Nx)])/2;
+                                GradRight = GradRight * (log(c[c_index(x + 1, y, comp, ion, Nx)]) -
+                                                         log(c[c_index(x, y, comp, ion, Nx)]) +
+                                                         z[ion] * (phi[phi_index(x + 1, y, comp, Nx)] -
+                                                                   phi[phi_index(x, y, comp, Nx)])) / dx;
+                                count_x++;
+                            }
+                            GradDown = 0;
+                            GradUp = 0;
+                            //Up down difference
+                            if (y > 0) {
+                                GradDown = 1;//Dcs[c_index(x,y-1,comp,ion,Nx)*2+1]*(c[c_index(x,y-1,comp,ion,Nx)]+c[c_index(x,y,comp,ion,Nx)])/2;
+                                GradDown = GradDown * (log(c[c_index(x, y, comp, ion, Nx)]) -
+                                                       log(c[c_index(x, y - 1, comp, ion, Nx)]) +
+                                                       z[ion] * (phi[phi_index(x, y, comp, Nx)] -
+                                                                 phi[phi_index(x, y - 1, comp, Nx)])) / dy;
+                                count_y++;
+                            }
+                            //Next upward difference
+                            if (y < Ny - 1) {
+                                GradUp = 1;//Dcs[c_index(x,y,comp,ion,Nx)*2+1]*(c[c_index(x,y,comp,ion,Nx)]+c[c_index(x,y+1,comp,ion,Nx)])/2;
+                                GradUp = GradUp * (log(c[c_index(x, y + 1, comp, ion, Nx)]) -
+                                                   log(c[c_index(x, y, comp, ion, Nx)]) +
+                                                   z[ion] * (phi[phi_index(x, y + 1, comp, Nx)] -
+                                                             phi[phi_index(x, y, comp, Nx)])) / dy;
+                                count_y++;
+                            }
+
+                            Gradx = (Gradleft + GradRight) / count_x;
+                            Grady = (GradUp + GradDown) / count_y;
+
+                            if (x == Nx - 1 & y == Ny - 1) {
+                                fprintf(fp, "%f,%f\n", Gradx, Grady);
+                            } else {
+                                fprintf(fp, "%f,%f,", Gradx, Grady);
+                            }
+
                         }
-                        //Add Second right moving difference
-                        if (x < Nx - 1) {
-                            GradRight = 1;//Dcs[c_index(x,y,comp,ion,Nx)*2]*(c[c_index(x,y,comp,ion,Nx)]+c[c_index(x+1,y,comp,ion,Nx)])/2;
-                            GradRight = GradRight*(log(c[c_index(x + 1, y, comp, ion, Nx)])-log(c[c_index(x, y, comp, ion, Nx)]) +
-                                         z[ion]*(phi[phi_index(x + 1, y, comp, Nx)] - phi[phi_index(x, y, comp, Nx)]))/dx;
-                            count_x++;
-                        }
-                        GradDown = 0;
-                        GradUp = 0;
-                        //Up down difference
-                        if (y > 0) {
-                            GradDown = 1;//Dcs[c_index(x,y-1,comp,ion,Nx)*2+1]*(c[c_index(x,y-1,comp,ion,Nx)]+c[c_index(x,y,comp,ion,Nx)])/2;
-                            GradDown = GradDown*(log(c[c_index(x, y, comp, ion, Nx)]) - log(c[c_index(x, y - 1, comp, ion, Nx)]) +
-                                        z[ion]*(phi[phi_index(x, y, comp, Nx)] - phi[phi_index(x, y - 1, comp, Nx)]))/dy ;
-                            count_y++;
-                        }
-                        //Next upward difference
-                        if (y < Ny - 1) {
-                            GradUp = 1;//Dcs[c_index(x,y,comp,ion,Nx)*2+1]*(c[c_index(x,y,comp,ion,Nx)]+c[c_index(x,y+1,comp,ion,Nx)])/2;
-                            GradUp = GradUp* (log(c[c_index(x, y + 1, comp, ion, Nx)]) - log(c[c_index(x, y, comp, ion, Nx)]) +
-                                      z[ion]*(phi[phi_index(x, y + 1, comp, Nx)] - phi[phi_index(x, y, comp, Nx)])) / dy;
-                            count_y++;
-                        }
-                        Gradx = (Gradleft + GradRight) / count_x;
-                        Grady = (GradUp + GradDown) / count_y;
-
-                        if (x == Nx - 1 & y == Ny - 1) {
-                            fprintf(fp, "%f,%f\n", Gradx, Grady);
-                        } else {
-                            fprintf(fp, "%f,%f,", Gradx, Grady);
-                        }
-
                     }
                 }
             }
+    }
+}
+
+void calculate_measures(FILE *fp, struct AppCtx *user,PetscInt numrecords,int start)
+{
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+    PetscInt x,y;
+
+    PetscReal dx = Lx/Nx;
+    PetscReal dy = Ly/Ny;
+
+    PetscReal *c= user->state_vars->c;
+    PetscReal *al = user->state_vars->alpha;
+
+    PetscReal Neu_Gli_K_diff = 0;
+    PetscReal Glia_K_per_amt = 0;
+    PetscReal total_amt_K=0;
+    PetscReal alN;
+    for(x=0;x<Nx;x++){
+        for(y=0;y<Ny;y++){
+            alN = 1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)];
+            total_amt_K += al[al_index(x,y,0,Nx)]*c[c_index(x,y,0,1,Nx)]+al[al_index(x,y,1,Nx)]*c[c_index(x,y,1,1,Nx)]+alN*c[c_index(x,y,Nc-1,1,Nx)];
+
+            Neu_Gli_K_diff += al[al_index(x,y,0,Nx)]*c[c_index(x,y,0,1,Nx)]-al[al_index(x,y,1,Nx)]*c[c_index(x,y,1,1,Nx)];
+
+            Glia_K_per_amt += al[al_index(x,y,1,Nx)]*c[c_index(x,y,1,1,Nx)];
         }
+    }
+
+    Neu_Gli_K_diff = Neu_Gli_K_diff*dx*dy;
+
+    Glia_K_per_amt = (Glia_K_per_amt*dx*dy)/(total_amt_K*dx*dy);
+
+
+    fprintf(fp,"%.10e,%.10e\n",Neu_Gli_K_diff,Glia_K_per_amt);
+}
+void calculate_energy(FILE *fp, struct AppCtx *user, PetscInt numrecords, int start){
+    if (start) {
+        fprintf(fp, "%d,%d,%d,%d,%d\n", user->Nx, user->Ny, numrecords, 0, 0);
+        write_data(fp, user, numrecords, 0);
+    }else{
+        PetscScalar *c = user->state_vars->c;
+        PetscScalar *phi = user->state_vars->phi;
+        PetscScalar  *al = user->state_vars->alpha;
+        PetscInt Nx = user->Nx;
+        PetscInt Ny = user->Ny;
+
+        PetscScalar Energy,alNc;
+        PetscInt comp,ion;
+        for(PetscInt y=0;y<Ny;y++){
+            for(PetscInt x=0;x<Nx;x++){
+                Energy = 0;
+                //Ionic contribution
+                for(comp=0;comp<Nc-1;comp++){
+                    //Immobile ion part
+                    Energy +=user->con_vars->ao[comp]*log(user->con_vars->ao[comp])/al[al_index(x,y,comp,Nx)];
+                    //Mobile ions
+                    for(ion=0;ion<Ni;ion++){
+                        Energy +=al[al_index(x,y,comp,Nx)]*c[c_index(x,y,comp,ion,Nx)]*log(c[c_index(x,y,comp,ion,Nx)]);
+                    }
+                    //ElectroPotential part
+                    Energy += (cm[comp]/2)*pow((phi[phi_index(x,y,comp,Nx)]-phi[phi_index(x,y,Nc-1,Nx)])*RTFC,2);
+                }
+                //Extracellular ion term
+                comp = Nc-1;
+                alNc = 1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)];
+                //Immobile ion part
+                Energy +=user->con_vars->ao[comp]*log(user->con_vars->ao[comp])/(alNc);
+                //Mobile ions
+                for(ion=0;ion<Ni;ion++){
+                    Energy +=alNc*c[c_index(x,y,comp,ion,Nx)]*log(c[c_index(x,y,comp,ion,Nx)]);
+                }
+                //Write to file
+                if (x == Nx - 1 & y == Ny - 1) {
+                    fprintf(fp, "%.10e\n", Energy);
+                } else {
+                    fprintf(fp, "%.10e,", Energy);
+                }
+
+            }
+        }
+
+    }
+}
+
+void draw_csd(struct AppCtx *user)
+{
+
+    PetscReal vm,threshhold;
+    threshhold = -10;
+    PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+
+    for(PetscInt x=0;x<Nx;x++){
+        printf("|");
+        for(PetscInt y=0;y<Ny;y++){
+            vm = user->state_vars->phi[phi_index(x,y,0,Nx)]-user->state_vars->phi[phi_index(x,y,Nc-1,Nx)];
+            vm = vm * RTFC;
+            if(x==0|| x==(Nx-1)){
+                printf("_");
+            } else {
+                if (vm > threshhold) {
+                    printf("x");
+                } else {
+                    printf(" ");
+                }
+            }
+        }
+        printf("|\n");
     }
 }

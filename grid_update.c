@@ -1050,8 +1050,7 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
         for(y=0;y<Ny;y++) {
 
             //Residual for electroneutrality condition
-            for(comp=0;comp<Nc-1;comp++)
-            {
+            for(comp=0;comp<Nc-1;comp++) {
 
                 Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
                 ierr = VecSetValue(Res,Ind_2(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
@@ -1402,7 +1401,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
 
     PetscReal rsd;
     PetscErrorCode ierr = 0;
-    PetscReal *temp;
+    PetscReal const *temp;
 
     PetscInt x,y,comp,ion;
     PetscInt Nx = 2*width_size+1;
@@ -1434,7 +1433,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
         ierr = KSPSolve(user->grid_slvr->ksp, user->grid_slvr->Res, user->grid_slvr->Q);CHKERRQ(ierr);
 
 
-        ierr = VecGetArray(user->grid_slvr->Q, &temp);CHKERRQ(ierr);
+        ierr = VecGetArrayRead(user->grid_slvr->Q, &temp);CHKERRQ(ierr);
         for (x = 0; x < Nx; x++) {
             for (y = 0; y < Ny; y++) {
                 for (comp = 0; comp < Nc; comp++) {
@@ -1448,7 +1447,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
                 }
             }
         }
-        ierr = VecRestoreArray(user->grid_slvr->Q, &temp);CHKERRQ(ierr);
+        ierr = VecRestoreArrayRead(user->grid_slvr->Q, &temp);CHKERRQ(ierr);
 
     }
 
@@ -1489,7 +1488,6 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
 
     PetscInt steps = 0;
     PetscInt NSteps = (PetscInt)floor(dt/user->dt); //1;
-    PetscInt Max_step = 256;
     PetscInt accepted_step = 0;
 
     while(steps<NSteps) {
@@ -1498,7 +1496,7 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
         iter = Newton_Solve_Grid(xi, yi, user);
 
         //Check if we accept the step
-        if (iter < 3 || accepted_step || NSteps >= Max_step) {
+        if (iter < 3 || accepted_step || NSteps >= Max_Grid_Refine) {
             steps++;
 
             //Update Gating variable
@@ -1607,8 +1605,7 @@ PetscErrorCode initialize_grid_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                 for(comp=0;comp<Nc-1;comp++) {
                     //Electrodiffusion contributions
 
-                    if(x<Nx-1)
-                    {
+                    if(x<Nx-1) {
                         // Right c with left c (-Fc0x)
                         ierr = MatSetValue(Jac,Ind_2(x+1,y,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
@@ -1623,8 +1620,7 @@ PetscErrorCode initialize_grid_jacobian(Mat Jac,struct AppCtx *user,int grid) {
 
 
                     }
-                    if(x>0)
-                    {
+                    if(x>0) {
                         //left c with right c (-Fc1x)
                         ierr = MatSetValue(Jac,Ind_2(x-1,y,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
@@ -1639,8 +1635,7 @@ PetscErrorCode initialize_grid_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                             ind++;
                         }
                     }
-                    if(y<Ny-1)
-                    {
+                    if(y<Ny-1) {
                         // Upper c with lower c (-Fc0y)
                         ierr = MatSetValue(Jac,Ind_2(x,y+1,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
@@ -1655,8 +1650,7 @@ PetscErrorCode initialize_grid_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                             ind++;
                         }
                     }
-                    if(y>0)
-                    {
+                    if(y>0) {
                         //Lower c with Upper c (-Fc1y)
                         ierr = MatSetValue(Jac,Ind_2(x,y-1,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
@@ -1723,8 +1717,7 @@ PetscErrorCode initialize_grid_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                 //Extracellular terms
                 comp = Nc-1;
                 //Electrodiffusion contributions
-                if(x<Nx-1)
-                {
+                if(x<Nx-1) {
                     // Right c with left c (-Fc0x)
                     ierr = MatSetValue(Jac,Ind_2(x+1,y,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
@@ -1738,8 +1731,7 @@ PetscErrorCode initialize_grid_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         ind++;
                     }
                 }
-                if(x>0)
-                {
+                if(x>0) {
                     //left c with right c (-Fc1x)
                     ierr = MatSetValue(Jac,Ind_2(x-1,y,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
@@ -1753,8 +1745,7 @@ PetscErrorCode initialize_grid_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         ind++;
                     }
                 }
-                if(y<Ny-1)
-                {
+                if(y<Ny-1) {
                     // Upper c with lower c (-Fc0y)
                     ierr = MatSetValue(Jac,Ind_2(x,y+1,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
@@ -1768,8 +1759,7 @@ PetscErrorCode initialize_grid_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         ind++;
                     }
                 }
-                if(y>0)
-                {
+                if(y>0) {
                     //Lower c with Upper c (-Fc1y)
                     ierr = MatSetValue(Jac,Ind_2(x,y-1,ion,comp,Nx),Ind_2(x,y,ion,comp,Nx),0,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
