@@ -348,7 +348,8 @@ void record_measurements(FILE **fp_measures,struct AppCtx *user,PetscInt count,P
 
             measure_flux(fp_measures[0],user,numrecords,start);
             velocity_field(fp_measures[1],user,numrecords,start);
-            calculate_measures(fp_measures[2],user,numrecords,start);
+//            calculate_measures(fp_measures[2],user,numrecords,start);
+            calculate_energy(fp_measures[2],user,numrecords,start);
         }else{
             fp_measures[0] = fopen("flux_csd.txt", "a");
             fp_measures[1] = fopen("grad_field.txt", "a");
@@ -357,7 +358,8 @@ void record_measurements(FILE **fp_measures,struct AppCtx *user,PetscInt count,P
     } else{
         measure_flux(fp_measures[0],user,numrecords,start);
         velocity_field(fp_measures[1],user,numrecords,start);
-        calculate_measures(fp_measures[2],user,numrecords,start);
+        //            calculate_measures(fp_measures[2],user,numrecords,start);
+        calculate_energy(fp_measures[2],user,numrecords,start);
 
         if(count%100==0) {
             draw_csd(user);
@@ -1046,6 +1048,7 @@ void calculate_measures(FILE *fp, struct AppCtx *user,PetscInt numrecords,int st
             Glia_K_per_amt += al[al_index(x,y,1,Nx)]*c[c_index(x,y,1,1,Nx)];
         }
     }
+
     Neu_Gli_K_diff = Neu_Gli_K_diff*dx*dy;
 
     Glia_K_per_amt = (Glia_K_per_amt*dx*dy)/(total_amt_K*dx*dy);
@@ -1053,6 +1056,55 @@ void calculate_measures(FILE *fp, struct AppCtx *user,PetscInt numrecords,int st
 
     fprintf(fp,"%.10e,%.10e\n",Neu_Gli_K_diff,Glia_K_per_amt);
 }
+void calculate_energy(FILE *fp, struct AppCtx *user, PetscInt numrecords, int start){
+    if (start) {
+        fprintf(fp, "%d,%d,%d,%d,%d\n", user->Nx, user->Ny, numrecords, 0, 0);
+        write_data(fp, user, numrecords, 0);
+    }else{
+        PetscScalar *c = user->state_vars->c;
+        PetscScalar *phi = user->state_vars->phi;
+        PetscScalar  *al = user->state_vars->alpha;
+        PetscInt Nx = user->Nx;
+        PetscInt Ny = user->Ny;
+
+        PetscScalar Energy,alNc;
+        PetscInt comp,ion;
+        for(PetscInt y=0;y<Ny;y++){
+            for(PetscInt x=0;x<Nx;x++){
+                Energy = 0;
+                //Ionic contribution
+                for(comp=0;comp<Nc-1;comp++){
+                    //Immobile ion part
+                    Energy +=user->con_vars->ao[comp]*log(user->con_vars->ao[comp])/al[al_index(x,y,comp,Nx)];
+                    //Mobile ions
+                    for(ion=0;ion<Ni;ion++){
+                        Energy +=al[al_index(x,y,comp,Nx)]*c[c_index(x,y,comp,ion,Nx)]*log(c[c_index(x,y,comp,ion,Nx)]);
+                    }
+                    //ElectroPotential part
+                    Energy += (cm[comp]/2)*pow((phi[phi_index(x,y,comp,Nx)]-phi[phi_index(x,y,Nc-1,Nx)])*RTFC,2);
+                }
+                //Extracellular ion term
+                comp = Nc-1;
+                alNc = 1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)];
+                //Immobile ion part
+                Energy +=user->con_vars->ao[comp]*log(user->con_vars->ao[comp])/(alNc);
+                //Mobile ions
+                for(ion=0;ion<Ni;ion++){
+                    Energy +=alNc*c[c_index(x,y,comp,ion,Nx)]*log(c[c_index(x,y,comp,ion,Nx)]);
+                }
+                //Write to file
+                if (x == Nx - 1 & y == Ny - 1) {
+                    fprintf(fp, "%.10e\n", Energy);
+                } else {
+                    fprintf(fp, "%.10e,", Energy);
+                }
+
+            }
+        }
+
+    }
+}
+
 void draw_csd(struct AppCtx *user)
 {
 

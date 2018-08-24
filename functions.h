@@ -136,6 +136,7 @@ void velocity_field(FILE *,struct AppCtx *,PetscInt,int);
 void record_measurements(FILE **,struct AppCtx *,PetscInt,PetscInt ,int );
 void calculate_measures(FILE *, struct AppCtx *,PetscInt ,int );
 void draw_csd(struct AppCtx *);
+void calculate_energy(FILE *, struct AppCtx *, PetscInt , int );
 
 
 #endif
