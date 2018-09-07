@@ -28,7 +28,7 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
     restore_subarray(current_state,user->state_vars);
     rsd = tol+1;
 
-    for(PetscInt iter=0;iter<1;iter++)
+    for(PetscInt iter=0;iter<10;iter++)
     {
         if(separate_vol){
             if(use_en_deriv){
@@ -49,7 +49,6 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
         }
 
         ierr = VecNorm(slvr->Res,NORM_MAX,&rsd);CHKERRQ(ierr);
-//        printf("Iteration: %d, Residual: %.10e\n",iter,rsd);
         if(rsd<tol)
         {
             if(details)
@@ -120,13 +119,13 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
             printf("Iteration: %d, Residual: %.10e\n",iter,rsd);
         }
     }
-/*
+
     if(rsd>tol)
     {
-        fprintf(stderr, "Netwon Iteration did not converge! Stopping...\n");
+        fprintf(stderr, "Netwon Iteration did not converge! Findal residual: %.10e. Stopping...\n",rsd);
         exit(EXIT_FAILURE);
     }
-    */
+
     return ierr;
 }
 
@@ -758,7 +757,6 @@ void volume_update(struct SimState *state_vars,struct SimState *state_vars_past,
             for (x = 0; x < Nx; x++) {
                 for (y = 0; y < Ny; y++) {
                     for (comp = 0; comp < Nc - 1; comp++) {
-
                         Func = state_vars->alpha[al_index(x, y, comp,Nx)] - state_vars_past->alpha[al_index(x, y, comp,Nx)] +
                                dt * user->flux->wflow[al_index(x, y, comp,Nx)];
 

@@ -29,7 +29,7 @@ void mclin(struct FluxData *,int,double,int,double,double,double,int);
 //GHK Relation 
 void mcGoldman(struct FluxData *,int,double,int,double,double,double,int);
 //Glutamate membrane fluxes
-void glutamate_flux(struct FluxData *,PetscInt  , PetscInt ,PetscReal ,PetscReal ,PetscReal,PetscReal,PetscReal );
+void glutamate_flux(struct FluxData *,PetscInt ,PetscInt ,PetscReal,PetscReal ,PetscReal ,PetscReal ,PetscReal );
 //Conductance for potassium inward rectifier
 double inwardrect(double,double,double);
 //Returns of c_i*z_i
