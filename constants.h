@@ -24,7 +24,7 @@
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define Predictor 0  // Turns on predictor. Adaptive single point estimated update
+#define Predictor 1  // Turns on predictor. Adaptive single point estimated update
 #define width_size  1//1 //Number of up,down,left,right neighbors to pair in the predictor.
 
 //basic ion extern constants
@@ -32,7 +32,7 @@
 static const   PetscInt z[4] = {1,1,-1,-1}; //valences of ion species
 static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,0};      //diffusion coefficients in cm^2/sec
 
-#define Time 8.3   //total simulated time in seconds
+#define Time 20.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
