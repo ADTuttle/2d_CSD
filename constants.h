@@ -15,7 +15,7 @@
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
 #define Profiling_on 1 //Turns timing of functions on/off.
-#define trecordstep 0.01 //0.5 //determines how often to record
+#define trecordstep 0.1 //0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 #define start_at_steady 1 //Start at steady state?
 
@@ -32,7 +32,7 @@
 static const   PetscInt z[4] = {1,1,-1,-1}; //valences of ion species
 static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,0};      //diffusion coefficients in cm^2/sec
 
-#define Time 5.0   //total simulated time in seconds
+#define Time 8.3   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -120,11 +120,11 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define glut_gamma 0.2    //Reabsorbtion ratio (arbitrary)
 #define glut_A 500e-3 //500       //Release rate in mmol/cm^3/sec
 #define glut_Bn 10              //Decay rate(extracell->intracell) in 1/sec
-#define glut_Bg 5              //Decay rate(glia->neurons) in 1/sec
+#define glut_Bg 8              //Decay rate(glia->neurons) in 1/sec
 #define glut_Re 0.01        // Steady state extracell/neuron concentration ratio
 #define glut_Rg 0.1        // Steady state glia/neuron concentration ratio
 #define glut_eps 5e-6 //5e-3      //Small scaling factor muMol converted to millMol
-#define basepNMDA 1e-7 //5e-5           //NMDA permeability (cm/sec)
+#define basepNMDA 1e-7//5e-5           //NMDA permeability (cm/sec)
 
 // Data Structures
 struct SimState{
