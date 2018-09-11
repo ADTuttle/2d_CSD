@@ -2183,15 +2183,11 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
     }
 
     //Electroneutrality charge-capacitence condition
-    for(x=0;x<Nx;x++)
-    {
-        for(y=0;y<Ny;y++)
-        {
+    for(x=0;x<Nx;x++) {
+        for(y=0;y<Ny;y++) {
             //electroneutral-concentration entries
-            for(ion=0;ion<Ni;ion++)
-            {
-                for(comp=0;comp<Nc-1;comp++)
-                {
+            for(ion=0;ion<Ni;ion++) {
+                for(comp=0;comp<Nc-1;comp++) {
                     //Phi with C entries
                     ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,ion,comp,Nx),z[ion]*al[al_index(x,y,comp,Nx)],INSERT_VALUES); CHKERRQ(ierr);
                     ind++;
@@ -2211,8 +2207,7 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
             //extraphi with extra phi
             ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni,Nc-1,Nx),Aphi,INSERT_VALUES);CHKERRQ(ierr);
             ind++;
-            for(comp=0;comp<Nc-1;comp++)
-            {
+            for(comp=0;comp<Nc-1;comp++) {
                 //Extra phi with intra phi
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni,comp,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
@@ -2222,7 +2217,12 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                 //Intra phi with Intra phi
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-cm[comp],INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
+
+
             }
+            // Neuron-Glia glutamate exchange
+            ierr = MatSetValue(Jac,Ind_1(x,y,3,0,Nx),Ind_1(x,y,3,1,Nx),-glut_Bg*dt,INSERT_VALUES);CHKERRQ(ierr);
+            ierr = MatSetValue(Jac,Ind_1(x,y,3,1,Nx),Ind_1(x,y,3,0,Nx),((1-glut_gamma)*glut_Bn*glut_Re-glut_Bg*glut_Rg)*dt,INSERT_VALUES);CHKERRQ(ierr);
         }
     }
 

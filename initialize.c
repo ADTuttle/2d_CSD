@@ -578,10 +578,8 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
     int ind = 0;
     int x,y,comp,ion;
     //Ionic concentration equations
-    for(x=0;x<Nx;x++)
-    {
-        for(y=0;y<Ny;y++)
-        {
+    for(x=0;x<Nx;x++) {
+        for(y=0;y<Ny;y++) {
             for(ion=0;ion<Ni;ion++)
             {
                 for(comp=0;comp<Nc-1;comp++)
@@ -800,6 +798,12 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
             }
             //extra-phi with extra-phi
             nnz[Ind(x,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
+            ind++;
+
+            // Neuron-Glia glutamate exchange
+            nnz[Ind(x,y,3,0,Nx)]++;//Ind_1(x,y,3,1,Nx)
+            ind++;
+            nnz[Ind(x,y,3,1,Nx)]++;//Ind_1(x,y,3,0,Nx),
             ind++;
         }
     }
@@ -1196,6 +1200,11 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                     }
 
                 }
+                // Neuron-Glia glutamate exchange
+                ierr = MatSetValue(Jac,Ind_1(x,y,3,0,Nx),Ind_1(x,y,3,1,Nx),-glut_Bg*user->dt,INSERT_VALUES);CHKERRQ(ierr); ind++;
+
+                ierr = MatSetValue(Jac,Ind_1(x,y,3,1,Nx),Ind_1(x,y,3,0,Nx),((1-glut_gamma)*glut_Bn*glut_Re-glut_Bg*glut_Rg)*user->dt,INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
             }
         }
     }

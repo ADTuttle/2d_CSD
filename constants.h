@@ -21,16 +21,16 @@
 
 
 //Solver Type Options
-#define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
+#define use_en_deriv 0 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define Predictor 1  // Turns on predictor. Adaptive single point estimated update
+#define Predictor 0  // Turns on predictor. Adaptive single point estimated update
 #define width_size  1//1 //Number of up,down,left,right neighbors to pair in the predictor.
 
 //basic ion extern constants
 #define   Ni  4           //number of ion species (Na, K, Cl)
 static const   PetscInt z[4] = {1,1,-1,-1}; //valences of ion species
-static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,0};      //diffusion coefficients in cm^2/sec
+static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,5e-5};      //diffusion coefficients in cm^2/sec
 
 #define Time 20.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
@@ -119,11 +119,11 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 // Glutamate parameters
 #define glut_gamma 0.2    //Reabsorbtion ratio (arbitrary)
 #define glut_A 500e-3 //500       //Release rate in mmol/cm^3/sec
-#define glut_Bn 10              //Decay rate(extracell->intracell) in 1/sec
-#define glut_Bg 8              //Decay rate(glia->neurons) in 1/sec
+#define glut_Bn 10e-2              //Decay rate(extracell->intracell) in 1/sec
+#define glut_Bg 8e-2              //Decay rate(glia->neurons) in 1/sec
 #define glut_Re 0.01        // Steady state extracell/neuron concentration ratio
 #define glut_Rg 0.1        // Steady state glia/neuron concentration ratio
-#define glut_eps 5e-6 //5e-3      //Small scaling factor muMol converted to millMol
+#define glut_eps 5e-3//5e-6 //5e-3      //Small scaling factor muMol converted to millMol
 #define basepNMDA 1e-7//5e-5           //NMDA permeability (cm/sec)
 
 // Data Structures
