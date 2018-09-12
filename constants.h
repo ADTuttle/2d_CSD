@@ -21,7 +21,7 @@
 
 
 //Solver Type Options
-#define use_en_deriv 0 //if true, will use the derivative of the electroneutrality condition for the system of equations
+#define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
 #define Predictor 0  // Turns on predictor. Adaptive single point estimated update
@@ -61,7 +61,7 @@ static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,5e-5};      //diffusi
 
 //Bath variables
 //extern PetscReal cbath[3]; //Na, K, and Cl
-static const PetscReal cbath[4]={140*1e-3,3.4*1e-3,120*1e-3,2e-8}; //Na, K, and Cl
+static const PetscReal cbath[4]={140*1e-3,3.4*1e-3,120*1e-3,2e-6}; //Na, K, Cl, and Glutamate
 #define Batheps 1.0 //Bath diffusion multiplier
 #define phibath (-0/RTFC) //Voltage of outside bath
 
@@ -119,11 +119,12 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 // Glutamate parameters
 #define glut_gamma 0.2    //Reabsorbtion ratio (arbitrary)
 #define glut_A 500e-3 //500       //Release rate in mmol/cm^3/sec
-#define glut_Bn 10e-2              //Decay rate(extracell->intracell) in 1/sec
-#define glut_Bg 8e-2              //Decay rate(glia->neurons) in 1/sec
+#define glut_Bn 10e-2//e-2              //Decay rate(extracell->intracell) in 1/sec
+#define glut_Bg 1e-3              //Decay rate(glia->neurons) in 1/sec
+#define glut_Kg 99.501             //Neuronal fraction for glial reaction
 #define glut_Re 0.01        // Steady state extracell/neuron concentration ratio
-#define glut_Rg 0.1        // Steady state glia/neuron concentration ratio
-#define glut_eps 5e-3//5e-6 //5e-3      //Small scaling factor muMol converted to millMol
+//#define glut_Rg 0.1        // Steady state glia/neuron concentration ratio
+#define glut_eps 5e-6//5e-6 //5e-3      //Small scaling factor muMol converted to millMol
 #define basepNMDA 1e-7//5e-5           //NMDA permeability (cm/sec)
 
 // Data Structures
