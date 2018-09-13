@@ -79,7 +79,7 @@ void mcGoldman(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,Pet
 
 void glutamate_flux(struct FluxData *flux,PetscInt neuron,PetscInt glia,PetscReal cn,PetscReal cnp,PetscReal cg,PetscReal ce,PetscReal vm)
 {
-    PetscReal frac = 1.0/(cn+glut_eps);
+    PetscReal frac = 1.0/(cn+glut_eps);//1.0/(pow(cn,1.19)+glut_eps);//
     PetscReal expo = exp(-0.0044*pow(vm*RTFC-8.66,2));
 
     //Neuronal portion
@@ -88,6 +88,17 @@ void glutamate_flux(struct FluxData *flux,PetscInt neuron,PetscInt glia,PetscRea
     flux->dfdci[neuron] = -(-glut_A*expo*glut_eps*pow(frac,2));//-glut_gamma*glut_Bn*glut_Re);
     flux->dfdce[neuron] = 0;//-(glut_gamma*glut_Bn);
     flux->dfdphim[neuron] = -(RTFC*0.0088*(vm*RTFC-8.66)*expo*glut_A*cn*frac);
+
+//    flux->mflux[neuron] = -(-glut_A*cn*expo+glut_gamma*glut_Bn*(ce-glut_Re*cnp)+glut_Bg*(cg/(cg+1e-6)-glut_Kg*cnp));
+//    flux->dfdci[neuron] = -(-glut_A*expo);//-glut_gamma*glut_Bn*glut_Re);
+//    flux->dfdce[neuron] = 0;//-(glut_gamma*glut_Bn);
+//    flux->dfdphim[neuron] = -(RTFC*0.0088*(vm*RTFC-8.66)*expo*glut_A*cn);
+
+//    flux->mflux[neuron] = -(-glut_A*pow(cn,1.19)*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*cnp)+glut_Bg*(cg-glut_Rg*cnp));
+//    flux->mflux[neuron] = -(-glut_A*cn*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*cnp)+glut_Bg*(cg/(cg+1e-6)-glut_Kg*cnp));
+//    flux->dfdci[neuron] = -(-glut_A*expo*glut_eps*1.9*pow(cn,0.9)*pow(frac,2));//-glut_gamma*glut_Bn*glut_Re);
+//    flux->dfdce[neuron] = 0;//-(glut_gamma*glut_Bn);
+//    flux->dfdphim[neuron] = -(RTFC*0.0088*(vm*RTFC-8.66)*expo*glut_A*pow(cn,1.19)*frac);
 
     //Glial Portion
 //    flux->mflux[glia] = -((1-glut_gamma)*glut_Bn*(ce-glut_Re*cn)-glut_Bg*(cg-glut_Rg*cn));

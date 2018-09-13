@@ -30,7 +30,7 @@
 //basic ion extern constants
 #define   Ni  4           //number of ion species (Na, K, Cl)
 static const   PetscInt z[4] = {1,1,-1,-1}; //valences of ion species
-static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,5e-5};      //diffusion coefficients in cm^2/sec
+static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,7.6e-6};      //diffusion coefficients in cm^2/sec
 
 #define Time 20.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
@@ -118,13 +118,14 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 // Glutamate parameters
 #define glut_gamma 0.2    //Reabsorbtion ratio (arbitrary)
-#define glut_A 500e-3 //500       //Release rate in mmol/cm^3/sec
-#define glut_Bn 10e-2//e-2              //Decay rate(extracell->intracell) in 1/sec
-#define glut_Bg 1e-3              //Decay rate(glia->neurons) in 1/sec
-#define glut_Kg 99.501             //Neuronal fraction for glial reaction
+#define glut_A (500e-3) //500       //Release rate in mmol/cm^3/sec
+#define glut_Bn (1.0/42)//10e-2//e-2              //Decay rate(extracell->intracell) in 1/sec
+#define glut_Bg 19.2e-6             //Decay rate(glia->neurons) in 1/sec
+//#define glut_Bg (1.0/42)//8e-2             //Decay rate(glia->neurons) in 1/sec
+#define glut_Kg 99.940035978412951            //Neuronal fraction for glial reaction
 #define glut_Re 0.01        // Steady state extracell/neuron concentration ratio
-//#define glut_Rg 0.1        // Steady state glia/neuron concentration ratio
-#define glut_eps 5e-6//5e-6 //5e-3      //Small scaling factor muMol converted to millMol
+//#define glut_Rg (1.0/6)       // Steady state glia/neuron concentration ratio
+#define glut_eps 22.99e-6//5e-3//5e-6 //5e-3      //Small scaling factor muMol converted to millMol
 #define basepNMDA 1e-7//5e-5           //NMDA permeability (cm/sec)
 
 // Data Structures

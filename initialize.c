@@ -34,7 +34,7 @@ void init(Vec state,struct SimState *state_vars,struct AppCtx*user)
             state_vars->c[c_index(x,y,2,2,Nx)] = 120e-3;       //143.5e-3%extracellular Cl
                                                             //glutamage taken from K. Moussawi, A. Riegel, et al
             state_vars->c[c_index(x,y,0,3,Nx)] = 10e-3;//10e-5; //10e-3;   //glutamate concentrations
-            state_vars->c[c_index(x,y,1,3,Nx)] = 1e-3;//1e-10; //1e-5; //10e-3;  //glial glu
+            state_vars->c[c_index(x,y,1,3,Nx)] = (10.0/6)*1e-3;//1e-10; //1e-5; //10e-3;  //glial glu
             state_vars->c[c_index(x,y,Nc-1,3,Nx)] = 1e-4;//2.8089e-05;;//3.6227e-13;//2.2411e-10;//1e-10;//2e-8;    //.02 muM-> 2e-5mM or .1muM ->10e-5
 
         }
@@ -333,6 +333,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     user->Nx = 32;
     user->Ny = 32;
     user->dt =0.01;
+//    user->dt =1e-4;
 
     PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);
     PetscOptionsGetInt(NULL,NULL,"-Ny",&user->Ny,NULL);
