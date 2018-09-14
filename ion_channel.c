@@ -97,12 +97,13 @@ PetscReal inwardrect(PetscReal ci,PetscReal ce,PetscReal phim)
     PetscReal cKo = .003; //#3 mM is base extracellular potassium concentration
     return sqrt(ce/cKo)*(1+exp(18.5/42.5))/(1+exp((RTFC*phim-Enernst+18.5)/42.5))*(1+exp((-118.6+EKdef)/44.1))/(1+exp((-118.6+RTFC*phim)/44.1));
 }
-PetscReal cz(const PetscReal *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt Nx,PetscInt comp,struct AppCtx *user)
+PetscReal
+cz(const PetscReal *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt z,PetscInt Nx,PetscInt Ny,PetscInt comp,struct AppCtx *user)
 {
     //function to compute sum over i of c_i*z_i
     PetscReal accumulate=0;
     for(PetscInt ion=0;ion<Ni;ion++) {
-        accumulate += zvals[ion]*cmat[c_index(x, y, 0, comp, ion, Nx, 0)];
+        accumulate += zvals[ion]*cmat[c_index(x, y, z, comp, ion, Nx, Ny)];
     }
     return accumulate;
 }

@@ -223,6 +223,7 @@ struct AppCtx{
     PetscReal dt;
     PetscReal dx;
     PetscReal dy;
+    PetscReal dz;
     PetscInt Nx;
     PetscInt Ny;
     PetscInt Nz;

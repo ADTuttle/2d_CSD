@@ -12,27 +12,31 @@ void init(Vec state,struct SimState *state_vars,struct AppCtx*user)
 {
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt Nz = user->Nz;
     extract_subarray(state,state_vars);
-    for(PetscInt x=0;x<Nx;x++) {
-        for(PetscInt y=0;y<Ny;y++) {
-            //initial volume fractions
-            state_vars->alpha[al_index(x, y, 0, 0, Nx, 0)]=alphao[0];
-            state_vars->alpha[al_index(x, y, 0, 1, Nx, 0)]=alphao[1];
-            //initial voltages (dimensionless)
-            state_vars->phi[phi_index(x, y, 0, 0, Nx, 0)] = -70 / RTFC; //neuronal voltage
-            state_vars->phi[phi_index(x, y, 0, 1, Nx, 0)] = -85 / RTFC; //glial voltage
-            state_vars->phi[phi_index(x, y, 0, 2, Nx, 0)] = -0 / RTFC; //extracell voltage
-            //initial concentrations in mmol/cm^3=1e-3 mmol/l
-            state_vars->c[c_index(x, y, 0, 0, 0, Nx, 0)] = 10e-3;     //neuronal Na concentration
-            state_vars->c[c_index(x, y, 0, 1, 0, Nx, 0)] = 10e-3;      //glial Na concentration
-            state_vars->c[c_index(x, y, 0, 2, 0, Nx, 0)] = 140e-3;     //extracellular Na concentration
-            state_vars->c[c_index(x, y, 0, 0, 1, Nx, 0)] = 130e-3;     //neuronal K concentration
-            state_vars->c[c_index(x, y, 0, 1, 1, Nx, 0)] = 130e-3;     //glial K concentration
-            state_vars->c[c_index(x, y, 0, 2, 1, Nx, 0)] = 3.4e-3;     //extracellular K concentration
-            state_vars->c[c_index(x, y, 0, 0, 2, Nx, 0)] = 10e-3;       //neuronal Cl concentration
-            state_vars->c[c_index(x, y, 0, 1, 2, Nx, 0)] = 10e-3; 		//glial Cl concentraion
-            state_vars->c[c_index(x, y, 0, 2, 2, Nx, 0)] = 120e-3;       //143.5e-3%extracellular Cl
+    for(PetscInt z=0;z<Nz;z++) {
+        for(PetscInt y=0;y<Ny;y++){
+            for(PetscInt x = 0; x < Nx; x++){
 
+                //initial volume fractions
+                state_vars->alpha[al_index(x,y,z,0,Nx,Ny)] = alphao[0];
+                state_vars->alpha[al_index(x,y,z,1,Nx,Ny)] = alphao[1];
+                //initial voltages (dimensionless)
+                state_vars->phi[phi_index(x,y,z,0,Nx,Ny)] = -70/RTFC; //neuronal voltage
+                state_vars->phi[phi_index(x,y,z,1,Nx,Ny)] = -85/RTFC; //glial voltage
+                state_vars->phi[phi_index(x,y,z,2,Nx,Ny)] = -0/RTFC; //extracell voltage
+                //initial concentrations in mmol/cm^3=1e-3 mmol/l
+                state_vars->c[c_index(x,y,z,0,0,Nx,Ny)] = 10e-3;     //neuronal Na concentration
+                state_vars->c[c_index(x,y,z,1,0,Nx,Ny)] = 10e-3;      //glial Na concentration
+                state_vars->c[c_index(x,y,z,2,0,Nx,Ny)] = 140e-3;     //extracellular Na concentration
+                state_vars->c[c_index(x,y,z,0,1,Nx,Ny)] = 130e-3;     //neuronal K concentration
+                state_vars->c[c_index(x,y,z,1,1,Nx,Ny)] = 130e-3;     //glial K concentration
+                state_vars->c[c_index(x,y,z,2,1,Nx,Ny)] = 3.4e-3;     //extracellular K concentration
+                state_vars->c[c_index(x,y,z,0,2,Nx,Ny)] = 10e-3;       //neuronal Cl concentration
+                state_vars->c[c_index(x,y,z,1,2,Nx,Ny)] = 10e-3;        //glial Cl concentraion
+                state_vars->c[c_index(x,y,z,2,2,Nx,Ny)] = 120e-3;       //143.5e-3%extracellular Cl
+
+            }
         }
     }
     restore_subarray(state,state_vars);
@@ -43,6 +47,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 {
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt Nz = user->Nz;
     PetscReal vm,vmg,NaKCl,pKGHK,pNaGHK,Ipump,pKLinG,Ipumpg,osmotic,alNc,zetaadjust;
     extract_subarray(state,state_vars);
     PetscReal *c = state_vars->c;
@@ -51,153 +56,150 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
     PetscReal cmphi[Nc]={0,0,0}; //initializing cmphi
 
     // Compute Chloride concentration
-    for(PetscInt x=0;x<Nx;x++){
-        for(PetscInt y=0;y<Ny;y++){
-            vm = phi[phi_index(x, y, 0, 0, Nx, 0)] - phi[phi_index(x, y, 0, 2, Nx, 0)]; //neuronal membrane potential
-            vmg = phi[phi_index(x, y, 0, 1, Nx, 0)] - phi[phi_index(x, y, 0, 2, Nx, 0)]; //glial membrane potential
+    for(PetscInt z=0;z<Nz;z++){
+        for(PetscInt y = 0; y < Ny; y++){
+            for(PetscInt x = 0; x < Nx; x++){
 
-            //compute neuronal Cl concentration (since neuron has only leak conductance, must be at reversal potential for Cl)
+                vm = phi[phi_index(x,y,z,0,Nx,Ny)]-phi[phi_index(x,y,z,2,Nx,Ny)]; //neuronal membrane potential
+                vmg = phi[phi_index(x,y,z,1,Nx,Ny)]-phi[phi_index(x,y,z,2,Nx,Ny)]; //glial membrane potential
 
-            c[c_index(x, y, 0, 0, 2, Nx, 0)] = c[c_index(x, y, 0, 2, 2, Nx, 0)] * exp(vm);
-            //set glial Cl concentration equal to neuronal Cl concentration
-            c[c_index(x, y, 0, 1, 2, Nx, 0)] = c[c_index(x, y, 0, 0, 2, Nx, 0)];
+                //compute neuronal Cl concentration (since neuron has only leak conductance, must be at reversal potential for Cl)
+
+                c[c_index(x,y,z,0,2,Nx,Ny)] = c[c_index(x,y,z,2,2,Nx,Ny)]*exp(vm);
+                //set glial Cl concentration equal to neuronal Cl concentration
+                c[c_index(x,y,z,1,2,Nx,Ny)] = c[c_index(x,y,z,0,2,Nx,Ny)];
+            }
         }
     }
 
     //compute gating variables
     gatevars_update(gate_vars, gate_vars, state_vars, 0, user, 1);
 
+    for (PetscInt z = 0; z < Nz; z++){
+        for(PetscInt y = 0; y < Ny; y++){
+            for(PetscInt x = 0; x < Nx; x++){
 
-    for(PetscInt x=0;x<Nx;x++) {
-        for (PetscInt y = 0; y < Ny; y++) {
-            vm = phi[phi_index(x, y, 0, 0, Nx, 0)] - phi[phi_index(x, y, 0, 2, Nx, 0)]; //neuronal membrane potential
-            vmg = phi[phi_index(x, y, 0, 1, Nx, 0)] - phi[phi_index(x, y, 0, 2, Nx, 0)]; //glial membrane potential
+                vm = phi[phi_index(x,y,z,0,Nx,Ny)]-phi[phi_index(x,y,z,2,Nx,Ny)]; //neuronal membrane potential
+                vmg = phi[phi_index(x,y,z,1,Nx,Ny)]-phi[phi_index(x,y,z,2,Nx,Ny)]; //glial membrane potential
 
-            //compute cotransporter permeability so that glial Cl is at rest
-            mclin(flux, c_index(x, y, 0, 1, 2, Nx, 0), pClLeakg, -1, c[c_index(x, y, 0, 1, 2, Nx, 0)], c[c_index(x, y, 0,
-                                                                                                                 2, 2,
-                                                                                                                 Nx, 0)], vmg, 0);
-            con_vars->pNaKCl[xy_index(x, y, 0, Nx, 0)] = -flux->mflux[c_index(x, y, 0, 1, 2, Nx, 0)] / 2 /
-                                                         log(c[c_index(x, y, 0, 1, 0, Nx, 0)] * c[c_index(x, y, 0, 1, 1, Nx,
-                                                                                                  0)] *
-                                                     c[c_index(x, y, 0, 1, 2, Nx, 0)] * c[c_index(x, y, 0, 1, 2, Nx,
-                                                                                                  0)] /
-                                                     (c[c_index(x, y, 0, 2, 0, Nx, 0)] * c[c_index(x, y, 0, 2, 1, Nx,
-                                                                                                   0)] *
-                                                      c[c_index(x, y, 0, 2, 2, Nx, 0)] * c[c_index(x, y, 0, 2, 2, Nx, 0)]));
-            NaKCl = -flux->mflux[c_index(x, y, 0, 1, 2, Nx, 0)] / 2;
+                //compute cotransporter permeability so that glial Cl is at rest
+                mclin(flux,c_index(x,y,z,1,2,Nx,Ny),pClLeakg,-1,c[c_index(x,y,z,1,2,Nx,Ny)],c[c_index(x,y,z,
+                                                                                                    2,2,
+                                                                                                    Nx,Ny)],vmg,0);
+                con_vars->pNaKCl[xy_index(x,y,z,Nx,Ny)] = -flux->mflux[c_index(x,y,z,1,2,Nx,Ny)]/2/
+                                                         log(c[c_index(x,y,z,1,0,Nx,Ny)]*c[c_index(x,y,z,1,1,Nx,
+                                                                                                  0)]*
+                                                             c[c_index(x,y,z,1,2,Nx,Ny)]*c[c_index(x,y,z,1,2,Nx,
+                                                                                                  0)]/
+                                                             (c[c_index(x,y,z,2,0,Nx,Ny)]*c[c_index(x,y,z,2,1,Nx,
+                                                                                                   0)]*
+                                                              c[c_index(x,y,z,2,2,Nx,Ny)]*c[c_index(x,y,z,2,2,Nx,Ny)]));
+                NaKCl = -flux->mflux[c_index(x,y,z,1,2,Nx,Ny)]/2;
 
-            //compute K channel currents (neuron)
-            pKGHK = con_vars->pKDR[xy_index(x, y, 0, Nx, 0)] * gate_vars->gKDR[xy_index(x, y, 0, Nx, 0)] + con_vars->pKA[xy_index(
-                    x, y,
-                    0, Nx,
-                    0)] * gate_vars->gKA[xy_index(
-                    x, y, 0, Nx, 0)];
-            //Initialize the KGHK flux
-            mcGoldman(flux, c_index(x, y, 0, 0, 1, Nx, 0), pKGHK, 1, c[c_index(x, y, 0, 0, 1, Nx, 0)],
-                      c[c_index(x, y, 0, Nc - 1, 1, Nx, 0)], vm, 0);
-            //Add the KLeak flux to it
-            mclin(flux, c_index(x, y, 0, 0, 1, Nx, 0), pKLeak, 1, c[c_index(x, y, 0, 0, 1, Nx, 0)], c[c_index(x, y, 0,
-                                                                                                              Nc - 1, 1,
-                                                                                                              Nx, 0)],
-                  vm, 1);
+                //compute K channel currents (neuron)
+                pKGHK = con_vars->pKDR[xy_index(x,y,z,Nx,Ny)]*gate_vars->gKDR[xy_index(x,y,z,Nx,Ny)]+
+                        con_vars->pKA[xy_index(
+                                x,y,
+                                0,Nx,
+                                0)]*gate_vars->gKA[xy_index(
+                                x,y,z,Nx,Ny)];
+                //Initialize the KGHK flux
+                mcGoldman(flux,c_index(x,y,z,0,1,Nx,Ny),pKGHK,1,c[c_index(x,y,z,0,1,Nx,Ny)],
+                          c[c_index(x,y,z,Nc-1,1,Nx,Ny)],vm,0);
+                //Add the KLeak flux to it
+                mclin(flux,c_index(x,y,z,0,1,Nx,Ny),pKLeak,1,c[c_index(x,y,z,0,1,Nx,Ny)],c[c_index(x,y,z,
+                                                                                                 Nc-1,1,
+                                                                                                 Nx,Ny)],
+                      vm,1);
 
-            //compute neuronal ATPase value
-            con_vars->Imax[xy_index(x, y, 0, Nx, 0)] = flux->mflux[c_index(x, y, 0, 0, 1, Nx, 0)] * (pow(1 + mK / c[c_index(x,
-                                                                                                                            y, 0,
-                                                                                                                    Nc - 1,
-                                                                                                                            1,
-                                                                                                                            Nx,
-                                                                                                                            0)], 2) *
-                                                                                                     pow(1 + mNa / c[c_index(x,
-                                                                                                                     y,
-                                                                                                                     0,
-                                                                                                                     0,
-                                                                                                                     0,
-                                                                                                                     Nx,
-                                                                                                                     0)], 3)) / 2;
+                //compute neuronal ATPase value
+                con_vars->Imax[xy_index(x,y,z,Nx,Ny)] = flux->mflux[c_index(x,y,z,0,1,Nx,Ny)]*
+                        (pow(1+mK/c[c_index(x,y,z,Nc-1,1,Nx,Ny)],2)*pow(1+mNa/c[c_index(x,y,z,0,0,Nx,Ny)],3))/2;
 
 
-            //compute neuronal sodium currents and leak permeability value
-            pNaGHK = con_vars->pNaT[xy_index(x, y, 0, Nx, 0)] * gate_vars->gNaT[xy_index(x, y, 0, Nx, 0)] + con_vars->pNaP[xy_index(
-                    x, y, 0,
-                    Nx, 0)] * gate_vars->gNaP[xy_index(
-                    x, y, 0, Nx, 0)];
-            mcGoldman(flux, c_index(x, y, 0, 0, 0, Nx, 0), pNaGHK, 1, c[c_index(x, y, 0, 0, 0, Nx, 0)],
-                      c[c_index(x, y, 0, Nc - 1, 0, Nx, 0)], vm, 0);
-            Ipump = npump * con_vars->Imax[xy_index(x, y, 0, Nx, 0)] / (pow((1 + mK / c[c_index(x, y, 0, Nc - 1, 1, Nx, 0)]), 2) *
-                                                                        pow((1 + mNa / c[c_index(x, y, 0, 0, 0, Nx, 0)]), 3));
-            con_vars->pNaLeak[xy_index(x, y, 0, Nx, 0)] = (-flux->mflux[c_index(x, y, 0, 0, 0, Nx, 0)] - 3 * Ipump) /
-                                                          (log(c[c_index(x, y, 0, 0, 0, Nx, 0)] / c[c_index(x, y, 0, Nc - 1, 0,
-                                                                                                    Nx, 0)]) + vm);
+                //compute neuronal sodium currents and leak permeability value
+                pNaGHK = con_vars->pNaT[xy_index(x,y,z,Nx,Ny)]*gate_vars->gNaT[xy_index(x,y,z,Nx,Ny)]+
+                         con_vars->pNaP[xy_index(
+                                 x,y,z,
+                                 Nx,Ny)]*gate_vars->gNaP[xy_index(
+                                 x,y,z,Nx,Ny)];
+                mcGoldman(flux,c_index(x,y,z,0,0,Nx,Ny),pNaGHK,1,c[c_index(x,y,z,0,0,Nx,Ny)],
+                          c[c_index(x,y,z,Nc-1,0,Nx,Ny)],vm,0);
+                Ipump = npump*con_vars->Imax[xy_index(x,y,z,Nx,Ny)]/(pow((1+mK/c[c_index(x,y,z,Nc-1,1,Nx,Ny)]),2)*
+                                                                    pow((1+mNa/c[c_index(x,y,z,0,0,Nx,Ny)]),3));
+                con_vars->pNaLeak[xy_index(x,y,z,Nx,Ny)] = (-flux->mflux[c_index(x,y,z,0,0,Nx,Ny)]-3*Ipump)/
+                                                          (log(c[c_index(x,y,z,0,0,Nx,Ny)]/c[c_index(x,y,z,Nc-1,0,
+                                                                                                    Nx,Ny)])+vm);
 
-            //compute K channel currents (glial)
-            pKLinG = con_vars->pKIR[xy_index(x, y, 0, Nx, 0)] * inwardrect(c[c_index(x, y, 0, 1, 1, Nx, 0)], c[c_index(x, y, 0,
-                                                                                                               Nc - 1,
-                                                                                                                       1, Nx,
-                                                                                                                       0)], vmg) * pKLeakadjust;
-            mclin(flux, c_index(x, y, 0, 1, 1, Nx, 0), pKLinG, 1, c[c_index(x, y, 0, 1, 1, Nx, 0)], c[c_index(x, y, 0,
-                                                                                                              Nc - 1, 1,
-                                                                                                              Nx, 0)],
-                  vmg, 0);
-            flux->mflux[c_index(x, y, 0, 1, 1, Nx, 0)] += NaKCl;
+                //compute K channel currents (glial)
+                pKLinG = con_vars->pKIR[xy_index(x,y,z,Nx,Ny)]*inwardrect(c[c_index(x,y,z,1,1,Nx,Ny)],c[c_index(x,y,z,
+                                                                                                              Nc-1,
+                                                                                                              1,Nx,
+                                                                                                              0)],vmg)*
+                         pKLeakadjust;
+                mclin(flux,c_index(x,y,z,1,1,Nx,Ny),pKLinG,1,c[c_index(x,y,z,1,1,Nx,Ny)],c[c_index(x,y,z,
+                                                                                                 Nc-1,1,
+                                                                                                 Nx,Ny)],
+                      vmg,0);
+                flux->mflux[c_index(x,y,z,1,1,Nx,Ny)] += NaKCl;
 
-            //compute glial ATPase value
-            con_vars->Imaxg[xy_index(x, y, 0, Nx, 0)] =
-                    flux->mflux[c_index(x, y, 0, 1, 1, Nx, 0)] * pow((1 + mK / c[c_index(x, y, 0, Nc - 1, 1, Nx, 0)]), 2) *
-                    pow((1 + mNa / c[c_index(x, y, 0, 1, 0, Nx, 0)]), 3) / 2;
+                //compute glial ATPase value
+                con_vars->Imaxg[xy_index(x,y,z,Nx,Ny)] =
+                        flux->mflux[c_index(x,y,z,1,1,Nx,Ny)]*pow((1+mK/c[c_index(x,y,z,Nc-1,1,Nx,Ny)]),2)*
+                        pow((1+mNa/c[c_index(x,y,z,1,0,Nx,Ny)]),3)/2;
 
-            //compute glial sodium current and leak permeability value
-            Ipumpg = glpump * con_vars->Imaxg[xy_index(x, y, 0, Nx, 0)] / (pow((1 + mK / c[c_index(x, y, 0, Nc - 1, 1, Nx, 0)]), 2) *
-                                                                           pow((1 + mNa / c[c_index(x, y, 0, 1, 0, Nx, 0)]), 3));
-            con_vars->pNaLeakg[xy_index(x, y, 0, Nx, 0)] =
-                    (-NaKCl - 3 * Ipumpg) / (log(c[c_index(x, y, 0, 1, 0, Nx, 0)] / c[c_index(x, y, 0, Nc - 1, 0, Nx,
-                                                                                              0)]) + vmg);
+                //compute glial sodium current and leak permeability value
+                Ipumpg = glpump*con_vars->Imaxg[xy_index(x,y,z,Nx,Ny)]/(pow((1+mK/c[c_index(x,y,z,Nc-1,1,Nx,Ny)]),2)*
+                                                                       pow((1+mNa/c[c_index(x,y,z,1,0,Nx,Ny)]),3));
+                con_vars->pNaLeakg[xy_index(x,y,z,Nx,Ny)] =
+                        (-NaKCl-3*Ipumpg)/(log(c[c_index(x,y,z,1,0,Nx,Ny)]/c[c_index(x,y,z,Nc-1,0,Nx,Ny)])+vmg);
 
-            //Compute resting organic anion amounts and average valences
-            //set extracellular organic anion amounts and valence to ensure electroneutrality
-            con_vars->ao[Nc - 1] = 5e-4;
-            alNc = 1 - alpha[al_index(x, y, 0, 0, Nx, 0)] - alpha[al_index(x, y, 0, 1, Nx, 0)];
-            cmphi[Nc-1] = 0; //initializing extracell cmphi
+                //Compute resting organic anion amounts and average valences
+                //set extracellular organic anion amounts and valence to ensure electroneutrality
+                con_vars->ao[Nc-1] = 5e-4;
+                alNc = 1-alpha[al_index(x,y,z,0,Nx,Ny)]-alpha[al_index(x,y,z,1,Nx,Ny)];
+                cmphi[Nc-1] = 0; //initializing extracell cmphi
 
-            for (PetscInt k = 0; k < Nc - 1; k++) {
-                cmphi[k] = cm[k] * (phi[phi_index(x, y, 0, k, Nx, 0)] - phi[phi_index(x, y, 0, Nc - 1, Nx, 0)]);
-                cmphi[Nc - 1] += cmphi[k];
-                //set intracellular organic anion amounts to ensure osmotic pressure balance
-                osmotic = 0;
-                for (PetscInt ion = 0; ion < Ni; ion++) {
-                    osmotic += c[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] - c[c_index(x, y, 0, k, ion, Nx, 0)];
+                for(PetscInt k = 0; k < Nc-1; k++){
+                    cmphi[k] = cm[k]*(phi[phi_index(x,y,z,k,Nx,Ny)]-phi[phi_index(x,y,z,Nc-1,Nx,Ny)]);
+                    cmphi[Nc-1] += cmphi[k];
+                    //set intracellular organic anion amounts to ensure osmotic pressure balance
+                    osmotic = 0;
+                    for(PetscInt ion = 0; ion < Ni; ion++){
+                        osmotic += c[c_index(x,y,z,Nc-1,ion,Nx,Ny)]-c[c_index(x,y,z,k,ion,Nx,Ny)];
+                    }
+                    con_vars->ao[k] = alpha[al_index(x,y,z,k,Nx,Ny)]*(con_vars->ao[Nc-1]/alNc+osmotic);
+                    //set average valence to ensure electroneutrality
+                    con_vars->zo[k] =
+                            (-cz(c,z_charge,x,y,z,Nx,Ny,k,user)*alpha[al_index(x,y,z,k,Nx,Ny)]+cmphi[k])/con_vars->ao[k];
                 }
-                con_vars->ao[k] = alpha[al_index(x, y, 0, k, Nx, 0)] * (con_vars->ao[Nc - 1] / alNc + osmotic);
-                //set average valence to ensure electroneutrality
-                con_vars->zo[k] = (-cz(c, z_charge, x, y, Nx, k, user) * alpha[al_index(x, y, 0, k, Nx, 0)] + cmphi[k]) / con_vars->ao[k];
-            }
-            con_vars->zo[Nc-1]=(-cz(c,z_charge,x,y,Nx,Nc-1,user)*alNc - cmphi[Nc - 1]) / con_vars->ao[Nc - 1];
+                con_vars->zo[Nc-1] = (-cz(c,z_charge,x,y,z,Nx,Ny,Nc-1,user)*alNc-cmphi[Nc-1])/con_vars->ao[Nc-1];
 
-            //Set kappa to 0 for no flow
-            con_vars->kappa = 0;
+                //Set kappa to 0 for no flow
+                con_vars->kappa = 0;
 
 
-            //parameters for osmotic water flow
+                //parameters for osmotic water flow
 
-            zetaadjust = 1; //modify glial permeability
-            for (PetscInt comp = 0; comp < Nc - 1; comp++) {
-                //based on B.E. Shapiro dissertation (2000)
-                con_vars->zeta1[comp] = 5.4e-5;  //hydraulic permeability in cm/sec/(mmol/cm^3)
-                con_vars->zeta1[comp] /= ell;  //conversion to 1/sec/(mmol/cm^3)
-                //based on Strieter, Stephenson, Palmer,
-                //Weinstein, Journal or General Physiology, 1990.
-                //zeta=7e-8%6e-10%hydraulic permeability in cm/sec/mmHg
-                //zeta=zeta*7.501e-6%conversion to cm/sec/mPa
-                //zeta=zeta*R*T%conversion to cm/sec/(mmol/cm^3)
-                //zeta=zeta/ell%conversion to 1/sec/(mmol/cm^3)
-                if (comp == 1) {          //parameter for varying glial hydraulic permeability
-                    con_vars->zeta1[comp] *= zetaadjust; //adjust glial hydraulic permeability
+                zetaadjust = 1; //modify glial permeability
+                for(PetscInt comp = 0; comp < Nc-1; comp++){
+                    //based on B.E. Shapiro dissertation (2000)
+                    con_vars->zeta1[comp] = 5.4e-5;  //hydraulic permeability in cm/sec/(mmol/cm^3)
+                    con_vars->zeta1[comp] /= ell;  //conversion to 1/sec/(mmol/cm^3)
+                    //based on Strieter, Stephenson, Palmer,
+                    //Weinstein, Journal or General Physiology, 1990.
+                    //zeta=7e-8%6e-10%hydraulic permeability in cm/sec/mmHg
+                    //zeta=zeta*7.501e-6%conversion to cm/sec/mPa
+                    //zeta=zeta*R*T%conversion to cm/sec/(mmol/cm^3)
+                    //zeta=zeta/ell%conversion to 1/sec/(mmol/cm^3)
+                    if(comp == 1){          //parameter for varying glial hydraulic permeability
+                        con_vars->zeta1[comp] *= zetaadjust; //adjust glial hydraulic permeability
+                    }
+                    con_vars->zetaalpha[comp] = 0;  //stiffness constant or 1/stiffness constant
                 }
-                con_vars->zetaalpha[comp] = 0;  //stiffness constant or 1/stiffness constant
-            }
 
-            con_vars->S = 1;  //Indicates whether zetaalpha is the stiffness (true) or 1/stiffness (false)
+                con_vars->S = 1;  //Indicates whether zetaalpha is the stiffness (true) or 1/stiffness (false)
+            }
         }
     }
 
@@ -210,21 +212,24 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     //Make a temp solver for just a 1x1 grid for speed
     PetscInt temp_Nx = user->Nx;
     PetscInt temp_Ny = user->Ny;
+    PetscInt temp_Nz = user->Nz;
     user->Nx = 1;
     user->Ny = 1;
+    user->Nz = 1;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt Nz = user->Nz;
 
     struct Solver *slvr = (struct Solver*)malloc(sizeof(struct Solver));
     //Create Vectors
     VecCreate(PETSC_COMM_WORLD,&slvr->Q);
     VecSetType(slvr->Q,VECSEQ);
-    VecSetSizes(slvr->Q,PETSC_DECIDE,Nx*Ny*Nv);
+    VecSetSizes(slvr->Q,PETSC_DECIDE,Nx*Ny*Nz*Nv);
     VecDuplicate(slvr->Q,&slvr->Res);
     MatCreate(PETSC_COMM_WORLD,&slvr->A);
     MatSetType(slvr->A,MATSEQAIJ);
-    MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,Nx*Ny*Nv,Nx*Ny*Nv);
-    MatSeqAIJSetPreallocation(slvr->A,5*Nv,NULL);
+    MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,Nx*Ny*Nz*Nv,Nx*Ny*Nz*Nv);
+    MatSeqAIJSetPreallocation(slvr->A,7*Nv,NULL);
     MatSetUp(slvr->A);
     initialize_jacobian(slvr->A,user,0);
     KSPCreate(PETSC_COMM_WORLD,&slvr->ksp);
@@ -254,7 +259,7 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     user->dt = 0.01;
 
     // For 1x1 grid Dcs is zeros
-    memset(user->Dcs,0,sizeof(PetscReal)*2*temp_Nx*temp_Ny*Nc*Ni);
+    memset(user->Dcs,0,sizeof(PetscReal)*2*temp_Nx*temp_Ny*temp_Nz*Nc*Ni);
 
     while(rsd>tol && k<1e5)
     {
@@ -263,7 +268,7 @@ void initialize_data(Vec current_state,struct AppCtx *user)
         restore_subarray(user->state_vars_past->v, user->state_vars_past);
         copy_simstate(current_state, user->state_vars_past);
         if (separate_vol) {
-            memcpy(user->state_vars_past->alpha, user->state_vars->alpha, sizeof(PetscReal) * user->Nx * user->Ny * (Nc - 1));
+            memcpy(user->state_vars_past->alpha, user->state_vars->alpha, sizeof(PetscReal) * user->Nx * user->Ny*user->Nz * (Nc - 1));
             //Update volume
             volume_update(user->state_vars, user->state_vars_past, user);
         }
@@ -283,9 +288,9 @@ void initialize_data(Vec current_state,struct AppCtx *user)
         gatevars_update(user->gate_vars,user->gate_vars,user->state_vars,user->dt*1e3,user,1);
 
 
-        rsd_v[0] = array_diff_max(user->state_vars->c,user->state_vars_past->c,(size_t)Nx*Ny*Nc*Ni);
-        rsd_v[1] = array_diff_max(user->state_vars->phi,user->state_vars_past->phi,(size_t)Nx*Ny*Nc);
-        rsd_v[2] = array_diff_max(user->state_vars->alpha,user->state_vars_past->alpha,(size_t)Nx*Ny*(Nc-1));
+        rsd_v[0] = array_diff_max(user->state_vars->c,user->state_vars_past->c,(size_t)Nx*Ny*Nz*Nc*Ni);
+        rsd_v[1] = array_diff_max(user->state_vars->phi,user->state_vars_past->phi,(size_t)Nx*Ny*Nz*Nc);
+        rsd_v[2] = array_diff_max(user->state_vars->alpha,user->state_vars_past->alpha,(size_t)Nx*Ny*Nz*(Nc-1));
         rsd = array_max(rsd_v,3);
         restore_subarray(current_state,user->state_vars);
 
@@ -302,29 +307,33 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     PetscReal al[Nc-1];
     PetscInt comp,ion,x,y;
     for(comp=0;comp<Nc;comp++){
-        for(ion=0;ion<Ni;ion++){
-            c[c_index(0, 0, 0, comp, ion, Nx, 0)]=user->state_vars->c[c_index(0, 0, 0, comp, ion, Nx, 0)];
+        for(ion = 0; ion < Ni; ion++){
+            c[c_index(0,0,0,comp,ion,Nx,Ny)] = user->state_vars->c[c_index(0,0,0,comp,ion,Nx,Ny)];
         }
-        phi[phi_index(0, 0, 0, comp, Nx, 0)]=user->state_vars->phi[phi_index(0, 0, 0, comp, Nx, 0)];
+        phi[phi_index(0,0,0,comp,Nx,Ny)] = user->state_vars->phi[phi_index(0,0,0,comp,Nx,Ny)];
     }
     for(comp=0;comp<Nc-1;comp++){
-        al[al_index(0, 0, 0, comp, Nx, 0)] = user->state_vars->alpha[al_index(0, 0, 0, comp, Nx, 0)];
+        al[al_index(0,0,0,comp,Nx,Ny)] = user->state_vars->alpha[al_index(0,0,0,comp,Nx,Ny)];
     }
     user->dt = dt_temp;
     user->Nx = temp_Nx;
     user->Ny = temp_Ny;
+    user->Nz = temp_Nz;
 
     //Copy over the saved variables.
-    for(x=0;x<temp_Nx;x++){
-        for(y=0;y<temp_Ny;y++){
-            for(comp=0;comp<Nc;comp++){
-                for(ion=0;ion<Ni;ion++){
-                    user->state_vars->c[c_index(x, y, 0, comp, ion, Nx, 0)]=c[c_index(0, 0, 0, comp, ion, Nx, 0)];
+    for(PetscInt z=0;y<temp_Nz;z++){
+        for(y = 0; y < temp_Ny; y++){
+            for(x = 0; x < temp_Nx; x++){
+
+                for(comp = 0; comp < Nc; comp++){
+                    for(ion = 0; ion < Ni; ion++){
+                        user->state_vars->c[c_index(x,y,z,comp,ion,temp_Nx,temp_Ny)] = c[c_index(0,0,0,comp,ion,Nx,0)];
+                    }
+                    user->state_vars->phi[phi_index(x,y,z,comp,temp_Nx,temp_Ny)] = phi[phi_index(0,0,0,comp,Nx,0)];
                 }
-                user->state_vars->phi[phi_index(x, y, 0, comp, Nx, 0)]=phi[phi_index(0, 0, 0, comp, Nx, 0)];
-            }
-            for(comp=0;comp<Nc-1;comp++){
-                user->state_vars->alpha[al_index(x, y, 0, comp, Nx, 0)]=al[al_index(0, 0, 0, comp, Nx, 0)];
+                for(comp = 0; comp < Nc-1; comp++){
+                    user->state_vars->alpha[al_index(x,y,z,comp,temp_Nx,temp_Ny)] = al[al_index(0,0,0,comp,Nx,0)];
+                }
             }
         }
     }
@@ -356,20 +365,24 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
 
     user->Nx = 32;
     user->Ny = 32;
+    user->Nz = 4;
     user->dt =0.01;
 
     PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);
     PetscOptionsGetInt(NULL,NULL,"-Ny",&user->Ny,NULL);
+    PetscOptionsGetInt(NULL,NULL,"-Nz",&user->Nz,NULL);
     PetscOptionsGetReal(NULL,NULL,"-dt",&user->dt,NULL);
 
 
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt Nz = user->Nz;
 
     user->dx = Lx/Nx;
     user->dy = Ly/Ny;
-    slvr->NA = Nv*Nx*Ny;//total number of unknowns
-    user->Nnz = (Ni*Nc*(4*(Nx-1)*Ny+4*(Ny-1)*Nx+2*Nx*Ny)+Ni*(Nc-1)*6*Nx*Ny+(Nc*Ni+1)*Nx*Ny+(Nc-1)*(6*Nx*Ny+Nx*Ny*(Nc-2)+Ni*2*Nx*Ny)); //number of nonzeros in Jacobian
+    user->dz = Lz/Nz;
+    slvr->NA = Nv*Nx*Ny*Nz;//total number of unknowns
+    user->Nnz = (Ni*Nc*(4*(Nx-1)*Nz*Ny+4*(Ny-1)*Nz*Nx+4*(Nz-1)*Ny*Nx+2*Nx*Ny*Nz)+Ni*(Nc-1)*6*Nx*Ny*Nz+(Nc*Ni+1)*Nx*Ny*Nz+(Nc-1)*(6*Nx*Ny*Nz+Nx*Ny*Nz*(Nc-2)+Ni*2*Nx*Ny*Nz)); //number of nonzeros in Jacobian
 
     PetscInt NA = slvr->NA;
 
@@ -387,7 +400,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = MatCreate(PETSC_COMM_WORLD,&slvr->A);CHKERRQ(ierr);
     ierr = MatSetType(slvr->A,MATSEQAIJ);CHKERRQ(ierr);
     ierr = MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,NA,NA);CHKERRQ(ierr);
-    ierr = MatSeqAIJSetPreallocation(slvr->A,5*Nv,nnz);CHKERRQ(ierr);
+    ierr = MatSeqAIJSetPreallocation(slvr->A,7*Nv,nnz);CHKERRQ(ierr);
     ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
 
     //Initialize Space
@@ -504,10 +517,12 @@ PetscErrorCode initialize_grid_slvr(struct Solver *slvr,int argc, char **argv,st
 
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt Nz = user->Ny;
 
     user->dx = Lx/Nx;
     user->dy = Ly/Ny;
-    slvr->NA = ((Ni+2)*Nc-1)*(2*width_size+1)*(2*width_size+1);//total number of unknowns
+    user->dz = Lz/Nz;
+    slvr->NA = ((Ni+2)*Nc-1)*(2*width_size+1)*(2*width_size+1)*(2*width_size+1);//total number of unknowns
 
     PetscInt NA = slvr->NA;
 
@@ -526,7 +541,7 @@ PetscErrorCode initialize_grid_slvr(struct Solver *slvr,int argc, char **argv,st
     ierr = MatCreate(PETSC_COMM_WORLD,&slvr->A);CHKERRQ(ierr);
     ierr = MatSetType(slvr->A,MATSEQAIJ);CHKERRQ(ierr);
     ierr = MatSetSizes(slvr->A,PETSC_DECIDE,PETSC_DECIDE,NA,NA);CHKERRQ(ierr);
-    ierr = MatSeqAIJSetPreallocation(slvr->A,5*((Ni+2)*Nc-1),nnz);CHKERRQ(ierr);
+    ierr = MatSeqAIJSetPreallocation(slvr->A,7*((Ni+2)*Nc-1),nnz);CHKERRQ(ierr);
     ierr = MatSetUp(slvr->A);CHKERRQ(ierr);
 
     //Initialize Space

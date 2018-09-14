@@ -244,15 +244,16 @@ PetscErrorCode calc_residual_linear_algebraic(SNES snes,Vec current_state,Vec Re
             for(comp=0;comp<Nc-1;comp++)
             {
 
-                Resc = al[al_index(x, y, 0, comp, Nx, 0)] * cz(c, z_charge, x, y, Nx, comp, user) + user->con_vars->zo[phi_index(0, 0, 0, comp,
-                                                                                                                          Nx, 0)] * user->con_vars->ao[phi_index(
+                Resc = al[al_index(x, y, 0, comp, Nx, 0)] *cz(c,z_charge,x,y,0,Nx,0,comp,user)+user->con_vars->zo[phi_index(0,0,0,comp,
+                                                                                                                            Nx,0)]*user->con_vars->ao[phi_index(
                         0, 0, 0, comp, Nx, 0)];
                 ierr = VecSetValue(Res, Ind_1(x, y, 0, Ni, comp, Nx, 0), Resc, INSERT_VALUES); CHKERRQ(ierr);
             }
             //Extracellular term
             comp=Nc-1;
-            Resc = (1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)]) * cz(c, z_charge, x, y, Nx, comp, user) + user->con_vars->zo[phi_index(
-                    0, 0, 0, comp, Nx, 0)] * user->con_vars->ao[phi_index(
+            Resc = (1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)]) *
+                           cz(c,z_charge,x,y,0,Nx,0,comp,user)+user->con_vars->zo[phi_index(
+                    0, 0, 0, comp, Nx, 0)]*user->con_vars->ao[phi_index(
                     0, 0, 0, comp, Nx, 0)];
             ierr = VecSetValue(Res, Ind_1(x, y, 0, Ni, comp, Nx, 0), Resc, INSERT_VALUES); CHKERRQ(ierr);
         }

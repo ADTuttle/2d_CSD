@@ -33,7 +33,8 @@ void mcGoldman(struct FluxData *,int,double,int,double,double,double,int);
 //Conductance for potassium inward rectifier
 double inwardrect(double,double,double);
 //Returns of c_i*z_i
-double cz(const double *,const PetscInt *,int,int,int,PetscInt,struct AppCtx*);
+PetscReal
+cz(const PetscReal *,const PetscInt *,PetscInt,PetscInt,PetscInt z,PetscInt,PetscInt Ny,PetscInt,struct AppCtx *);
 //Computes diffusion coef
 void diff_coef(double *,const PetscReal *,PetscReal,struct AppCtx*);
 //Calculate the ion fluxes and derivatives

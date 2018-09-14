@@ -1271,15 +1271,16 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
             //Residual for electroneutrality condition
             for(comp=0;comp<Nc-1;comp++) {
 
-                Resc = al[al_index(x, y, 0, comp, Nx, 0)] * cz(c, z_charge, x, y, Nx, comp, user) + user->con_vars->zo[phi_index(0, 0, 0, comp,
-                                                                                                                          Nx, 0)] * user->con_vars->ao[phi_index(
+                Resc = al[al_index(x, y, 0, comp, Nx, 0)] *cz(c,z_charge,x,y,0,Nx,0,comp,user)+user->con_vars->zo[phi_index(0,0,0,comp,
+                                                                                                                            Nx,0)]*user->con_vars->ao[phi_index(
                         0, 0, 0, comp, Nx, 0)];
                 ierr = VecSetValue(Res, Ind_2(x, y, 0, Ni, comp, Nx, 0), Resc, INSERT_VALUES); CHKERRQ(ierr);
             }
             //Extracellular term
             comp=Nc-1;
-            Resc = (1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)]) * cz(c, z_charge, x, y, Nx, comp, user) + user->con_vars->zo[phi_index(
-                    0, 0, 0, comp, Nx, 0)] * user->con_vars->ao[phi_index(
+            Resc = (1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)]) *
+                           cz(c,z_charge,x,y,0,Nx,0,comp,user)+user->con_vars->zo[phi_index(
+                    0, 0, 0, comp, Nx, 0)]*user->con_vars->ao[phi_index(
                     0, 0, 0, comp, Nx, 0)];
             ierr = VecSetValue(Res, Ind_2(x, y, 0, Ni, comp, Nx, 0), Resc, INSERT_VALUES); CHKERRQ(ierr);
 
@@ -1643,10 +1644,12 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
 //                ierr = MatSetValue(Jac,Ind_2(x,y,Ni,comp,Nx),Ind_2(x,y,Ni,comp,Nx),-cm[comp],INSERT_VALUES);CHKERRQ(ierr);
 //                ind++;
                 //Extra phi with intra-Volume
-                ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni, Nc - 1, Nx, 0), Ind_2(x, y, 0, Ni + 1, comp, Nx, 0), -cz(c, z_charge, x, y, Nx, Nc - 1, user), INSERT_VALUES);CHKERRQ(ierr);
+                ierr = MatSetValue(Jac,Ind_2(x, y, 0, Ni, Nc - 1, Nx, 0),Ind_2(x, y, 0, Ni + 1, comp, Nx, 0),-cz(c,z_charge,x,y,0,Nx,0,
+                                                                                                                 Nc-
+                                                                                                                 1,user),INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
                 //Intra phi with Intra Vol
-                ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni, comp, Nx, 0), Ind_2(x, y, 0, Ni + 1, comp, Nx, 0), cz(c, z_charge, x, y, Nx, comp, user), INSERT_VALUES);CHKERRQ(ierr);
+                ierr = MatSetValue(Jac,Ind_2(x, y, 0, Ni, comp, Nx, 0),Ind_2(x, y, 0, Ni + 1, comp, Nx, 0),cz(c,z_charge,x,y,0,Nx,0,comp,user),INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
             }
         }
