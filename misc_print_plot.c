@@ -452,51 +452,51 @@ void measure_flux(FILE *fp, struct AppCtx* user,PetscInt numrecords,int start)
                         for (ion = 0; ion < Ni; ion++) {
                             if (x > 0) {
                                 //First difference term
-                                Ftmp = z[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] / (dx * dx);
+                                Ftmp = z_charge[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] / (dx * dx);
                                 Rcvx += Ftmp * (c[c_index(x, y, 0, comp, ion, Nx, 0)] - c[c_index(x - 1, y, 0, comp,
                                                                                                   ion, Nx,
                                                                                                   0)]);
-                                Rphx += Ftmp * z[ion] * c[c_index(x - 1, y, 0, comp, ion, Nx, 0)] *
+                                Rphx += Ftmp * z_charge[ion] * c[c_index(x - 1, y, 0, comp, ion, Nx, 0)] *
                                         (phi[phi_index(x, y, 0, comp, Nx, 0)] - phi[phi_index(x - 1, y, 0, comp, Nx, 0)]);
                             }
                             //Add Second right moving difference
                             if (x < Nx - 1) {
                                 //Second difference term
-                                Ftmp = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] / (dx * dx);
+                                Ftmp = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] / (dx * dx);
                                 RcvxRight +=
                                         Ftmp * (c[c_index(x + 1, y, 0, comp, ion, Nx, 0)] - c[c_index(x, y, 0, comp,
                                                                                                       ion, Nx,
                                                                                                       0)]);
-                                RphxRight += Ftmp * z[ion] * c[c_index(x, y, 0, comp, ion, Nx, 0)] *
+                                RphxRight += Ftmp * z_charge[ion] * c[c_index(x, y, 0, comp, ion, Nx, 0)] *
                                              (phi[phi_index(x + 1, y, 0, comp, Nx, 0)] - phi[phi_index(x, y, 0, comp,
                                                                                                        Nx, 0)]);
                             }
                             if (y > 0) {
                                 //Updown difference term
-                                Ftmp = z[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] / (dy * dy);
+                                Ftmp = z_charge[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] / (dy * dy);
                                 Rcvy += Ftmp * (c[c_index(x, y, 0, comp, ion, Nx, 0)] - c[c_index(x, y - 1, 0, comp,
                                                                                                   ion, Nx,
                                                                                                   0)]);
-                                Rphy += Ftmp * z[ion] * c[c_index(x, y - 1, 0, comp, ion, Nx, 0)] *
+                                Rphy += Ftmp * z_charge[ion] * c[c_index(x, y - 1, 0, comp, ion, Nx, 0)] *
                                         (phi[phi_index(x, y, 0, comp, Nx, 0)] - phi[phi_index(x, y - 1, 0, comp, Nx, 0)]);
                             }
                             //Next upward difference
                             if (y < Ny - 1) {
-                                Ftmp = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] / (dy * dy);
+                                Ftmp = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] / (dy * dy);
                                 RcvyUp +=
                                         Ftmp * (c[c_index(x, y + 1, 0, comp, ion, Nx, 0)] - c[c_index(x, y, 0, comp,
                                                                                                       ion, Nx,
                                                                                                       0)]);
-                                RcvyUp += Ftmp * z[ion] * c[c_index(x, y, 0, comp, ion, Nx, 0)] *
+                                RcvyUp += Ftmp * z_charge[ion] * c[c_index(x, y, 0, comp, ion, Nx, 0)] *
                                           (phi[phi_index(x, y + 1, 0, comp, Nx, 0)] - phi[phi_index(x, y, 0, comp, Nx, 0)]);
 
                             }
                             if (comp == Nc - 1) {
-                                Ftmp = z[ion] * sqrt(pow(Dcb[c_index(x, y, 0, comp, ion, Nx, 0) * 2], 2) +
+                                Ftmp = z_charge[ion] * sqrt(pow(Dcb[c_index(x, y, 0, comp, ion, Nx, 0) * 2], 2) +
                                                      pow(Dcb[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1], 2));
                                 RBath -= Ftmp * (c[c_index(x, y, 0, comp, ion, Nx, 0)] - cbath[ion]);
                                 RBath -= Ftmp * (c[c_index(x, y, 0, comp, ion, Nx, 0)] + cbath[ion]) / 2.0 *
-                                         (z[ion] * phi[phi_index(x, y, 0, comp, Nx, 0)] - z[ion] * phibath);
+                                         (z_charge[ion] * phi[phi_index(x, y, 0, comp, Nx, 0)] - z_charge[ion] * phibath);
                             }
                         }
 
@@ -1018,7 +1018,7 @@ void velocity_field(FILE *fp,struct AppCtx *user,PetscInt numrecords,int start) 
                                 Gradleft = 1;//Dcs[c_index(x-1,y,comp,ion,Nx)*2]*(c[c_index(x-1,y,comp,ion,Nx)]+c[c_index(x,y,comp,ion,Nx)])/2;
                                 Gradleft = Gradleft * (log(c[c_index(x, y, 0, comp, ion, Nx, 0)]) -
                                                        log(c[c_index(x - 1, y, 0, comp, ion, Nx, 0)]) +
-                                                       z[ion] * (phi[phi_index(x, y, 0, comp, Nx, 0)] -
+                                                       z_charge[ion] * (phi[phi_index(x, y, 0, comp, Nx, 0)] -
                                                                  phi[phi_index(x - 1, y, 0, comp, Nx, 0)])) / dx;
                                 count_x++;
                             }
@@ -1027,7 +1027,7 @@ void velocity_field(FILE *fp,struct AppCtx *user,PetscInt numrecords,int start) 
                                 GradRight = 1;//Dcs[c_index(x,y,comp,ion,Nx)*2]*(c[c_index(x,y,comp,ion,Nx)]+c[c_index(x+1,y,comp,ion,Nx)])/2;
                                 GradRight = GradRight * (log(c[c_index(x + 1, y, 0, comp, ion, Nx, 0)]) -
                                                          log(c[c_index(x, y, 0, comp, ion, Nx, 0)]) +
-                                                         z[ion] * (phi[phi_index(x + 1, y, 0, comp, Nx, 0)] -
+                                                         z_charge[ion] * (phi[phi_index(x + 1, y, 0, comp, Nx, 0)] -
                                                                    phi[phi_index(x, y, 0, comp, Nx, 0)])) / dx;
                                 count_x++;
                             }
@@ -1038,7 +1038,7 @@ void velocity_field(FILE *fp,struct AppCtx *user,PetscInt numrecords,int start) 
                                 GradDown = 1;//Dcs[c_index(x,y-1,comp,ion,Nx)*2+1]*(c[c_index(x,y-1,comp,ion,Nx)]+c[c_index(x,y,comp,ion,Nx)])/2;
                                 GradDown = GradDown * (log(c[c_index(x, y, 0, comp, ion, Nx, 0)]) -
                                                        log(c[c_index(x, y - 1, 0, comp, ion, Nx, 0)]) +
-                                                       z[ion] * (phi[phi_index(x, y, 0, comp, Nx, 0)] -
+                                                       z_charge[ion] * (phi[phi_index(x, y, 0, comp, Nx, 0)] -
                                                                  phi[phi_index(x, y - 1, 0, comp, Nx, 0)])) / dy;
                                 count_y++;
                             }
@@ -1047,7 +1047,7 @@ void velocity_field(FILE *fp,struct AppCtx *user,PetscInt numrecords,int start) 
                                 GradUp = 1;//Dcs[c_index(x,y,comp,ion,Nx)*2+1]*(c[c_index(x,y,comp,ion,Nx)]+c[c_index(x,y+1,comp,ion,Nx)])/2;
                                 GradUp = GradUp * (log(c[c_index(x, y + 1, 0, comp, ion, Nx, 0)]) -
                                                    log(c[c_index(x, y, 0, comp, ion, Nx, 0)]) +
-                                                   z[ion] * (phi[phi_index(x, y + 1, 0, comp, Nx, 0)] -
+                                                   z_charge[ion] * (phi[phi_index(x, y + 1, 0, comp, Nx, 0)] -
                                                              phi[phi_index(x, y, 0, comp, Nx, 0)])) / dy;
                                 count_y++;
                             }

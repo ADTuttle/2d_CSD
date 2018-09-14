@@ -35,12 +35,14 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx
     PetscErrorCode ierr;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt Nz = user->Nz;
     //Setup indices
-    int x,y,comp,ion;
-    PetscInt *c_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*Nc*Ni);
-    PetscInt *phi_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*Nc);
-    for(x=0;x<Nx;x++){
-        for(y=0;y<Ny;y++){
+    int x,y,z,comp,ion;
+    PetscInt *c_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*Nz*Nc*Ni);
+    PetscInt *phi_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*Nz*Nc);
+    for(z=0;z<Nz;z++){
+    for(y=0;y<Ny;y++){
+        for(x=0;x<Nx;x++){
             for(comp=0;comp<Nc;comp++)
             {
                 for(ion=0;ion<Ni;ion++)

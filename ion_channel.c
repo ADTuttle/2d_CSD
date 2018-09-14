@@ -11,7 +11,7 @@ void mclin(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,PetscRe
     // pc is the permeativity, zi is valence, ci/e intra/extra concentration
     //phim is membrane voltage, index is the index in the flux struct
     //compute value and derivatives of the function:
-    //mflux=pc.*(log(ci./ce)+z*phim)
+    //mflux=pc.*(log(ci./ce)+z_charge*phim)
     //for trans-membrane flux of an ion obeying a linear current-voltage equation
     if(ADD) { //If add, we accumulate the result
         flux->mflux[index] += pc*(log(ci/ce)+zi*phim);
@@ -28,7 +28,7 @@ void mclin(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,PetscRe
 void mcGoldman(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,PetscReal ci,PetscReal ce,PetscReal phim,PetscInt ADD)
 {
     //compute value and derivatives of the function:
-    //mflux=p.*(z*phim).*(ci.*exp(z*phim)-ce)./(exp(z*phim)-1)
+    //mflux=p.*(z_charge*phim).*(ci.*exp(z_charge*phim)-ce)./(exp(z_charge*phim)-1)
     //for trans-membrane flux of an ion obeying the GHK equations
     PetscReal xi = zi*phim/2;
     PetscReal r = exp(xi);

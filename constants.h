@@ -30,7 +30,7 @@
 
 //basic ion extern constants
 #define   Ni  3           //number of ion species (Na, K, Cl)
-static const   PetscInt z[3] = {1,1,-1};//valences of ion species
+static const   PetscInt z_charge[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 //Diffusion multipliers {x-dir,y-dir}
 static const PetscReal DNeuronMult[3] = {0,0,0};

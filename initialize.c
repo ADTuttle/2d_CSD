@@ -170,9 +170,9 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
                 }
                 con_vars->ao[k] = alpha[al_index(x, y, 0, k, Nx, 0)] * (con_vars->ao[Nc - 1] / alNc + osmotic);
                 //set average valence to ensure electroneutrality
-                con_vars->zo[k] = (-cz(c, z, x, y, Nx, k, user) * alpha[al_index(x, y, 0, k, Nx, 0)] + cmphi[k]) / con_vars->ao[k];
+                con_vars->zo[k] = (-cz(c, z_charge, x, y, Nx, k, user) * alpha[al_index(x, y, 0, k, Nx, 0)] + cmphi[k]) / con_vars->ao[k];
             }
-            con_vars->zo[Nc-1]=(-cz(c,z,x,y,Nx,Nc-1,user)*alNc - cmphi[Nc - 1]) / con_vars->ao[Nc - 1];
+            con_vars->zo[Nc-1]=(-cz(c,z_charge,x,y,Nx,Nc-1,user)*alNc - cmphi[Nc - 1]) / con_vars->ao[Nc - 1];
 
             //Set kappa to 0 for no flow
             con_vars->kappa = 0;

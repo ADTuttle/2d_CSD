@@ -58,7 +58,7 @@ PetscErrorCode calc_residual_linear_algebraic(SNES snes,Vec current_state,Vec Re
                                                                                                             Nx,
                                                                                                             0)]);
                         //Phi term
-                        Rcvx += Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * z[ion] * (cp[c_index(x - 1, y, 0,
+                        Rcvx += Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * z_charge[ion] * (cp[c_index(x - 1, y, 0,
                                                                                                        comp, ion, Nx,
                                                                                                        0)] + cp[c_index(
                                 x,
@@ -79,7 +79,7 @@ PetscErrorCode calc_residual_linear_algebraic(SNES snes,Vec current_state,Vec Re
                                                                                                              comp, ion,
                                                                                                              Nx, 0)]);
                         //Phi term
-                        RcvxRight += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * z[ion] * (cp[c_index(x + 1, y, 0,
+                        RcvxRight += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * z_charge[ion] * (cp[c_index(x + 1, y, 0,
                                                                                                         comp, ion, Nx,
                                                                                                         0)] + cp[c_index(
                                 x, y, 0, comp, ion, Nx, 0)]) / 2 * (phi[phi_index(x + 1, y, 0, comp, Nx, 0)] - phi[phi_index(
@@ -98,7 +98,7 @@ PetscErrorCode calc_residual_linear_algebraic(SNES snes,Vec current_state,Vec Re
                                                                                                                 ion, Nx,
                                                                                                                 0)]);
                         //Phi term
-                        Rcvy += Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * z[ion] * (cp[c_index(x, y - 1, 0,
+                        Rcvy += Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * z_charge[ion] * (cp[c_index(x, y - 1, 0,
                                                                                                            comp, ion,
                                                                                                            Nx, 0)] + cp[c_index(
                                 x,
@@ -121,7 +121,7 @@ PetscErrorCode calc_residual_linear_algebraic(SNES snes,Vec current_state,Vec Re
                                                                                                                   ion,
                                                                                                                   Nx, 0)]);
                         //Phi term
-                        RcvyUp += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * z[ion] * (cp[c_index(x, y + 1, 0,
+                        RcvyUp += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * z_charge[ion] * (cp[c_index(x, y + 1, 0,
                                                                                                          comp, ion, Nx,
                                                                                                          0)] + cp[c_index(
                                 x,
@@ -159,7 +159,7 @@ PetscErrorCode calc_residual_linear_algebraic(SNES snes,Vec current_state,Vec Re
                             x - 1, y, 0, comp,
                             ion, Nx, 0)]);
                     //Phi term
-                    Rcvx += Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * z[ion] * (cp[c_index(x - 1, y, 0, comp,
+                    Rcvx += Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * z_charge[ion] * (cp[c_index(x - 1, y, 0, comp,
                                                                                                    ion, Nx, 0)] + cp[c_index(
                             x, y, 0,
                             comp,
@@ -174,7 +174,7 @@ PetscErrorCode calc_residual_linear_algebraic(SNES snes,Vec current_state,Vec Re
                                                                                          0)] - c[c_index(x, y, 0, comp,
                                                                                                          ion, Nx, 0)]);
                     //Phi term
-                    RcvxRight += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * z[ion] * (cp[c_index(x + 1, y, 0, comp,
+                    RcvxRight += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * z_charge[ion] * (cp[c_index(x + 1, y, 0, comp,
                                                                                                     ion, Nx, 0)] + cp[c_index(
                             x, y,
                             0,
@@ -194,7 +194,7 @@ PetscErrorCode calc_residual_linear_algebraic(SNES snes,Vec current_state,Vec Re
                                                                                                             comp,
                                                                                                             ion, Nx, 0)]);
                     //Phi term
-                    Rcvy += Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * z[ion] * (cp[c_index(x, y - 1, 0,
+                    Rcvy += Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * z_charge[ion] * (cp[c_index(x, y - 1, 0,
                                                                                                        comp, ion, Nx,
                                                                                                        0)] + cp[c_index(
                             x, y,
@@ -212,7 +212,7 @@ PetscErrorCode calc_residual_linear_algebraic(SNES snes,Vec current_state,Vec Re
                                                                                           0)] - c[c_index(x, y, 0, comp,
                                                                                                           ion, Nx, 0)]);
                     //Phi term
-                    RcvyUp += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * z[ion] * (cp[c_index(x, y + 1, 0, comp,
+                    RcvyUp += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * z_charge[ion] * (cp[c_index(x, y + 1, 0, comp,
                                                                                                      ion, Nx, 0)] + cp[c_index(
                             x, y,
                             0,
@@ -228,7 +228,7 @@ PetscErrorCode calc_residual_linear_algebraic(SNES snes,Vec current_state,Vec Re
 
                 Resc -= sqrt(pow(Dcb[c_index(x, y, 0, comp, ion, Nx, 0) * 2], 2) + pow(Dcb[c_index(x, y, 0, comp, ion,
                                                                                                    Nx, 0) * 2 + 1], 2)) * (c[c_index(
-                        x, y, 0, comp, ion, Nx, 0)] - cbath[ion] + z[ion] * (cp[c_index(
+                        x, y, 0, comp, ion, Nx, 0)] - cbath[ion] + z_charge[ion] * (cp[c_index(
                         x, y, 0, comp, ion, Nx, 0)] + cbath[ion]) / 2.0 * (phi[phi_index(x, y, 0, comp, Nx, 0)] - phibath)) * dt;
                 ierr = VecSetValue(Res, Ind_1(x, y, 0, ion, comp, Nx, 0), Resc, INSERT_VALUES);CHKERRQ(ierr);
 
@@ -244,14 +244,14 @@ PetscErrorCode calc_residual_linear_algebraic(SNES snes,Vec current_state,Vec Re
             for(comp=0;comp<Nc-1;comp++)
             {
 
-                Resc = al[al_index(x, y, 0, comp, Nx, 0)] * cz(c, z, x, y, Nx, comp, user) + user->con_vars->zo[phi_index(0, 0, 0, comp,
+                Resc = al[al_index(x, y, 0, comp, Nx, 0)] * cz(c, z_charge, x, y, Nx, comp, user) + user->con_vars->zo[phi_index(0, 0, 0, comp,
                                                                                                                           Nx, 0)] * user->con_vars->ao[phi_index(
                         0, 0, 0, comp, Nx, 0)];
                 ierr = VecSetValue(Res, Ind_1(x, y, 0, Ni, comp, Nx, 0), Resc, INSERT_VALUES); CHKERRQ(ierr);
             }
             //Extracellular term
             comp=Nc-1;
-            Resc = (1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)]) * cz(c, z, x, y, Nx, comp, user) + user->con_vars->zo[phi_index(
+            Resc = (1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)]) * cz(c, z_charge, x, y, Nx, comp, user) + user->con_vars->zo[phi_index(
                     0, 0, 0, comp, Nx, 0)] * user->con_vars->ao[phi_index(
                     0, 0, 0, comp, Nx, 0)];
             ierr = VecSetValue(Res, Ind_1(x, y, 0, Ni, comp, Nx, 0), Resc, INSERT_VALUES); CHKERRQ(ierr);
@@ -349,7 +349,7 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                         Fph1y = 0;
                         if (x < Nx - 1) {
                             Fc0x = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                            Fph0x = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] *
+                            Fph0x = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] *
                                     (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(x + 1, y, 0, comp, ion, Nx,
                                                                                          0)]) / 2 / dx * dt /
                                     dx;
@@ -368,7 +368,7 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                         }
                         if (x > 0) {
                             Fc1x = Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                            Fph1x = z[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] *
+                            Fph1x = z_charge[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] *
                                     (cp[c_index(x - 1, y, 0, comp, ion, Nx, 0)] + cp[c_index(x, y, 0, comp, ion, Nx,
                                                                                              0)]) / 2 / dx * dt /
                                     dx;
@@ -386,7 +386,7 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                         }
                         if (y < Ny - 1) {
                             Fc0y = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                            Fph0y = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] *
+                            Fph0y = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] *
                                     (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(x, y + 1, 0, comp, ion, Nx,
                                                                                          0)]) / 2 / dy * dt /
                                     dy;
@@ -404,7 +404,7 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                         }
                         if (y > 0) {
                             Fc1y = Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                            Fph1y = z[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] *
+                            Fph1y = z_charge[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] *
                                     (cp[c_index(x, y - 1, 0, comp, ion, Nx, 0)] + cp[c_index(x, y, 0, comp, ion, Nx,
                                                                                              0)]) / 2 / dy * dt /
                                     dy;
@@ -473,7 +473,7 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                     Fph1y = 0;
                     if (x < Nx - 1) {
                         Fc0x = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                        Fph0x = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] *
+                        Fph0x = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] *
                                 (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(x + 1, y, 0, comp, ion, Nx, 0)]) / 2 / dx * dt / dx;
                         // Right c with left c (-Fc0x)
                         ierr = MatSetValue(Jac, Ind_1(x + 1, y, 0, ion, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -Fc0x,
@@ -488,7 +488,7 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                     }
                     if (x > 0) {
                         Fc1x = Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                        Fph1x = z[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] *
+                        Fph1x = z_charge[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] *
                                 (cp[c_index(x - 1, y, 0, comp, ion, Nx, 0)] + cp[c_index(x, y, 0, comp, ion, Nx, 0)]) / 2 / dx * dt / dx;
                         //left c with right c (-Fc1x)
                         ierr = MatSetValue(Jac, Ind_1(x - 1, y, 0, ion, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -Fc1x,
@@ -503,7 +503,7 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                     }
                     if (y < Ny - 1) {
                         Fc0y = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                        Fph0y = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] *
+                        Fph0y = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] *
                                 (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(x, y + 1, 0, comp, ion, Nx, 0)]) / 2 / dy * dt / dy;
                         // Upper c with lower c (-Fc0y)
                         ierr = MatSetValue(Jac, Ind_1(x, y + 1, 0, ion, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -Fc0y,
@@ -518,7 +518,7 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                     }
                     if (y > 0) {
                         Fc1y = Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                        Fph1y = z[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] *
+                        Fph1y = z_charge[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] *
                                 (cp[c_index(x, y - 1, 0, comp, ion, Nx, 0)] + cp[c_index(x, y, 0, comp, ion, Nx, 0)]) / 2 / dy * dt / dy;
                         //Lower c with Upper c (-Fc1y)
                         ierr = MatSetValue(Jac, Ind_1(x, y - 1, 0, ion, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -Fc1y,
@@ -546,7 +546,7 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                                pow(Dcb[c_index(x, y, 0, Nc - 1, ion, Nx, 0) * 2 + 1], 2)) * dt;
                     Aphi -= sqrt(pow(Dcb[c_index(x, y, 0, Nc - 1, ion, Nx, 0) * 2], 2) +
                                  pow(Dcb[c_index(x, y, 0, Nc - 1, ion, Nx, 0) * 2 + 1], 2)) *
-                            (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) * z[ion] / 2 * dt;
+                            (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) * z_charge[ion] / 2 * dt;
 
                     //Insert extracell to extracell parts
                     // c with c
@@ -570,14 +570,14 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                     for (comp = 0; comp < Nc - 1; comp++) {
                         //Phi with C entries
                         ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0),
-                                           z[ion] * al[al_index(x, y, 0, comp, Nx, 0)], INSERT_VALUES);
+                                           z_charge[ion] * al[al_index(x, y, 0, comp, Nx, 0)], INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     //Phi with C extracellular one
                     comp = Nc - 1;
                     ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0),
-                                       z[ion] * (1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)]), INSERT_VALUES);
+                                       z_charge[ion] * (1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)]), INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
 
@@ -624,13 +624,13 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                         Fph1y = 0;
                         if (x < Nx - 1) {
                             Fc0x = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                            Fph0x = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x, y, 0, comp,
+                            Fph0x = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x, y, 0, comp,
                                                                                                        ion, Nx, 0)] + cp[c_index(
                                     x + 1, y, 0, comp, ion, Nx, 0)]) / 2 / dx * dt / dx;
                         }
                         if (x > 0) {
                             Fc1x = Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                            Fph1x = z[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x - 1, y, 0,
+                            Fph1x = z_charge[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x - 1, y, 0,
                                                                                                            comp, ion,
                                                                                                            Nx, 0)] + cp[c_index(
                                     x, y, 0, comp, ion, Nx, 0)]) / 2 / dx * dt / dx;
@@ -638,14 +638,14 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                         }
                         if (y < Ny - 1) {
                             Fc0y = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                            Fph0y = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y, 0,
+                            Fph0y = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y, 0,
                                                                                                            comp, ion,
                                                                                                            Nx, 0)] + cp[c_index(
                                     x, y + 1, 0, comp, ion, Nx, 0)]) / 2 / dy * dt / dy;
                         }
                         if (y > 0) {
                             Fc1y = Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                            Fph1y = z[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y - 1,
+                            Fph1y = z_charge[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y - 1,
                                                                                                                0,
                                                                                                                comp,
                                                                                                                ion, Nx,
@@ -705,27 +705,27 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                     Fph1y = 0;
                     if (x < Nx - 1) {
                         Fc0x = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                        Fph0x = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x, y, 0, comp, ion,
+                        Fph0x = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x, y, 0, comp, ion,
                                                                                                    Nx, 0)] + cp[c_index(
                                 x + 1, y, 0, comp, ion, Nx, 0)]) / 2 / dx * dt / dx;
                     }
                     if (x > 0) {
                         Fc1x = Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                        Fph1x = z[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x - 1, y, 0,
+                        Fph1x = z_charge[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x - 1, y, 0,
                                                                                                        comp, ion,
                                                                                                        Nx, 0)] + cp[c_index(
                                 x, y, 0, comp, ion, Nx, 0)]) / 2 / dx * dt / dx;
                     }
                     if (y < Ny - 1) {
                         Fc0y = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                        Fph0y = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y, 0, comp,
+                        Fph0y = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y, 0, comp,
                                                                                                        ion, Nx,
                                                                                                        0)] + cp[c_index(
                                 x, y + 1, 0, comp, ion, Nx, 0)]) / 2 / dy * dt / dy;
                     }
                     if (y > 0) {
                         Fc1y = Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                        Fph1y = z[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y - 1, 0,
+                        Fph1y = z_charge[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y - 1, 0,
                                                                                                            comp,
                                                                                                            ion, Nx,
                                                                                                            0)] + cp[c_index(
@@ -746,7 +746,7 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                                pow(Dcb[c_index(x, y, 0, Nc - 1, ion, Nx, 0) * 2 + 1], 2)) * dt;
                     Aphi -= sqrt(pow(Dcb[c_index(x, y, 0, Nc - 1, ion, Nx, 0) * 2], 2) +
                                  pow(Dcb[c_index(x, y, 0, Nc - 1, ion, Nx, 0) * 2 + 1], 2)) *
-                            (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) * z[ion] / 2 * dt;
+                            (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) * z_charge[ion] / 2 * dt;
 
                     //Insert extracell to extracell parts
                     // c with c
@@ -844,7 +844,7 @@ PetscErrorCode calc_residual_linear_deriv(SNES snes,Vec current_state,Vec Res,vo
                                                                                                             Nx,
                                                                                                             0)]);
                         //Phi term
-                        Rcvx += Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * z[ion] * (cp[c_index(x - 1, y, 0,
+                        Rcvx += Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * z_charge[ion] * (cp[c_index(x - 1, y, 0,
                                                                                                        comp, ion, Nx,
                                                                                                        0)] + cp[c_index(
                                 x,
@@ -865,7 +865,7 @@ PetscErrorCode calc_residual_linear_deriv(SNES snes,Vec current_state,Vec Res,vo
                                                                                                              comp, ion,
                                                                                                              Nx, 0)]);
                         //Phi term
-                        RcvxRight += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * z[ion] * (cp[c_index(x + 1, y, 0,
+                        RcvxRight += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * z_charge[ion] * (cp[c_index(x + 1, y, 0,
                                                                                                         comp, ion, Nx,
                                                                                                         0)] + cp[c_index(
                                 x, y, 0, comp, ion, Nx, 0)]) / 2 * (phi[phi_index(x + 1, y, 0, comp, Nx, 0)] - phi[phi_index(
@@ -884,7 +884,7 @@ PetscErrorCode calc_residual_linear_deriv(SNES snes,Vec current_state,Vec Res,vo
                                                                                                                 ion, Nx,
                                                                                                                 0)]);
                         //Phi term
-                        Rcvy += Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * z[ion] * (cp[c_index(x, y - 1, 0,
+                        Rcvy += Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * z_charge[ion] * (cp[c_index(x, y - 1, 0,
                                                                                                            comp, ion,
                                                                                                            Nx, 0)] + cp[c_index(
                                 x,
@@ -907,7 +907,7 @@ PetscErrorCode calc_residual_linear_deriv(SNES snes,Vec current_state,Vec Res,vo
                                                                                                                   ion,
                                                                                                                   Nx, 0)]);
                         //Phi term
-                        RcvyUp += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * z[ion] * (cp[c_index(x, y + 1, 0,
+                        RcvyUp += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * z_charge[ion] * (cp[c_index(x, y + 1, 0,
                                                                                                          comp, ion, Nx,
                                                                                                          0)] + cp[c_index(
                                 x,
@@ -932,10 +932,10 @@ PetscErrorCode calc_residual_linear_deriv(SNES snes,Vec current_state,Vec Res,vo
                     ierr = VecSetValue(Res, Ind_1(x, y, 0, ion, comp, Nx, 0), Resc, INSERT_VALUES);CHKERRQ(ierr);
 
                     //Save values for voltage
-                    Rphx[comp]+=z[ion]*Rcvx;
-                    Rphy[comp]+=z[ion]*Rcvy;
-                    RphxRight[comp]+=z[ion]*RcvxRight;
-                    RphyUp[comp]+=z[ion]*RcvyUp;
+                    Rphx[comp]+=z_charge[ion]*Rcvx;
+                    Rphy[comp]+=z_charge[ion]*Rcvy;
+                    RphxRight[comp]+=z_charge[ion]*RcvxRight;
+                    RphyUp[comp]+=z_charge[ion]*RcvyUp;
 
                 }
                 //Set Extracellular values
@@ -951,7 +951,7 @@ PetscErrorCode calc_residual_linear_deriv(SNES snes,Vec current_state,Vec Res,vo
                             x - 1, y, 0, comp,
                             ion, Nx, 0)]);
                     //Phi term
-                    Rcvx += Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * z[ion] * (cp[c_index(x - 1, y, 0, comp,
+                    Rcvx += Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * z_charge[ion] * (cp[c_index(x - 1, y, 0, comp,
                                                                                                    ion, Nx, 0)] + cp[c_index(
                             x, y, 0,
                             comp,
@@ -966,7 +966,7 @@ PetscErrorCode calc_residual_linear_deriv(SNES snes,Vec current_state,Vec Res,vo
                                                                                          0)] - c[c_index(x, y, 0, comp,
                                                                                                          ion, Nx, 0)]);
                     //Phi term
-                    RcvxRight += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * z[ion] * (cp[c_index(x + 1, y, 0, comp,
+                    RcvxRight += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * z_charge[ion] * (cp[c_index(x + 1, y, 0, comp,
                                                                                                     ion, Nx, 0)] + cp[c_index(
                             x, y,
                             0,
@@ -986,7 +986,7 @@ PetscErrorCode calc_residual_linear_deriv(SNES snes,Vec current_state,Vec Res,vo
                                                                                                             comp,
                                                                                                             ion, Nx, 0)]);
                     //Phi term
-                    Rcvy += Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * z[ion] * (cp[c_index(x, y - 1, 0,
+                    Rcvy += Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * z_charge[ion] * (cp[c_index(x, y - 1, 0,
                                                                                                        comp, ion, Nx,
                                                                                                        0)] + cp[c_index(
                             x, y,
@@ -1004,7 +1004,7 @@ PetscErrorCode calc_residual_linear_deriv(SNES snes,Vec current_state,Vec Res,vo
                                                                                           0)] - c[c_index(x, y, 0, comp,
                                                                                                           ion, Nx, 0)]);
                     //Phi term
-                    RcvyUp += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * z[ion] * (cp[c_index(x, y + 1, 0, comp,
+                    RcvyUp += Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * z_charge[ion] * (cp[c_index(x, y + 1, 0, comp,
                                                                                                      ion, Nx, 0)] + cp[c_index(
                             x, y,
                             0,
@@ -1021,14 +1021,14 @@ PetscErrorCode calc_residual_linear_deriv(SNES snes,Vec current_state,Vec Res,vo
                 Resc -= sqrt(pow(Dcb[c_index(x, y, 0, comp, ion, Nx, 0) * 2], 2) + pow(Dcb[c_index(x, y, 0, comp, ion,
                                                                                                    Nx, 0) * 2 + 1], 2)) * (cp[c_index(
                         x, y, 0, comp, ion, Nx, 0)] + cbath[ion]) / 2.0 * (log(c[c_index(
-                        x, y, 0, comp, ion, Nx, 0)]) - log(cbath[ion]) + z[ion] * phi[phi_index(x, y, 0, comp, Nx, 0)] - z[ion] * phibath) * dt;
+                        x, y, 0, comp, ion, Nx, 0)]) - log(cbath[ion]) + z_charge[ion] * phi[phi_index(x, y, 0, comp, Nx, 0)] - z_charge[ion] * phibath) * dt;
                 ierr = VecSetValue(Res, Ind_1(x, y, 0, ion, comp, Nx, 0), Resc, INSERT_VALUES);CHKERRQ(ierr);
 
                 //Save values for voltage
-                Rphx[comp]+=z[ion]*Rcvx;
-                Rphy[comp]+=z[ion]*Rcvy;
-                RphxRight[comp]+=z[ion]*RcvxRight;
-                RphyUp[comp]+=z[ion]*RcvyUp;
+                Rphx[comp]+=z_charge[ion]*Rcvx;
+                Rphy[comp]+=z_charge[ion]*Rcvy;
+                RphxRight[comp]+=z_charge[ion]*RcvxRight;
+                RphyUp[comp]+=z_charge[ion]*RcvyUp;
             }
 
             //Voltage Equations
@@ -1044,7 +1044,7 @@ PetscErrorCode calc_residual_linear_deriv(SNES snes,Vec current_state,Vec Res,vo
                         x, y, 0, Nc - 1, Nx, 0)]);
                 for(ion=0;ion<Ni;ion++){
                     //Ion channel
-                    Resph += z[ion] * flux->mflux[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
+                    Resph += z_charge[ion] * flux->mflux[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
                 }
                 //Add the terms shared with extracell
                 ResphN -= Resph; // Subtract total capacitance, subtract total ion channel flux
@@ -1057,11 +1057,11 @@ PetscErrorCode calc_residual_linear_deriv(SNES snes,Vec current_state,Vec Res,vo
             //Add bath contribution
             for(ion=0;ion<Ni;ion++){
 
-                ResphN -= z[ion] * sqrt(pow(Dcb[c_index(x, y, 0, comp, ion, Nx, 0) * 2], 2) + pow(Dcb[c_index(x, y, 0,
+                ResphN -= z_charge[ion] * sqrt(pow(Dcb[c_index(x, y, 0, comp, ion, Nx, 0) * 2], 2) + pow(Dcb[c_index(x, y, 0,
                                                                                                               comp, ion,
                                                                                                               Nx, 0) * 2 + 1], 2)) * (cp[c_index(
                         x, y, 0, comp, ion, Nx, 0)] + cbath[ion]) / 2.0 * (log(c[c_index(
-                        x, y, 0, comp, ion, Nx, 0)]) - log(cbath[ion]) + z[ion] * phi[phi_index(x, y, 0, comp, Nx, 0)] - z[ion] * phibath) * dt;
+                        x, y, 0, comp, ion, Nx, 0)]) - log(cbath[ion]) + z_charge[ion] * phi[phi_index(x, y, 0, comp, Nx, 0)] - z_charge[ion] * phibath) * dt;
             }
             ResphN += Rphx[comp] - RphxRight[comp] + Rphy[comp] - RphyUp[comp];
             ierr = VecSetValue(Res, Ind_1(x, y, 0, Ni, comp, Nx, 0), ResphN, INSERT_VALUES); CHKERRQ(ierr);
@@ -1139,7 +1139,7 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                         Fph1y = 0;
                         if(x<Nx-1) {
                             Fc0x = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                            Fph0x = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] *
+                            Fph0x = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] *
                                     (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(x + 1, y, 0, comp, ion, Nx,
                                                                                          0)]) / 2 / dx * dt / dx;
                             // Right c with left c (-Fc0x)
@@ -1151,12 +1151,12 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                             ind++;
 
                             //Right phi with left c in voltage eqn
-                            ierr = MatSetValue(Jac, Ind_1(x + 1, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z[ion] * Fc0x, INSERT_VALUES);CHKERRQ(ierr);
+                            ierr = MatSetValue(Jac, Ind_1(x + 1, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z_charge[ion] * Fc0x, INSERT_VALUES);CHKERRQ(ierr);
                             ind++;
                         }
                         if(x>0) {
                             Fc1x = Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                            Fph1x = z[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] *
+                            Fph1x = z_charge[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] *
                                     (cp[c_index(x - 1, y, 0, comp, ion, Nx, 0)] + cp[c_index(x, y, 0, comp, ion, Nx,
                                                                                              0)]) / 2 / dx * dt / dx;
                             //left c with right c (-Fc1x)
@@ -1168,12 +1168,12 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                             ind++;
 
                             //Left phi with right c in voltage eqn
-                            ierr = MatSetValue(Jac, Ind_1(x - 1, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z[ion] * Fc1x, INSERT_VALUES);CHKERRQ(ierr);
+                            ierr = MatSetValue(Jac, Ind_1(x - 1, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z_charge[ion] * Fc1x, INSERT_VALUES);CHKERRQ(ierr);
                             ind++;
                         }
                         if(y<Ny-1) {
                             Fc0y = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                            Fph0y = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] *
+                            Fph0y = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] *
                                     (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(x, y + 1, 0, comp, ion, Nx,
                                                                                          0)]) / 2 / dy * dt / dy;
                             // Upper c with lower c (-Fc0y)
@@ -1185,12 +1185,12 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                             ind++;
 
                             //Upper phi with lower c in voltage eqn
-                            ierr = MatSetValue(Jac, Ind_1(x, y + 1, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z[ion] * Fc0y, INSERT_VALUES);CHKERRQ(ierr);
+                            ierr = MatSetValue(Jac, Ind_1(x, y + 1, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z_charge[ion] * Fc0y, INSERT_VALUES);CHKERRQ(ierr);
                             ind++;
                         }
                         if(y>0) {
                             Fc1y = Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                            Fph1y = z[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] *
+                            Fph1y = z_charge[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] *
                                     (cp[c_index(x, y - 1, 0, comp, ion, Nx, 0)] + cp[c_index(x, y, 0, comp, ion, Nx,
                                                                                              0)]) / 2 / dy * dt / dy;
                             //Lower c with Upper c (-Fc1y)
@@ -1202,7 +1202,7 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                             ind++;
 
                             //Lower phi with upper c in voltage eqn
-                            ierr = MatSetValue(Jac, Ind_1(x, y - 1, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z[ion] * Fc1y, INSERT_VALUES);CHKERRQ(ierr);
+                            ierr = MatSetValue(Jac, Ind_1(x, y - 1, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z_charge[ion] * Fc1y, INSERT_VALUES);CHKERRQ(ierr);
                             ind++;
                         }
                         //Diagonal term contribution
@@ -1210,10 +1210,10 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                         Aphi = Fph0x + Fph1x + Fph0y + Fph1y;
 
                         //Add up terms for voltage eqns
-                        Fphph0x[comp]+=z[ion]*Fph0x;
-                        Fphph1x[comp]+=z[ion]*Fph1x;
-                        Fphph0y[comp]+=z[ion]*Fph0y;
-                        Fphph1y[comp]+=z[ion]*Fph1y;
+                        Fphph0x[comp]+=z_charge[ion]*Fph0x;
+                        Fphph1x[comp]+=z_charge[ion]*Fph1x;
+                        Fphph0y[comp]+=z_charge[ion]*Fph0y;
+                        Fphph1y[comp]+=z_charge[ion]*Fph1y;
 
                         //membrane current contributions
                         Ac+= flux->dfdci[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
@@ -1264,15 +1264,15 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                         ind++;
 
                         //Intra-Phi with c (voltage eqn)
-                        ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), z[ion] * (Fc0x + Fc1x + Fc0y + Fc1y + flux->dfdci[c_index(
+                        ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), z_charge[ion] * (Fc0x + Fc1x + Fc0y + Fc1y + flux->dfdci[c_index(
                                 x, y, 0, comp, ion, Nx, 0)] * dt), INSERT_VALUES); CHKERRQ(ierr);
                         ind++;
                         //IntraPhi with c extra(volt eqn)
-                        ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, Nc - 1, Nx, 0), z[ion] * (flux->dfdce[c_index(
+                        ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, Nc - 1, Nx, 0), z_charge[ion] * (flux->dfdce[c_index(
                                 x, y, 0, comp, ion, Nx, 0)] * dt), INSERT_VALUES); CHKERRQ(ierr);
                         ind++;
                         //Extra-Phi with intra-c (voltage eqn)
-                        ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, Nc - 1, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z[ion] * (flux->dfdci[c_index(
+                        ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, Nc - 1, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z_charge[ion] * (flux->dfdci[c_index(
                                 x, y, 0, comp, ion, Nx, 0)] * dt), INSERT_VALUES); CHKERRQ(ierr);
                         ind++;
 
@@ -1290,7 +1290,7 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                     Fph1y = 0;
                     if(x<Nx-1) {
                         Fc0x = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                        Fph0x = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] *
+                        Fph0x = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] *
                                 (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(x + 1, y, 0, comp, ion, Nx, 0)]) / 2 / dx * dt / dx;
                         // Right c with left c (-Fc0x)
                         ierr = MatSetValue(Jac, Ind_1(x + 1, y, 0, ion, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -Fc0x, INSERT_VALUES);CHKERRQ(ierr);
@@ -1300,12 +1300,12 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                         ind++;
 
                         //Right phi with left c in voltage eqn
-                        ierr = MatSetValue(Jac, Ind_1(x + 1, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z[ion] * Fc0x, INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac, Ind_1(x + 1, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z_charge[ion] * Fc0x, INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                     }
                     if(x>0) {
                         Fc1x = Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                        Fph1x = z[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] *
+                        Fph1x = z_charge[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] *
                                 (cp[c_index(x - 1, y, 0, comp, ion, Nx, 0)] + cp[c_index(x, y, 0, comp, ion, Nx, 0)]) / 2 / dx * dt / dx;
                         //left c with right c (-Fc1x)
                         ierr = MatSetValue(Jac, Ind_1(x - 1, y, 0, ion, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -Fc1x, INSERT_VALUES);CHKERRQ(ierr);
@@ -1315,12 +1315,12 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                         ind++;
 
                         //Left phi with right c in voltage eqn
-                        ierr = MatSetValue(Jac, Ind_1(x - 1, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z[ion] * Fc1x, INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac, Ind_1(x - 1, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z_charge[ion] * Fc1x, INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                     }
                     if(y<Ny-1) {
                         Fc0y = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                        Fph0y = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] *
+                        Fph0y = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] *
                                 (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(x, y + 1, 0, comp, ion, Nx, 0)]) / 2 / dy * dt / dy;
                         // Upper c with lower c (-Fc0y)
                         ierr = MatSetValue(Jac, Ind_1(x, y + 1, 0, ion, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -Fc0y, INSERT_VALUES);CHKERRQ(ierr);
@@ -1330,12 +1330,12 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                         ind++;
 
                         //Upper phi with lower c in voltage eqn
-                        ierr = MatSetValue(Jac, Ind_1(x, y + 1, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z[ion] * Fc0y, INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac, Ind_1(x, y + 1, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z_charge[ion] * Fc0y, INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                     }
                     if(y>0) {
                         Fc1y = Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                        Fph1y = z[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] *
+                        Fph1y = z_charge[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] *
                                 (cp[c_index(x, y - 1, 0, comp, ion, Nx, 0)] + cp[c_index(x, y, 0, comp, ion, Nx, 0)]) / 2 / dy * dt / dy;
                         //Lower c with Upper c (-Fc1y)
                         ierr = MatSetValue(Jac, Ind_1(x, y - 1, 0, ion, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -Fc1y, INSERT_VALUES);CHKERRQ(ierr);
@@ -1345,7 +1345,7 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                         ind++;
 
                         //Lower phi with upper c in voltage eqn
-                        ierr = MatSetValue(Jac, Ind_1(x, y - 1, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z[ion] * Fc1y, INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac, Ind_1(x, y - 1, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z_charge[ion] * Fc1y, INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                     }
 
@@ -1353,19 +1353,19 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                     Ac = (1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)]) + Fc0x + Fc1x + Fc0y + Fc1y;
                     Aphi = Fph0x + Fph1x + Fph0y + Fph1y;
 
-                    Avolt = z[ion]*(Fc0x+Fc1x+Fc0y+Fc1y);
+                    Avolt = z_charge[ion]*(Fc0x+Fc1x+Fc0y+Fc1y);
 
                     //Add up terms for voltage eqns
-                    Fphph0x[comp]+=z[ion]*Fph0x;
-                    Fphph1x[comp]+=z[ion]*Fph1x;
-                    Fphph0y[comp]+=z[ion]*Fph0y;
-                    Fphph1y[comp]+=z[ion]*Fph1y;
+                    Fphph0x[comp]+=z_charge[ion]*Fph0x;
+                    Fphph1x[comp]+=z_charge[ion]*Fph1x;
+                    Fphph0y[comp]+=z_charge[ion]*Fph0y;
+                    Fphph1y[comp]+=z_charge[ion]*Fph1y;
 
                     //Membrane current contribution
                     for(comp=0;comp<Nc-1;comp++) {
                         Ac -= flux->dfdce[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
                         Aphi += flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
-                        Avolt -= z[ion] * flux->dfdce[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
+                        Avolt -= z_charge[ion] * flux->dfdce[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
                     }
                     //Add bath contributions
                     Ftmpx=sqrt(pow(Dcb[c_index(x, y, 0, Nc - 1, ion, Nx, 0) * 2], 2) + pow(Dcb[c_index(x, y, 0, Nc - 1,
@@ -1373,9 +1373,9 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                     Ac -= Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) / (2 * c[c_index(x, y, 0,
                                                                                                            Nc - 1, ion,
                                                                                                            Nx, 0)]) * dt;
-                    Aphi -= Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) * z[ion] / 2 * dt;
+                    Aphi -= Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) * z_charge[ion] / 2 * dt;
 
-                    Avolt -= z[ion] * Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) / (2 * c[c_index(
+                    Avolt -= z_charge[ion] * Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) / (2 * c[c_index(
                             x, y, 0, Nc - 1, ion,
                             Nx, 0)]) * dt;
 
@@ -1416,8 +1416,8 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                     Avolt = cm[comp]+Fphph0x[comp]+Fphph1x[comp]+Fphph0y[comp]+Fphph1y[comp];
                     AvoltN = -cm[comp];
                     for(ion=0;ion<Ni;ion++) {
-                        Avolt+= z[ion] * flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
-                        AvoltN-= z[ion] * flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
+                        Avolt+= z_charge[ion] * flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
+                        AvoltN-= z_charge[ion] * flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
                     }
 
                     //Intra-phi with Intra-phi
@@ -1455,8 +1455,8 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                     AvoltN += cm[k];
                     Avolt = -cm[k];
                     for(ion=0;ion<Ni;ion++) {
-                        Avolt-= z[ion] * flux->dfdphim[c_index(x, y, 0, k, ion, Nx, 0)] * dt;
-                        AvoltN+= z[ion] * flux->dfdphim[c_index(x, y, 0, k, ion, Nx, 0)] * dt;
+                        Avolt-= z_charge[ion] * flux->dfdphim[c_index(x, y, 0, k, ion, Nx, 0)] * dt;
+                        AvoltN+= z_charge[ion] * flux->dfdphim[c_index(x, y, 0, k, ion, Nx, 0)] * dt;
                     }
                     //Extra-phi with Intra-phi
                     ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, Ni, k, Nx, 0), Avolt, INSERT_VALUES);CHKERRQ(ierr);
@@ -1470,7 +1470,7 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                     Ftmpx = sqrt(pow(Dcb[c_index(x, y, 0, Nc - 1, ion, Nx, 0) * 2], 2) + pow(Dcb[c_index(x, y, 0,
                                                                                                          Nc - 1, ion,
                                                                                                          Nx, 0) * 2 + 1], 2));
-                    AvoltN -= z[ion] * Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) * z[ion] / 2 * dt;
+                    AvoltN -= z_charge[ion] * Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) * z_charge[ion] / 2 * dt;
                 }
                 //extra-phi with extra-phi
                 ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, Ni, comp, Nx, 0), AvoltN, INSERT_VALUES);CHKERRQ(ierr);
@@ -1503,25 +1503,25 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                         Fph1y = 0;
                         if (x < Nx - 1) {
                             Fc0x = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                            Fph0x = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] *
+                            Fph0x = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] *
                                     (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(x + 1, y, 0, comp, ion, Nx,
                                                                                          0)]) / 2 / dx * dt / dx;
                         }
                         if (x > 0) {
                             Fc1x = Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                            Fph1x = z[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] *
+                            Fph1x = z_charge[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] *
                                     (cp[c_index(x - 1, y, 0, comp, ion, Nx, 0)] + cp[c_index(x, y, 0, comp, ion, Nx,
                                                                                              0)]) / 2 / dx * dt / dx;
                         }
                         if (y < Ny - 1) {
                             Fc0y = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                            Fph0y = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] *
+                            Fph0y = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] *
                                     (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(x, y + 1, 0, comp, ion, Nx,
                                                                                          0)]) / 2 / dy * dt / dy;
                         }
                         if (y > 0) {
                             Fc1y = Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                            Fph1y = z[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] *
+                            Fph1y = z_charge[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] *
                                     (cp[c_index(x, y - 1, 0, comp, ion, Nx, 0)] + cp[c_index(x, y, 0, comp, ion, Nx,
                                                                                              0)]) / 2 / dy * dt / dy;
                         }
@@ -1530,10 +1530,10 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                         Aphi = Fph0x + Fph1x + Fph0y + Fph1y;
 
                         //Add up terms for voltage eqns
-                        Fphph0x[comp] += z[ion] * Fph0x;
-                        Fphph1x[comp] += z[ion] * Fph1x;
-                        Fphph0y[comp] += z[ion] * Fph0y;
-                        Fphph1y[comp] += z[ion] * Fph1y;
+                        Fphph0x[comp] += z_charge[ion] * Fph0x;
+                        Fphph1x[comp] += z_charge[ion] * Fph1x;
+                        Fphph0y[comp] += z_charge[ion] * Fph0y;
+                        Fphph1y[comp] += z_charge[ion] * Fph1y;
 
                         //membrane current contributions
                         Ac += flux->dfdci[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
@@ -1570,17 +1570,17 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                         ind++;
 
                         //Intra-Phi with c (voltage eqn)
-                        ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), z[ion] * (Fc0x + Fc1x + Fc0y + Fc1y + flux->dfdci[c_index(
+                        ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), z_charge[ion] * (Fc0x + Fc1x + Fc0y + Fc1y + flux->dfdci[c_index(
                                 x, y, 0, comp, ion, Nx, 0)] * dt), INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //IntraPhi with c extra(volt eqn)
-                        ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, Nc - 1, Nx, 0), z[ion] * (flux->dfdce[c_index(
+                        ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, ion, Nc - 1, Nx, 0), z_charge[ion] * (flux->dfdce[c_index(
                                 x, y, 0, comp, ion, Nx, 0)] * dt), INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Extra-Phi with intra-c (voltage eqn)
-                        ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, Nc - 1, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z[ion] * (flux->dfdci[c_index(
+                        ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, Nc - 1, Nx, 0), Ind_1(x, y, 0, ion, comp, Nx, 0), -z_charge[ion] * (flux->dfdci[c_index(
                                 x, y, 0, comp, ion, Nx, 0)] * dt), INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
@@ -1599,22 +1599,22 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                     Fph1y = 0;
                     if (x < Nx - 1) {
                         Fc0x = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                        Fph0x = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] *
+                        Fph0x = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] *
                                 (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(x + 1, y, 0, comp, ion, Nx, 0)]) / 2 / dx * dt / dx;
                     }
                     if (x > 0) {
                         Fc1x = Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] / dx * dt / dx;
-                        Fph1x = z[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] *
+                        Fph1x = z_charge[ion] * Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] *
                                 (cp[c_index(x - 1, y, 0, comp, ion, Nx, 0)] + cp[c_index(x, y, 0, comp, ion, Nx, 0)]) / 2 / dx * dt / dx;
                     }
                     if (y < Ny - 1) {
                         Fc0y = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                        Fph0y = z[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] *
+                        Fph0y = z_charge[ion] * Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] *
                                 (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(x, y + 1, 0, comp, ion, Nx, 0)]) / 2 / dy * dt / dy;
                     }
                     if (y > 0) {
                         Fc1y = Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] / dy * dt / dy;
-                        Fph1y = z[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] *
+                        Fph1y = z_charge[ion] * Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] *
                                 (cp[c_index(x, y - 1, 0, comp, ion, Nx, 0)] + cp[c_index(x, y, 0, comp, ion, Nx, 0)]) / 2 / dy * dt / dy;
                     }
 
@@ -1622,19 +1622,19 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                     Ac = (1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)]) + Fc0x + Fc1x + Fc0y + Fc1y;
                     Aphi = Fph0x + Fph1x + Fph0y + Fph1y;
 
-                    Avolt = z[ion] * (Fc0x + Fc1x + Fc0y + Fc1y);
+                    Avolt = z_charge[ion] * (Fc0x + Fc1x + Fc0y + Fc1y);
 
                     //Add up terms for voltage eqns
-                    Fphph0x[comp] += z[ion] * Fph0x;
-                    Fphph1x[comp] += z[ion] * Fph1x;
-                    Fphph0y[comp] += z[ion] * Fph0y;
-                    Fphph1y[comp] += z[ion] * Fph1y;
+                    Fphph0x[comp] += z_charge[ion] * Fph0x;
+                    Fphph1x[comp] += z_charge[ion] * Fph1x;
+                    Fphph0y[comp] += z_charge[ion] * Fph0y;
+                    Fphph1y[comp] += z_charge[ion] * Fph1y;
 
                     //Membrane current contribution
                     for (comp = 0; comp < Nc - 1; comp++) {
                         Ac -= flux->dfdce[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
                         Aphi += flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
-                        Avolt -= z[ion] * flux->dfdce[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
+                        Avolt -= z_charge[ion] * flux->dfdce[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
                     }
                     //Add bath contributions
                     Ftmpx = sqrt(pow(Dcb[c_index(x, y, 0, Nc - 1, ion, Nx, 0) * 2], 2) +
@@ -1642,9 +1642,9 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                     Ac -= Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) / (2 * c[c_index(x, y, 0,
                                                                                                            Nc - 1, ion,
                                                                                                            Nx, 0)]) * dt;
-                    Aphi -= Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) * z[ion] / 2 * dt;
+                    Aphi -= Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) * z_charge[ion] / 2 * dt;
 
-                    Avolt -= z[ion] * Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) / (2 * c[c_index(
+                    Avolt -= z_charge[ion] * Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) / (2 * c[c_index(
                             x, y, 0, Nc - 1,
                             ion, Nx, 0)]) * dt;
 
@@ -1668,8 +1668,8 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                     Avolt = cm[comp] + Fphph0x[comp] + Fphph1x[comp] + Fphph0y[comp] + Fphph1y[comp];
                     AvoltN = -cm[comp];
                     for (ion = 0; ion < Ni; ion++) {
-                        Avolt += z[ion] * flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
-                        AvoltN -= z[ion] * flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
+                        Avolt += z_charge[ion] * flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
+                        AvoltN -= z_charge[ion] * flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
                     }
 
                     //Intra-phi with Intra-phi
@@ -1689,8 +1689,8 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                     AvoltN += cm[k];
                     Avolt = -cm[k];
                     for (ion = 0; ion < Ni; ion++) {
-                        Avolt -= z[ion] * flux->dfdphim[c_index(x, y, 0, k, ion, Nx, 0)] * dt;
-                        AvoltN += z[ion] * flux->dfdphim[c_index(x, y, 0, k, ion, Nx, 0)] * dt;
+                        Avolt -= z_charge[ion] * flux->dfdphim[c_index(x, y, 0, k, ion, Nx, 0)] * dt;
+                        AvoltN += z_charge[ion] * flux->dfdphim[c_index(x, y, 0, k, ion, Nx, 0)] * dt;
                     }
                     //Extra-phi with Intra-phi
                     ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, Ni, k, Nx, 0), Avolt, INSERT_VALUES);
@@ -1704,7 +1704,7 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                 for (ion = 0; ion < Ni; ion++) {
                     Ftmpx = sqrt(pow(Dcb[c_index(x, y, 0, Nc - 1, ion, Nx, 0) * 2], 2) +
                                  pow(Dcb[c_index(x, y, 0, Nc - 1, ion, Nx, 0) * 2 + 1], 2));
-                    AvoltN -= z[ion] * Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) * z[ion] / 2 * dt;
+                    AvoltN -= z_charge[ion] * Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) * z_charge[ion] / 2 * dt;
                 }
                 //extra-phi with extra-phi
                 ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, Ni, comp, Nx, 0), AvoltN, INSERT_VALUES);
