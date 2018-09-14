@@ -67,9 +67,9 @@ PetscErrorCode initialize_jacobian(Mat,struct AppCtx*,int);
 PetscErrorCode initialize_grid_jacobian(Mat,struct AppCtx*,int);
 
 //Multigrid functions
-PetscErrorCode Create_Restriction(Mat R,PetscInt nx, PetscInt ny);
-PetscErrorCode Create_Interpolation(Mat R,PetscInt nx, PetscInt ny);
-PetscErrorCode Initialize_PCMG(PC pc,Mat A,struct AppCtx*);
+PetscErrorCode Create_Restriction(Mat ,PetscInt , PetscInt ,PetscInt);
+PetscErrorCode Create_Interpolation(Mat ,PetscInt , PetscInt,PetscInt );
+PetscErrorCode Initialize_PCMG(PC,Mat ,struct AppCtx*);
 
 //Newton Solver
 PetscErrorCode newton_solve(Vec,struct Solver*,struct AppCtx*);
