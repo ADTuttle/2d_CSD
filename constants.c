@@ -40,38 +40,40 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx
     int x,y,z,comp,ion;
     PetscInt *c_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*Nz*Nc*Ni);
     PetscInt *phi_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*Nz*Nc);
-    for(z=0;z<Nz;z++){
-    for(y=0;y<Ny;y++){
-        for(x=0;x<Nx;x++){
-            for(comp=0;comp<Nc;comp++)
-            {
-                for(ion=0;ion<Ni;ion++)
-                {
-                    c_ind[c_index(x, y, 0, comp, ion, Nx, 0)] = Ind_1(x, y, 0, ion, comp, Nx, 0);
+    for(z=0;z<Nz;z++) {
+        for (y = 0; y < Ny; y++) {
+            for (x = 0; x < Nx; x++) {
+                for (comp = 0; comp < Nc; comp++) {
+                    for (ion = 0; ion < Ni; ion++) {
+                        c_ind[c_index(x, y, z, comp, ion, Nx, Ny)] = Ind_1(x, y, z, ion, comp, Nx, Ny);
+                    }
+                    phi_ind[phi_index(x, y, z, comp, Nx, Ny)] = Ind_1(x, y, z, Ni, comp, Nx, Ny);
                 }
-                phi_ind[phi_index(x, y, 0, comp, Nx, 0)] = Ind_1(x, y, 0, Ni, comp, Nx, 0);
             }
         }
     }
-    ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*Ni*Nc,c_ind,PETSC_COPY_VALUES,&state_vars->c_ind); CHKERRQ(ierr);
-    ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*Nc,phi_ind,PETSC_COPY_VALUES,&state_vars->phi_ind); CHKERRQ(ierr);
+    ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*Nz*Ni*Nc,c_ind,PETSC_COPY_VALUES,&state_vars->c_ind); CHKERRQ(ierr);
+    ierr = ISCreateGeneral(PETSC_COMM_WORLD,Nx*Ny*Nz*Nc,phi_ind,PETSC_COPY_VALUES,&state_vars->phi_ind); CHKERRQ(ierr);
 
     free(phi_ind);free(c_ind);
     if(!separate_vol) {
         PetscInt *al_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*(Nc-1));
-        for (x = 0; x < Nx; x++) {
+        for (z = 0; z < Nz; z++) {
             for (y = 0; y < Ny; y++) {
-                for (comp = 0; comp < Nc - 1; comp++) {
-                    al_ind[al_index(x, y, 0, comp, Nx, 0)] = Ind_1(x, y, 0, Ni + 1, comp, Nx, 0);
+                for (x = 0; x < Nx; x++) {
+
+                    for (comp = 0; comp < Nc - 1; comp++) {
+                        al_ind[al_index(x, y, z, comp, Nx, Ny)] = Ind_1(x, y, z, Ni + 1, comp, Nx, Ny);
+                    }
                 }
             }
         }
-        ierr = ISCreateGeneral(PETSC_COMM_WORLD, Nx * Ny * (Nc - 1), al_ind, PETSC_COPY_VALUES, &state_vars->al_ind);
+        ierr = ISCreateGeneral(PETSC_COMM_WORLD, Nz*Nx * Ny * (Nc - 1), al_ind, PETSC_COPY_VALUES, &state_vars->al_ind);
         CHKERRQ(ierr);
         free(al_ind);
     }
     else{
-        state_vars->alpha = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*(Nc-1));
+        state_vars->alpha = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*Nz*(Nc-1));
     }
     extract_subarray(state,state_vars);
     return ierr;
@@ -199,47 +201,49 @@ void init_arrays(struct AppCtx*user)
 {
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt Nz = user->Nz;
     PetscInt nx = 2*width_size+1;
     PetscInt ny = 2*width_size+1;
+    PetscInt nz = 2*width_size+1;
     //Flux quantities
-    user->flux->mflux = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
-    user->flux->dfdci = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
-    user->flux->dfdce = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
-    user->flux->dfdphim = (PetscReal*) malloc(Nx*Ny*Ni*Nc*sizeof(PetscReal));
-    user->flux->wflow = (PetscReal*) malloc(Nx*Ny*(Nc-1)*sizeof(PetscReal));
-    user->flux->dwdpi = (PetscReal*) malloc(Nx*Ny*(Nc-1)*sizeof(PetscReal));
-    user->flux->dwdal = (PetscReal*) malloc(Nx*Ny*(Nc-1)*sizeof(PetscReal));
+    user->flux->mflux = (PetscReal*) malloc(Nx*Ny*Nz*Ni*Nc*sizeof(PetscReal));
+    user->flux->dfdci = (PetscReal*) malloc(Nx*Ny*Nz*Ni*Nc*sizeof(PetscReal));
+    user->flux->dfdce = (PetscReal*) malloc(Nx*Ny*Nz*Ni*Nc*sizeof(PetscReal));
+    user->flux->dfdphim = (PetscReal*) malloc(Nx*Ny*Nz*Ni*Nc*sizeof(PetscReal));
+    user->flux->wflow = (PetscReal*) malloc(Nx*Ny*Nz*(Nc-1)*sizeof(PetscReal));
+    user->flux->dwdpi = (PetscReal*) malloc(Nx*Ny*Nz*(Nc-1)*sizeof(PetscReal));
+    user->flux->dwdal = (PetscReal*) malloc(Nx*Ny*Nz*(Nc-1)*sizeof(PetscReal));
 
     //Gating variables (present)
-    user->gate_vars->mNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->hNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->gNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->mNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->hNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->gNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->mKDR = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->gKDR = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->mKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->hKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars->gKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->mNaT = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars->hNaT = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars->gNaT = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars->mNaP = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars->hNaP = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars->gNaP = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars->mKDR = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars->gKDR = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars->mKA = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars->hKA = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars->gKA = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
     //Gating variables (past)
-    user->gate_vars_past->mNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->hNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->gNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->mNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->hNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->gNaP = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->mKDR = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->gKDR = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->mKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->hKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gate_vars_past->gKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->mNaT = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars_past->hNaT = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars_past->gNaT = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars_past->mNaP = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars_past->hNaP = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars_past->gNaP = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars_past->mKDR = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars_past->gKDR = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars_past->mKA = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars_past->hKA = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gate_vars_past->gKA = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
 
 
     //Excitation
-    user->gexct->pNa = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gexct->pK = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    user->gexct->pCl = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gexct->pNa = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gexct->pK = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    user->gexct->pCl = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
 
     //Constant params
     user->con_vars->ao = (PetscReal*) malloc(Nc*sizeof(PetscReal));
@@ -248,30 +252,30 @@ void init_arrays(struct AppCtx*user)
     user->con_vars->zetaalpha = (PetscReal*) malloc((Nc-1)*sizeof(PetscReal));
 
     //Diffusion in ctx
-    user->Dcs = (PetscReal*) malloc(Nx*Ny*Ni*Nc*2*sizeof(PetscReal));
-    user->Dcb = (PetscReal*) malloc(Nx*Ny*Ni*Nc*2*sizeof(PetscReal));
+    user->Dcs = (PetscReal*) malloc(Nx*Ny*Nz*Ni*Nc*3*sizeof(PetscReal));
+    user->Dcb = (PetscReal*) malloc(Nx*Ny*Nz*Ni*Nc*3*sizeof(PetscReal));
 
     //Small Grid variables
 
     // Past membrane voltage storage
-    user->vm_past = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->vm_past = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
     //Grid Gating variables
-    user->grid_gate_vars->mNaT = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->hNaT = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->gNaT = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->mNaP = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->hNaP = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->gNaP = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->mKDR = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->gKDR = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->mKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->hKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
-    user->grid_gate_vars->gKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->mNaT = (PetscReal*) malloc(nx*ny*nz*sizeof(PetscReal));
+    user->grid_gate_vars->hNaT = (PetscReal*) malloc(nx*ny*nz*sizeof(PetscReal));
+    user->grid_gate_vars->gNaT = (PetscReal*) malloc(nx*ny*nz*sizeof(PetscReal));
+    user->grid_gate_vars->mNaP = (PetscReal*) malloc(nx*ny*nz*sizeof(PetscReal));
+    user->grid_gate_vars->hNaP = (PetscReal*) malloc(nx*ny*nz*sizeof(PetscReal));
+    user->grid_gate_vars->gNaP = (PetscReal*) malloc(nx*ny*nz*sizeof(PetscReal));
+    user->grid_gate_vars->mKDR = (PetscReal*) malloc(nx*ny*nz*sizeof(PetscReal));
+    user->grid_gate_vars->gKDR = (PetscReal*) malloc(nx*ny*nz*sizeof(PetscReal));
+    user->grid_gate_vars->mKA = (PetscReal*) malloc(nx*ny*nz*sizeof(PetscReal));
+    user->grid_gate_vars->hKA = (PetscReal*) malloc(nx*ny*nz*sizeof(PetscReal));
+    user->grid_gate_vars->gKA = (PetscReal*) malloc(nx*ny*nz*sizeof(PetscReal));
 
     //Grid state_vars
-    user->grid_vars->c = (PetscReal*) malloc(Nc*Ni*nx*ny*sizeof(PetscReal));
-    user->grid_vars->phi = (PetscReal*) malloc(Nc*nx*ny*sizeof(PetscReal));
-    user->grid_vars->alpha = (PetscReal*) malloc((Nc-1)*nx*ny*sizeof(PetscReal));
+    user->grid_vars->c = (PetscReal*) malloc(Nc*Ni*nx*ny*nz*sizeof(PetscReal));
+    user->grid_vars->phi = (PetscReal*) malloc(Nc*nx*ny*nz*sizeof(PetscReal));
+    user->grid_vars->alpha = (PetscReal*) malloc((Nc-1)*nx*ny*nz*sizeof(PetscReal));
     user->grid_vars->v = NULL;
     user->grid_vars->phi_ind = NULL;
     user->grid_vars->phi_vec = NULL;
@@ -282,9 +286,9 @@ void init_arrays(struct AppCtx*user)
 
     //Grid past state_Vars
 
-    user->grid_vars_past->c = (PetscReal*) malloc(Nc*Ni*nx*ny*sizeof(PetscReal));
-    user->grid_vars_past->phi = (PetscReal*) malloc(Nc*nx*ny*sizeof(PetscReal));
-    user->grid_vars_past->alpha = (PetscReal*) malloc((Nc-1)*nx*ny*sizeof(PetscReal));
+    user->grid_vars_past->c = (PetscReal*) malloc(Nc*Ni*nx*ny*nz*sizeof(PetscReal));
+    user->grid_vars_past->phi = (PetscReal*) malloc(Nc*nx*ny*nz*sizeof(PetscReal));
+    user->grid_vars_past->alpha = (PetscReal*) malloc((Nc-1)*nx*ny*nz*sizeof(PetscReal));
     user->grid_vars_past->v = NULL;
     user->grid_vars_past->phi_ind = NULL;
     user->grid_vars_past->phi_vec = NULL;
@@ -294,10 +298,13 @@ void init_arrays(struct AppCtx*user)
     user->grid_vars_past->al_vec = NULL;
 
     //dt saving
-    user->dt_space = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
-    for(int x=0;x<Nx;x++){
-        for(int y=0;y<Ny;y++){
-            user->dt_space[xy_index(x, y, 0, Nx, 0)]=user->dt;
+    user->dt_space = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
+    for(int z=0;z<Nz;z++) {
+        for (int y = 0; y < Ny; y++) {
+            for (int x = 0; x < Nx; x++) {
+
+                user->dt_space[xy_index(x, y, 0, Nx, 0)] = user->dt;
+            }
         }
     }
 
@@ -310,35 +317,42 @@ void parameter_dependence(struct AppCtx *user)
     struct ConstVars *con_vars = user->con_vars;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
-    PetscInt x,y;
+    PetscInt Nz = user->Nz;
+    PetscInt x,y,z;
 
     //Gating variables
-    con_vars->pNaT = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
-    con_vars->pNaP = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
-    con_vars->pKDR = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
-    con_vars->pKA = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+    con_vars->pNaT = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*Nz);
+    con_vars->pNaP = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*Nz);
+    con_vars->pKDR = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*Nz);
+    con_vars->pKA = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*Nz);
 
-    con_vars->pKIR = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+    con_vars->pKIR = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*Nz);
     //Glial diffusion scaling
-    con_vars->DNeuronScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
-    con_vars->DGliaScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
-    con_vars->DExtracellScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
-    for(x=0;x<Nx;x++){
-        for(y=0;y<Ny;y++){
-            con_vars->pNaT[xy_index(x, y, 0, Nx, 0)]=basepNaT;
-            con_vars->pNaP[xy_index(x, y, 0, Nx, 0)]=basepNaP;
-            con_vars->pKDR[xy_index(x, y, 0, Nx, 0)]=basepKDR;
-            con_vars->pKA[xy_index(x, y, 0, Nx, 0)]=basepKA;
+    con_vars->DNeuronScale = (PetscReal*)malloc(sizeof(PetscReal)*3*Nx*Ny*Nz);
+    con_vars->DGliaScale = (PetscReal*)malloc(sizeof(PetscReal)*3*Nx*Ny*Nz);
+    con_vars->DExtracellScale = (PetscReal*)malloc(sizeof(PetscReal)*3*Nx*Ny*Nz);
+    for(z=0;z<Nz;z++) {
+        for (y = 0; y < Ny; y++) {
+            for (x = 0; x < Nx; x++){
 
-            con_vars->pKIR[xy_index(x, y, 0, Nx, 0)]=basepKIR;
+                con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT;
+                con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP;
+                con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
+                con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA;
 
-            con_vars->DNeuronScale[xy_index(x, y, 0, Nx, 0) * 2]=DNeuronMult[0]; //x-direction Neurons
-            con_vars->DNeuronScale[xy_index(x, y, 0, Nx, 0) * 2 + 1]=DNeuronMult[1]; //y-direction Neurons
-            con_vars->DGliaScale[xy_index(x, y, 0, Nx, 0) * 2]=DGliaMult[0]; //x-direction scale Glia
-            con_vars->DGliaScale[xy_index(x, y, 0, Nx, 0) * 2 + 1]=DGliaMult[1]; // y-direction scale glia
-            con_vars->DExtracellScale[xy_index(x, y, 0, Nx, 0) * 2]=DExtraMult[0]; //x-direction scale extracell
-            con_vars->DExtracellScale[xy_index(x, y, 0, Nx, 0) * 2 + 1]=DExtraMult[1]; // y-direction scale Extracell
+                con_vars->pKIR[xy_index(x,y,z,Nx,Ny)] = basepKIR;
 
+                con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3] = DNeuronMult[0]; //x-direction Neurons
+                con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3+1] = DNeuronMult[1]; //y-direction Neurons
+                con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3+2] = DNeuronMult[2]; //z-direction Neurons
+                con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny)*3] = DGliaMult[0]; //x-direction scale Glia
+                con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny)*3+1] = DGliaMult[1]; // y-direction scale glia
+                con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny)*3+2] = DGliaMult[2]; // z-direction scale glia
+                con_vars->DExtracellScale[xy_index(x,y,z,Nx,Ny)*3] = DExtraMult[0]; //x-direction scale extracell
+                con_vars->DExtracellScale[xy_index(x,y,z,Nx,Ny)*3+1] = DExtraMult[1]; // y-direction scale Extracell
+                con_vars->DExtracellScale[xy_index(x,y,z,Nx,Ny)*3+2] = DExtraMult[2]; // z-direction scale Extracell
+
+            }
         }
     }
 
@@ -346,11 +360,11 @@ void parameter_dependence(struct AppCtx *user)
 
 
     //Variables that get set during set_params to steady state necessary values
-    con_vars->pNaKCl = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
-    con_vars->Imax = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
-    con_vars->Imaxg = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
-    con_vars->pNaLeak = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
-    con_vars->pNaLeakg = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+    con_vars->pNaKCl = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*Nz);
+    con_vars->Imax = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*Nz);
+    con_vars->Imaxg = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*Nz);
+    con_vars->pNaLeak = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*Nz);
+    con_vars->pNaLeakg = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*Nz);
 
     con_vars->zo = (PetscReal*)malloc(sizeof(PetscReal)*Nc);
     con_vars->ao = (PetscReal*)malloc(sizeof(PetscReal)*Nc);
