@@ -3,31 +3,31 @@
 
 //Array functions and things
 
-PetscInt c_index(PetscInt x,PetscInt y,PetscInt comp,PetscInt ion,PetscInt Nx)
+PetscInt c_index(PetscInt x, PetscInt y, PetscInt z, PetscInt comp, PetscInt ion, PetscInt Nx, PetscInt Ny)
 {
-    return Nc*Ni* (Nx * y + x) + comp*Ni+ion;
+    return Nc*Ni* (Nx *(Ny*z + y) + x) + comp*Ni+ion;
 }
-PetscInt phi_index(PetscInt x,PetscInt y,PetscInt comp,PetscInt Nx)
+PetscInt phi_index(PetscInt x, PetscInt y, PetscInt z, PetscInt comp, PetscInt Nx, PetscInt Ny)
 {
-    return Nc* (Nx * y + x) + comp;
+    return Nc* (Nx *(Ny*z + y) + x) + comp;
 }
-PetscInt al_index(PetscInt x,PetscInt y,PetscInt comp,PetscInt Nx)
+PetscInt al_index(PetscInt x, PetscInt y, PetscInt z, PetscInt comp, PetscInt Nx, PetscInt Ny)
 {
-    return (Nc-1)* (Nx * y + x) + comp;
+    return (Nc-1)* (Nx *(Ny*z + y) + x) + comp;
 }
-PetscInt xy_index(PetscInt x,PetscInt y,PetscInt Nx)
+PetscInt xy_index(PetscInt x, PetscInt y, PetscInt z, PetscInt Nx, PetscInt Ny)
 {
-    return Nx*y+x;
+    return Nx *(Ny*z + y)+x;
 }
 //Index based on Nv, which can change to either include or exclude alpha
-PetscInt Ind_1(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp,PetscInt Nx)
+PetscInt Ind_1(PetscInt x, PetscInt y, PetscInt z, PetscInt ion, PetscInt comp, PetscInt Nx, PetscInt Ny)
 {
-    return Nv*(Nx*y+x)+ion*Nc+comp;
+    return Nv*(Nx *(Ny*z + y)+x)+ion*Nc+comp;
 }
 // Index based on solving c,phi, and alpha.
-PetscInt Ind_2(PetscInt x,PetscInt y,PetscInt ion,PetscInt comp, PetscInt nx)
+PetscInt Ind_2(PetscInt x, PetscInt y, PetscInt z, PetscInt ion, PetscInt comp, PetscInt nx, PetscInt ny)
 {
-    return ((Ni+2)*Nc-1)*(nx*y+x)+ion*Nc+comp;
+    return ((Ni+2)*Nc-1)*(nx *(ny*z + y)+x)+ion*Nc+comp;
 }
 
 PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx *user)
@@ -45,9 +45,9 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx
             {
                 for(ion=0;ion<Ni;ion++)
                 {
-                    c_ind[c_index(x,y,comp,ion,Nx)] = Ind_1(x,y,ion,comp,Nx);
+                    c_ind[c_index(x, y, 0, comp, ion, Nx, 0)] = Ind_1(x, y, 0, ion, comp, Nx, 0);
                 }
-                phi_ind[phi_index(x,y,comp,Nx)] = Ind_1(x,y,Ni,comp,Nx);
+                phi_ind[phi_index(x, y, 0, comp, Nx, 0)] = Ind_1(x, y, 0, Ni, comp, Nx, 0);
             }
         }
     }
@@ -60,7 +60,7 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx
         for (x = 0; x < Nx; x++) {
             for (y = 0; y < Ny; y++) {
                 for (comp = 0; comp < Nc - 1; comp++) {
-                    al_ind[al_index(x, y, comp,Nx)] = Ind_1(x, y, Ni + 1, comp,Nx);
+                    al_ind[al_index(x, y, 0, comp, Nx, 0)] = Ind_1(x, y, 0, Ni + 1, comp, Nx, 0);
                 }
             }
         }
@@ -295,7 +295,7 @@ void init_arrays(struct AppCtx*user)
     user->dt_space = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     for(int x=0;x<Nx;x++){
         for(int y=0;y<Ny;y++){
-            user->dt_space[xy_index(x,y,Nx)]=user->dt;
+            user->dt_space[xy_index(x, y, 0, Nx, 0)]=user->dt;
         }
     }
 
@@ -323,19 +323,19 @@ void parameter_dependence(struct AppCtx *user)
     con_vars->DExtracellScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
     for(x=0;x<Nx;x++){
         for(y=0;y<Ny;y++){
-            con_vars->pNaT[xy_index(x,y,Nx)]=basepNaT;
-            con_vars->pNaP[xy_index(x,y,Nx)]=basepNaP;
-            con_vars->pKDR[xy_index(x,y,Nx)]=basepKDR;
-            con_vars->pKA[xy_index(x,y,Nx)]=basepKA;
+            con_vars->pNaT[xy_index(x, y, 0, Nx, 0)]=basepNaT;
+            con_vars->pNaP[xy_index(x, y, 0, Nx, 0)]=basepNaP;
+            con_vars->pKDR[xy_index(x, y, 0, Nx, 0)]=basepKDR;
+            con_vars->pKA[xy_index(x, y, 0, Nx, 0)]=basepKA;
 
-            con_vars->pKIR[xy_index(x,y,Nx)]=basepKIR;
+            con_vars->pKIR[xy_index(x, y, 0, Nx, 0)]=basepKIR;
 
-            con_vars->DNeuronScale[xy_index(x,y,Nx)*2]=DNeuronMult[0]; //x-direction Neurons
-            con_vars->DNeuronScale[xy_index(x,y,Nx)*2+1]=DNeuronMult[1]; //y-direction Neurons
-            con_vars->DGliaScale[xy_index(x,y,Nx)*2]=DGliaMult[0]; //x-direction scale Glia
-            con_vars->DGliaScale[xy_index(x,y,Nx)*2+1]=DGliaMult[1]; // y-direction scale glia
-            con_vars->DExtracellScale[xy_index(x,y,Nx)*2]=DExtraMult[0]; //x-direction scale extracell
-            con_vars->DExtracellScale[xy_index(x,y,Nx)*2+1]=DExtraMult[1]; // y-direction scale Extracell
+            con_vars->DNeuronScale[xy_index(x, y, 0, Nx, 0) * 2]=DNeuronMult[0]; //x-direction Neurons
+            con_vars->DNeuronScale[xy_index(x, y, 0, Nx, 0) * 2 + 1]=DNeuronMult[1]; //y-direction Neurons
+            con_vars->DGliaScale[xy_index(x, y, 0, Nx, 0) * 2]=DGliaMult[0]; //x-direction scale Glia
+            con_vars->DGliaScale[xy_index(x, y, 0, Nx, 0) * 2 + 1]=DGliaMult[1]; // y-direction scale glia
+            con_vars->DExtracellScale[xy_index(x, y, 0, Nx, 0) * 2]=DExtraMult[0]; //x-direction scale extracell
+            con_vars->DExtracellScale[xy_index(x, y, 0, Nx, 0) * 2 + 1]=DExtraMult[1]; // y-direction scale Extracell
 
         }
     }

@@ -237,7 +237,9 @@ int main(int argc, char **argv)
         if(Predictor){
             for(x=0;x<user->Nx;x++){
                 for(y=0;y<user->Ny;y++){
-                    user->vm_past[xy_index(x,y,user->Nx)]=(user->state_vars_past->phi[phi_index(x,y,0,user->Nx)]-user->state_vars_past->phi[phi_index(x,y,Nc-1,user->Nx)])*RTFC;
+                    user->vm_past[xy_index(x, y, 0, user->Nx, 0)]= (user->state_vars_past->phi[phi_index(x, y, 0, 0, user->Nx,
+                                                                                                         0)] - user->state_vars_past->phi[phi_index(
+                            x, y, 0, Nc - 1, user->Nx, 0)]) * RTFC;
                 }
             }
         }

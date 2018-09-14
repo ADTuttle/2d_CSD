@@ -33,9 +33,9 @@
 static const   PetscInt z[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
 //Diffusion multipliers {x-dir,y-dir}
-static const PetscReal DNeuronMult[2] = {0,0};
-static const PetscReal DGliaMult[2] = {0.25,0.25};
-static const PetscReal DExtraMult[2] = {1.0,1.0};
+static const PetscReal DNeuronMult[3] = {0,0,0};
+static const PetscReal DGliaMult[3] = {0.25,0.25,0.25};
+static const PetscReal DExtraMult[3] = {1.0,1.0,1.0};
 
 #define Time 10.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
@@ -44,6 +44,7 @@ static const PetscReal DExtraMult[2] = {1.0,1.0};
 //#define Ly 0.32         //length of domain in cm (y)
 #define Lx 0.5        //width of domain in cm (x)
 #define Ly 0.5         //length of domain in cm (y)
+#define Lz 0.1       //height of domain in cm (z)
 
 
 //number of variables to be solved for at each grid point
@@ -225,6 +226,7 @@ struct AppCtx{
     PetscInt Nx;
     PetscInt Ny;
     PetscInt Nz;
+    PetscInt Nnz;
     PetscReal *dt_space;
     PetscReal *vm_past;
     PetscReal t;
