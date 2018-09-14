@@ -24,11 +24,11 @@ int main(int argc, char **argv)
     PetscInt Nt = (PetscInt) floor(Time/dt);
     PetscInt numrecords = (PetscInt)floor(Time/trecordstep)+1;
     PetscInt krecordfreq = (PetscInt)floor(trecordstep/dt);
-    PetscInt x,y,comp,ion;
+    PetscInt x,y,z,comp,ion;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
-    PetscReal dx = Lx/Nx;
-    PetscReal dy = Ly/Ny;
+    PetscInt Nz = user->Nz;
+
 
     if(Profiling_on) {
         PetscLogStage stage1;
@@ -38,7 +38,7 @@ int main(int argc, char **argv)
         PetscLogStagePush(stage1);
     }
 
-    printf("\n\n\nGrid size: %dx%d, with %d ions, and %d compartments. For %f sec at step %f\n",user->Nx,user->Ny,Ni,Nc,Time,dt);
+    printf("\n\n\nGrid size: %dx%dx%d, with %d ions, and %d compartments. For %f sec at step %f\n",Nx,Ny,Nz,Ni,Nc,Time,dt);
     PetscLogDouble tic,toc,full_tic,full_toc,grid_tic,grid_toc;
     //Create state_variables struct
     struct SimState *state_vars = (struct SimState*)malloc(sizeof(struct SimState));
@@ -46,13 +46,13 @@ int main(int argc, char **argv)
     //Create Vector
     ierr = VecCreate(PETSC_COMM_WORLD,&current_state);CHKERRQ(ierr);
     ierr = VecSetType(current_state,VECSEQ); CHKERRQ(ierr);
-    ierr = VecSetSizes(current_state,PETSC_DECIDE,user->Nx*user->Ny*Nv);CHKERRQ(ierr);
+    ierr = VecSetSizes(current_state,PETSC_DECIDE,Nx*Ny*Nz*Nv);CHKERRQ(ierr);
 
     struct SimState *state_vars_past = (struct SimState*)malloc(sizeof(struct SimState));
     //Create Vector
     ierr = VecCreate(PETSC_COMM_WORLD,&state_vars_past->v);CHKERRQ(ierr);
     ierr = VecSetType(state_vars_past->v,VECSEQ); CHKERRQ(ierr);
-    ierr = VecSetSizes(state_vars_past->v,PETSC_DECIDE,user->Nx*user->Ny*Nv);CHKERRQ(ierr);
+    ierr = VecSetSizes(state_vars_past->v,PETSC_DECIDE,Nx*Ny*Nz*Nv);CHKERRQ(ierr);
 
     //Initialize
     printf("Initialize Data Routines\n");
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
         ierr = restore_subarray(user->state_vars_past->v, user->state_vars_past);CHKERRQ(ierr);
         ierr = copy_simstate(current_state, user->state_vars_past);CHKERRQ(ierr);
         if (separate_vol) {
-            memcpy(user->state_vars_past->alpha, user->state_vars->alpha,sizeof(PetscReal) * user->Nx * user->Ny * (Nc - 1));
+            memcpy(user->state_vars_past->alpha, user->state_vars->alpha,sizeof(PetscReal)*Nx*Ny*Nz*(Nc - 1));
         }
 
         //Predict if chosen
@@ -177,11 +177,11 @@ int main(int argc, char **argv)
 
             if(count%krecordfreq==0) {
                 refinement=0;
-                for(int z=0;z<user->Nx*user->Ny;z++){
-                    if(user->dt_space[z]<user->dt){refinement++;}
+                for(int i=0;i<Nx*Ny*Nz;i++){
+                    if(user->dt_space[i]<user->dt){refinement++;}
                 }
                 KSPGetTotalIterations(user->grid_slvr->ksp,&ksp_iters_new);
-                printf("Grid Time: %f, Refined %d, AvgKspIters: %.2f\n", grid_toc - grid_tic,refinement,((double)ksp_iters_new-grid_ksp_old)/(user->Nx*user->Ny));
+                printf("Grid Time: %f, Refined %d, AvgKspIters: %.2f\n", grid_toc - grid_tic,refinement,((double)ksp_iters_new-grid_ksp_old)/(Nx*Ny*Nz));
                 save_timestep(fdt,user,numrecords,0);
                 grid_ksp_old = ksp_iters_new;
             }
@@ -222,24 +222,27 @@ int main(int argc, char **argv)
 
         //Copy old gating variables
         //Save the gating variables
-        memcpy(user->gate_vars_past->mNaT,user->gate_vars->mNaT,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->hNaT,user->gate_vars->hNaT,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->gNaT,user->gate_vars->gNaT,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->mNaP,user->gate_vars->mNaP,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->hNaP,user->gate_vars->hNaP,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->gNaP,user->gate_vars->gNaP,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->gKA,user->gate_vars->gKA,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->hKA,user->gate_vars->hKA,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->mKA,user->gate_vars->mKA,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->mKDR,user->gate_vars->mKDR,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->gKDR,user->gate_vars->gKDR,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->mNaT,user->gate_vars->mNaT,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->hNaT,user->gate_vars->hNaT,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->gNaT,user->gate_vars->gNaT,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->mNaP,user->gate_vars->mNaP,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->hNaP,user->gate_vars->hNaP,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->gNaP,user->gate_vars->gNaP,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->gKA,user->gate_vars->gKA,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->hKA,user->gate_vars->hKA,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->mKA,user->gate_vars->mKA,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->mKDR,user->gate_vars->mKDR,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->gKDR,user->gate_vars->gKDR,sizeof(PetscReal)*Nx*Ny*Nz);
         //Update the past membrane voltage
         if(Predictor){
-            for(x=0;x<user->Nx;x++){
-                for(y=0;y<user->Ny;y++){
-                    user->vm_past[xy_index(x, y, 0, user->Nx, 0)]= (user->state_vars_past->phi[phi_index(x, y, 0, 0, user->Nx,
-                                                                                                         0)] - user->state_vars_past->phi[phi_index(
-                            x, y, 0, Nc - 1, user->Nx, 0)]) * RTFC;
+            for(z=0;z<Nz;z++){
+                for(y = 0; y < Ny; y++){
+                    for(x = 0; x < Nx; x++){
+
+                        user->vm_past[xy_index(x,y,z,Nx,Ny)] =
+                                (user->state_vars_past->phi[phi_index(x,y,z,0,Nx,Ny)]-
+                                user->state_vars_past->phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC;
+                    }
                 }
             }
         }
@@ -260,7 +263,7 @@ int main(int argc, char **argv)
             // Failure Close
             PetscTime(&full_toc);
             fclose(fp);
-            fprintf(fptime,"%d,%d,%d,%d,%f,%f\n",0,count,user->Nx,user->Ny,user->dt,full_toc-full_tic);
+            fprintf(fptime,"%d,%d,%d,%d,%d,%f,%f\n",0,count,Nx,Ny,Nz,user->dt,full_toc-full_tic);
             fclose(fptime);
             fprintf(stderr, "Netwon Iteration did not converge! Stopping at %f...\n",t);
             exit(EXIT_FAILURE); /* indicate failure.*/}
@@ -276,7 +279,7 @@ int main(int argc, char **argv)
 
     //Close
     fclose(fp);
-    fprintf(fptime,"%d,%d,%d,%d,%f,%f\n",1,count,user->Nx,user->Ny,user->dt,full_toc-full_tic);
+    fprintf(fptime,"%d,%d,%d,%d,%d,%f,%f\n",1,count,Nx,Ny,Nz,user->dt,full_toc-full_tic);
     fclose(fptime);
     fclose(fp_measures[0]);fclose(fp_measures[1]);fclose(fp_measures[2]);
     fclose(user->fp);
