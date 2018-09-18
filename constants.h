@@ -10,7 +10,7 @@
 
 // General options
 
-#define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
+#define details 1 //if true, will show how many iterations were necessary for each newton solve, and the residual
 #define mid_points_exct 0
 #define one_point_exct 0 //if true, triggers SD at origin
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
@@ -22,9 +22,9 @@
 
 //Solver Type Options
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
-#define separate_vol 1 //if true, will solve c,phi separate from alpha.
+#define separate_vol 0 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define Predictor 1  // Turns on predictor. Adaptive single point estimated update
+#define Predictor 0  // Turns on predictor. Adaptive single point estimated update
 #define width_size  1 //Number of up,down,left,right neighbors to pair in the predictor.
 #define Max_Grid_Refine 256 // Max number of time steps to refine in grid predictor
 

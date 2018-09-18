@@ -40,14 +40,14 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx
     int x,y,z,comp,ion;
     PetscInt *c_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*Nz*Nc*Ni);
     PetscInt *phi_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*Nz*Nc);
-    for(z=0;z<Nz;z++) {
-        for (y = 0; y < Ny; y++) {
-            for (x = 0; x < Nx; x++) {
-                for (comp = 0; comp < Nc; comp++) {
-                    for (ion = 0; ion < Ni; ion++) {
-                        c_ind[c_index(x, y, z, comp, ion, Nx, Ny)] = Ind_1(x, y, z, ion, comp, Nx, Ny);
+    for(z=0; z<Nz ; z++){
+        for(y = 0; y < Ny; y++){
+            for(x = 0; x < Nx; x++){
+                for(comp = 0; comp < Nc; comp++){
+                    for(ion = 0; ion < Ni; ion++){
+                        c_ind[c_index(x,y,z,comp,ion,Nx,Ny)] = Ind_1(x,y,z,ion,comp,Nx,Ny);
                     }
-                    phi_ind[phi_index(x, y, z, comp, Nx, Ny)] = Ind_1(x, y, z, Ni, comp, Nx, Ny);
+                    phi_ind[phi_index(x,y,z,comp,Nx,Ny)] = Ind_1(x,y,z,Ni,comp,Nx,Ny);
                 }
             }
         }
@@ -57,13 +57,12 @@ PetscErrorCode init_simstate(Vec state,struct SimState *state_vars,struct AppCtx
 
     free(phi_ind);free(c_ind);
     if(!separate_vol) {
-        PetscInt *al_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*(Nc-1));
+        PetscInt *al_ind = (PetscInt *) malloc(sizeof(PetscInt)*Nx*Ny*Nz*(Nc-1));
         for (z = 0; z < Nz; z++) {
             for (y = 0; y < Ny; y++) {
                 for (x = 0; x < Nx; x++) {
-
-                    for (comp = 0; comp < Nc - 1; comp++) {
-                        al_ind[al_index(x, y, z, comp, Nx, Ny)] = Ind_1(x, y, z, Ni + 1, comp, Nx, Ny);
+                    for (comp = 0; comp < Nc - 1; comp++){
+                        al_ind[al_index(x,y,z,comp,Nx,Ny)] = Ind_1(x,y,z,Ni+1,comp,Nx,Ny);
                     }
                 }
             }

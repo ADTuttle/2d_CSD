@@ -308,7 +308,7 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     user->Nz = temp_Nz;
 
     //Copy over the saved variables.
-    for(PetscInt z=0;y<temp_Nz;z++){
+    for(PetscInt z=0;z<temp_Nz;z++){
         for(y = 0; y < temp_Ny; y++){
             for(x = 0; x < temp_Nx; x++){
 
@@ -350,8 +350,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
     //    Get Nx, Ny, and dt from options if possible
 
-    user->Nx = 32;
-    user->Ny = 32;
+    user->Nx = 4;
+    user->Ny = 4;
     user->Nz = 4;
     user->dt =0.01;
 
@@ -460,25 +460,26 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     //Gmres type methods
 //     ierr = KSPSetType(slvr->ksp,KSPGMRES);CHKERRQ(ierr);
 //    ierr = KSPSetType(slvr->ksp,KSPFGMRES);CHKERRQ(ierr);
-//    /*
+    /*
     ierr = KSPSetType(slvr->ksp,KSPDGMRES); CHKERRQ(ierr);
 
     ierr = KSPGMRESSetRestart(slvr->ksp,40); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_eigen","10"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_max_eigen","100"); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-ksp_dgmres_force",""); CHKERRQ(ierr);
-//*/
+*/
 
 
     //Multigrid precond
 //    ierr = Initialize_PCMG(slvr->pc,slvr->A,user); CHKERRQ(ierr);
 
     //LU Direct solve
-    /*
+//    /*
     ierr = PCSetType(slvr->pc,PCLU);CHKERRQ(ierr);
     ierr = KSPSetPC(slvr->ksp,slvr->pc);CHKERRQ(ierr);
-     ierr = PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
-    */
+    ierr = PCFactorSetMatSolverType(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
+//     ierr = PCFactorSetMatSolverPackage(slvr->pc, MATSOLVERSUPERLU); CHKERRQ(ierr);
+//    */
     // ILU Precond
 //    /*
     ierr = PCSetType(slvr->pc,PCILU);CHKERRQ(ierr);
