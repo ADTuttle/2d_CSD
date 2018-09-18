@@ -257,8 +257,10 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
                         //Save values for voltage
                         Rphx[comp] += z_charge[ion]*Rcvx;
                         Rphy[comp] += z_charge[ion]*Rcvy;
+                        Rphz[comp] += z_charge[ion]*Rcvz;
                         RphxRight[comp] += z_charge[ion]*RcvxRight;
                         RphyUp[comp] += z_charge[ion]*RcvyUp;
+                        RphzTop[comp] += z_charge[ion]*RcvzTop;
 
                     }
                     //Set Extracellular values
@@ -317,8 +319,8 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
                                            (phi[phi_index(x,y,z+1,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dz*dt/dz;
                     }
 
-                    Resc = al[al_index(x,y,z,comp,Nx,Ny)]*c[c_index(x,y,z,comp,ion,Nx,Ny)]-
-                           alp[al_index(x,y,z,comp,Nx,Ny)]*cp[c_index(x,y,z,comp,ion,Nx,Ny)];
+                    Resc = alNc*c[c_index(x,y,z,comp,ion,Nx,Ny)]-
+                           alpNc*cp[c_index(x,y,z,comp,ion,Nx,Ny)];
                     Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
                     //Add bath variables
 
@@ -334,8 +336,10 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
                     //Save values for voltage
                     Rphx[comp] += z_charge[ion]*Rcvx;
                     Rphy[comp] += z_charge[ion]*Rcvy;
+                    Rphz[comp] += z_charge[ion]*Rcvz;
                     RphxRight[comp] += z_charge[ion]*RcvxRight;
                     RphyUp[comp] += z_charge[ion]*RcvyUp;
+                    RphzTop[comp] += z_charge[ion]*RcvzTop;
                 }
 
                 //Voltage Equations
@@ -349,7 +353,7 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
                     }
                     //Add the terms shared with extracell
                     ResphN -= Resph; // Subtract total capacitance, subtract total ion channel flux
-                    Resph += Rphx[comp]-RphxRight[comp]+Rphy[comp]-RphyUp[comp];
+                    Resph += Rphx[comp]-RphxRight[comp]+Rphy[comp]-RphyUp[comp]+Rphz[comp]-RphzTop[comp];
                     ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny),Resph,INSERT_VALUES);
                     CHKERRQ(ierr);
                 }
@@ -366,7 +370,7 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
                                     (log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(cbath[ion])+
                                     z_charge[ion]*phi[phi_index(x,y,z,comp,Nx,Ny)]-z_charge[ion]*phibath)*dt;
                 }
-                ResphN += Rphx[comp]-RphxRight[comp]+Rphy[comp]-RphyUp[comp];
+                ResphN += Rphx[comp]-RphxRight[comp]+Rphy[comp]-RphyUp[comp]+Rphz[comp]-RphzTop[comp];
                 ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny),ResphN,INSERT_VALUES);
                 CHKERRQ(ierr);
             }
@@ -398,7 +402,7 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
 
     PetscReal norm;
     VecNorm(Res,NORM_MAX,&norm);
-    printf("Newton Res: %.10e\n",norm);
+//    printf("Newton Res: %.10e\n",norm);
     PetscReal * tmp;
 //    VecGetArray(Res,&tmp);
 //    for(z=0;z<Nz;z++){
@@ -827,7 +831,7 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                     Ac = (1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)])+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
                     Aphi = Fph0x+Fph1x+Fph0y+Fph1y+Fph0z+Fph1z;
 
-                    Avolt = z_charge[ion]*(Fc0x+Fc1x+Fc0y+Fc1y);
+                    Avolt = z_charge[ion]*(Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z);
 
                     //Add up terms for voltage eqns
                     Fphph0x[comp] += z_charge[ion]*Fph0x;
@@ -1058,6 +1062,9 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
 
     ierr = MatAssemblyBegin(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(Jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+
+//    MatView(Jac,PETSC_VIEWER_STDOUT_SELF);
+
 
     if (A != Jac) {
         ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);

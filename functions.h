@@ -50,12 +50,12 @@ void volume_update(struct SimState*,struct SimState*,struct AppCtx*);
 void excitation(struct AppCtx*,PetscReal);
 
 // Indexing functions
-PetscInt c_index(PetscInt, PetscInt, PetscInt z, PetscInt, PetscInt, PetscInt, PetscInt Ny);
-PetscInt phi_index(PetscInt, PetscInt, PetscInt z, PetscInt, PetscInt, PetscInt Ny);
-PetscInt al_index(PetscInt, PetscInt, PetscInt z, PetscInt, PetscInt, PetscInt Ny);
-PetscInt xy_index(PetscInt, PetscInt, PetscInt z, PetscInt, PetscInt Ny);
-PetscInt Ind_1(PetscInt, PetscInt, PetscInt z, PetscInt, PetscInt, PetscInt, PetscInt Ny);
-PetscInt Ind_2(PetscInt, PetscInt, PetscInt z, PetscInt, PetscInt, PetscInt, PetscInt Ny);
+PetscInt c_index(PetscInt, PetscInt, PetscInt , PetscInt, PetscInt, PetscInt, PetscInt );
+PetscInt phi_index(PetscInt, PetscInt, PetscInt , PetscInt, PetscInt, PetscInt );
+PetscInt al_index(PetscInt, PetscInt, PetscInt , PetscInt, PetscInt, PetscInt );
+PetscInt xy_index(PetscInt, PetscInt, PetscInt , PetscInt, PetscInt );
+PetscInt Ind_1(PetscInt, PetscInt, PetscInt , PetscInt, PetscInt, PetscInt, PetscInt );
+PetscInt Ind_2(PetscInt, PetscInt, PetscInt , PetscInt, PetscInt, PetscInt, PetscInt);
 
 
 //Create Petsc Structures
