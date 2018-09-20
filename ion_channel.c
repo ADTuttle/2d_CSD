@@ -99,8 +99,8 @@ cz(const PetscReal *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt z,
 {
     //function to compute sum over i of c_i*z_i
     PetscReal accumulate=0;
-    for(PetscInt ion=0;ion<Ni;ion++) {
-        accumulate += zvals[ion]*cmat[c_index(x, y, z, comp, ion, Nx, Ny)];
+    for(PetscInt ion=0;ion<Ni;ion++){
+        accumulate += zvals[ion]*cmat[c_index(x,y,z,comp,ion,Nx,Ny)];
     }
     return accumulate;
 }
