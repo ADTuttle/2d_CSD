@@ -127,7 +127,7 @@ void print_all(struct AppCtx*);
 const char* getfield(char* , int );
 void find_print(int, int, double, int iter);
 void compare_res(double *, int );
-void write_data(FILE *,struct AppCtx *,PetscInt,int );
+void write_data(FILE **,struct AppCtx *,PetscInt,int );
 void write_point(FILE *,struct AppCtx *,PetscReal,PetscInt,PetscInt );
 void measure_flux(FILE *,struct AppCtx *,PetscInt,int );
 void init_events(struct AppCtx *);

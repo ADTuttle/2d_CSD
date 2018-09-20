@@ -15,13 +15,13 @@
 #define one_point_exct 0 //if true, triggers SD at origin
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
 #define Profiling_on 1 //Turns timing of functions on/off.
-#define trecordstep 0.01 //0.5 //determines how often to record
+#define trecordstep 0.1 //0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 #define start_at_steady 1 //Start at steady state?
 
 
 //Solver Type Options
-#define use_en_deriv 0 //if true, will use the derivative of the electroneutrality condition for the system of equations
+#define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
 #define Predictor 0  // Turns on predictor. Adaptive single point estimated update
@@ -37,7 +37,7 @@ static const PetscReal DNeuronMult[3] = {0,0,0};
 static const PetscReal DGliaMult[3] = {0.25,0.25,0.25};
 static const PetscReal DExtraMult[3] = {1.0,1.0,1.0};
 
-#define Time 10.0   //total simulated time in seconds
+#define Time 30.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)

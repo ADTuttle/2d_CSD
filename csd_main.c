@@ -105,8 +105,9 @@ int main(int argc, char **argv)
     set_params(current_state,state_vars,con_vars,gate_vars,flux,user);
 
 
-    FILE *fp,*fdt;
+    FILE **fp,*fdt;
     FILE **fp_measures; fp_measures= malloc(sizeof(FILE*) * 3);
+    fp = malloc(sizeof(FILE*)*Nz);
 
     if(start_at_steady) {
         printf("Steady State Routine\n");
@@ -115,7 +116,6 @@ int main(int argc, char **argv)
         initialize_data(current_state, user);
 
         //Open files to write to
-        fp = fopen("data_csd.txt","w");
         extract_subarray(current_state,state_vars);
         write_data(fp,user,numrecords,1);
         user->fp = fopen("point_csd.txt","w");
@@ -253,8 +253,16 @@ int main(int argc, char **argv)
             write_data(fp, user,numrecords, 0);
             record_measurements(fp_measures,user,count,numrecords,0);
             if(count%1000){
-                fclose(fp);
-                fp = fopen("data_csd.txt","a");
+                for(z=0;z<Nz;z++){
+                    fclose(fp[z]);
+                    char name[16];
+                    if(z<10){
+                        sprintf(name,"data_csd_0%d.txt",z);
+                    }else{
+                        sprintf(name,"data_csd_%d.txt",z);
+                    }
+                    fp[z] = fopen(name,"a");
+                }
             }
             printf("Time: %.2f,Newton time: %f,iters:%d, Reason: %d,KSPIters: %d\n",t,toc - tic,num_iters,reason,ksp_iters_new-ksp_iters_old);
         }
@@ -262,7 +270,9 @@ int main(int argc, char **argv)
         if(reason<0){
             // Failure Close
             PetscTime(&full_toc);
-            fclose(fp);
+            for(z=0;z<Nz;z++){
+                fclose(fp[z]);
+            }
             fprintf(fptime,"%d,%d,%d,%d,%d,%f,%f\n",0,count,Nx,Ny,Nz,user->dt,full_toc-full_tic);
             fclose(fptime);
             fprintf(stderr, "Netwon Iteration did not converge! Stopping at %f...\n",t);
@@ -278,7 +288,9 @@ int main(int argc, char **argv)
     save_file(user);
 
     //Close
-    fclose(fp);
+    for(z=0;z<Nz;z++){
+        fclose(fp[z]);
+    }
     fprintf(fptime,"%d,%d,%d,%d,%d,%f,%f\n",1,count,Nx,Ny,Nz,user->dt,full_toc-full_tic);
     fclose(fptime);
     fclose(fp_measures[0]);fclose(fp_measures[1]);fclose(fp_measures[2]);

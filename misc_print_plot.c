@@ -232,7 +232,7 @@ void compare_res(double *Res, int iter)
     return;
 }
 
-void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
+void write_data(FILE **fp,struct AppCtx*user,PetscInt numrecords,int start)
 {
     if(Profiling_on) {
         PetscLogEventBegin(event[8], 0, 0, 0, 0);
@@ -240,43 +240,55 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
     struct SimState *state_vars = user->state_vars;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt Nz = user->Nz;
     if(!save_one_var) {
         if (start) {
-            fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, numrecords, Nc, Ni);
+            for(int z=0;z<Nz;z++){
+                char name[16];
+                if(z<10){
+                    sprintf(name,"data_csd_0%d.txt",z);
+                }else{
+                    sprintf(name,"data_csd_%d.txt",z);
+                }
+                fp[z] = fopen(name,"w");
+                fprintf(fp[z],"%d,%d,%d,%d,%d\n",Nx,Ny,numrecords,Nc,Ni);
+            }
             write_data(fp, user, numrecords,0);
-        } else {
-            int ion, comp, x, y;
-            for (ion = 0; ion < Ni; ion++) {
-                for (comp = 0; comp < Nc; comp++) {
-                    for (y = 0; y < Ny; y++) {
-                        for (x = 0; x < Nx; x++) {
-                            if (x == Nx - 1 & y == Ny - 1) {
-                                fprintf(fp, "%f\n", state_vars->c[c_index(x, y, 0, comp, ion, Nx, 0)]);
-                            } else {
-                                fprintf(fp, "%f,", state_vars->c[c_index(x, y, 0, comp, ion, Nx, 0)]);
+        } else{
+            int ion,comp,x,y,z;
+            for(z = 0; z < Nz; z++){
+                for(ion = 0; ion < Ni; ion++){
+                    for(comp = 0; comp < Nc; comp++){
+                        for(y = 0; y < Ny; y++){
+                            for(x = 0; x < Nx; x++){
+                                if(x == Nx-1 & y == Ny-1){
+                                    fprintf(fp[z],"%.10e\n",state_vars->c[c_index(x,y,z,comp,ion,Nx,Ny)]);
+                                }else{
+                                    fprintf(fp[z],"%.10e,",state_vars->c[c_index(x,y,z,comp,ion,Nx,Ny)]);
+                                }
                             }
                         }
                     }
                 }
-            }
-            for (comp = 0; comp < Nc; comp++) {
-                for (y = 0; y < Ny; y++) {
-                    for (x = 0; x < Nx; x++) {
-                        if (x == Nx - 1 & y == Ny - 1) {
-                            fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, 0, comp, Nx, 0)] * RTFC);
-                        } else {
-                            fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, 0, comp, Nx, 0)] * RTFC);
+                for(comp = 0; comp < Nc; comp++){
+                    for(y = 0; y < Ny; y++){
+                        for(x = 0; x < Nx; x++){
+                            if(x == Nx-1 & y == Ny-1){
+                                fprintf(fp[z],"%.10e\n",state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)]*RTFC);
+                            }else{
+                                fprintf(fp[z],"%.10e,",state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)]*RTFC);
+                            }
                         }
                     }
                 }
-            }
-            for (comp = 0; comp < Nc - 1; comp++) {
-                for (y = 0; y < Ny; y++) {
-                    for (x = 0; x < Nx; x++) {
-                        if (x == Nx - 1 & y == Ny - 1) {
-                            fprintf(fp, "%f\n", state_vars->alpha[al_index(x, y, 0, comp, Nx, 0)]);
-                        } else {
-                            fprintf(fp, "%f,", state_vars->alpha[al_index(x, y, 0, comp, Nx, 0)]);
+                for(comp = 0; comp < Nc-1; comp++){
+                    for(y = 0; y < Ny; y++){
+                        for(x = 0; x < Nx; x++){
+                            if(x == Nx-1 & y == Ny-1){
+                                fprintf(fp[z],"%.10e\n",state_vars->alpha[al_index(x,y,z,comp,Nx,Ny)]);
+                            }else{
+                                fprintf(fp[z],"%.10e,",state_vars->alpha[al_index(x,y,z,comp,Nx,Ny)]);
+                            }
                         }
                     }
                 }
@@ -284,26 +296,31 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
         }
     } else{
         if (start) {
-            fprintf(fp, "%d,%d,%d,%d,%d\n", Nx, Ny, (int) floor(numrecords), 0, 0);
+            for(int z=0;z<Nz;z++){
+                char name[14];
+                if(z < 10){
+                    sprintf(name,"data_csd_0%d.txt",z);
+                }else{
+                    sprintf(name,"data_csd_%d.txt",z);
+                }
+                fprintf(fp[z],"%d,%d,%d,%d,%d\n",Nx,Ny,(int) floor(numrecords),0,0);
+            }
             write_data(fp, user,numrecords, 0);
         } else {
-            int ion, comp, x, y;
+            int ion, comp, x, y,z;
             comp = 0;
-            for (y = 0; y < Ny; y++) {
-                for (x = 0; x < Nx; x++) {
-                    if (x == Nx - 1 & y == Ny - 1) {
-//                        fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
-                        fprintf(fp, "%f\n", (state_vars->phi[phi_index(x, y, 0, comp, Nx, 0)] - state_vars->phi[phi_index(
-                                x, y,
-                                0,
-                                Nc - 1,
-                                Nx, 0)]) * RTFC);
-                    } else {
-//                        fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
-                        fprintf(fp, "%f,", (state_vars->phi[phi_index(x, y, 0, comp, Nx, 0)] - state_vars->phi[phi_index(
-                                x, y, 0,
-                                Nc - 1,
-                                Nx, 0)]) * RTFC);
+            for(z=0;z<Nz;z++){
+                for(y = 0; y < Ny; y++){
+                    for(x = 0; x < Nx; x++){
+                        if(x == Nx-1 & y == Ny-1){
+//                        fprintf(fp[z], "%f\n", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
+                        fprintf(fp[z],"%f\n",(state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)]-
+                        state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC);
+                        }else{
+//                        fprintf(fp[z], "%f,", state_vars->phi[phi_index(x, y,z, Nc-1,Nx,Ny)] * RTFC);
+                            fprintf(fp[z],"%f,",(state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)]-
+                            state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC);
+                        }
                     }
                 }
             }
@@ -321,13 +338,15 @@ void write_point(FILE *fp,struct AppCtx* user,PetscReal t,PetscInt x,PetscInt y)
     struct SimState *state_vars = user->state_vars;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt Nz = user->Nz;
     int ion, comp;
     comp=0;
-
-    fprintf(fp,"%f,%.10e\n",t, (state_vars->phi[phi_index(x, y, 0, comp, Nx, 0)] - state_vars->phi[phi_index(x, y, 0,
-                                                                                                             Nc - 1, Nx,
-                                                                                                             0)]) * RTFC);
-
+    fprintf(fp,"%f",t);
+    for(PetscInt z=0;z<Nz;z++){
+        fprintf(fp,"%.10e",(state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)]-
+        state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC);
+    }
+    fprintf(fp,"\n");
 
 }
 void save_timestep(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
@@ -993,7 +1012,7 @@ void velocity_field(FILE *fp,struct AppCtx *user,PetscInt numrecords,int start) 
         PetscInt Nx = user->Nx;
         PetscInt Ny = user->Ny;
 
-        PetscInt x, y, ion, comp;
+        PetscInt x, y,z, ion, comp;
 
          PetscReal Gradleft, GradRight;
             PetscReal GradUp, GradDown;
@@ -1003,62 +1022,62 @@ void velocity_field(FILE *fp,struct AppCtx *user,PetscInt numrecords,int start) 
 
             PetscReal Gradx, Grady;
 
-
+            z=0;
             for (ion = 0; ion < Ni; ion++) {
                 for (comp = Nc - 1; comp < Nc; comp++) {
                     for (y = 0; y < Ny; y++) {
-                        for (x = 0; x < Nx; x++) {
+                        for (x = 0; x < Nx; x++){
                             count_x = 0;
                             count_y = 0;
 
                             Gradleft = 0;
                             GradRight = 0;
-                            if (x > 0) {
+                            if(x > 0){
                                 //First difference term
                                 Gradleft = 1;//Dcs[c_index(x-1,y,comp,ion,Nx)*2]*(c[c_index(x-1,y,comp,ion,Nx)]+c[c_index(x,y,comp,ion,Nx)])/2;
-                                Gradleft = Gradleft * (log(c[c_index(x, y, 0, comp, ion, Nx, 0)]) -
-                                                       log(c[c_index(x - 1, y, 0, comp, ion, Nx, 0)]) +
-                                                       z_charge[ion] * (phi[phi_index(x, y, 0, comp, Nx, 0)] -
-                                                                 phi[phi_index(x - 1, y, 0, comp, Nx, 0)])) / dx;
+                                Gradleft = Gradleft*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-
+                                                     log(c[c_index(x-1,y,z,comp,ion,Nx,Ny)])+
+                                                     z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
+                                                                    phi[phi_index(x-1,y,z,comp,Nx,Ny)]))/dx;
                                 count_x++;
                             }
                             //Add Second right moving difference
-                            if (x < Nx - 1) {
+                            if(x < Nx-1){
                                 GradRight = 1;//Dcs[c_index(x,y,comp,ion,Nx)*2]*(c[c_index(x,y,comp,ion,Nx)]+c[c_index(x+1,y,comp,ion,Nx)])/2;
-                                GradRight = GradRight * (log(c[c_index(x + 1, y, 0, comp, ion, Nx, 0)]) -
-                                                         log(c[c_index(x, y, 0, comp, ion, Nx, 0)]) +
-                                                         z_charge[ion] * (phi[phi_index(x + 1, y, 0, comp, Nx, 0)] -
-                                                                   phi[phi_index(x, y, 0, comp, Nx, 0)])) / dx;
+                                GradRight = GradRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny)])-
+                                                       log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+
+                                                       z_charge[ion]*(phi[phi_index(x+1,y,z,comp,Nx,Ny)]-
+                                                                      phi[phi_index(x,y,z,comp,Nx,Ny)]))/dx;
                                 count_x++;
                             }
                             GradDown = 0;
                             GradUp = 0;
                             //Up down difference
-                            if (y > 0) {
+                            if(y > 0){
                                 GradDown = 1;//Dcs[c_index(x,y-1,comp,ion,Nx)*2+1]*(c[c_index(x,y-1,comp,ion,Nx)]+c[c_index(x,y,comp,ion,Nx)])/2;
-                                GradDown = GradDown * (log(c[c_index(x, y, 0, comp, ion, Nx, 0)]) -
-                                                       log(c[c_index(x, y - 1, 0, comp, ion, Nx, 0)]) +
-                                                       z_charge[ion] * (phi[phi_index(x, y, 0, comp, Nx, 0)] -
-                                                                 phi[phi_index(x, y - 1, 0, comp, Nx, 0)])) / dy;
+                                GradDown = GradDown*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-
+                                                     log(c[c_index(x,y-1,z,comp,ion,Nx,Ny)])+
+                                                     z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
+                                                                    phi[phi_index(x,y-1,z,comp,Nx,Ny)]))/dy;
                                 count_y++;
                             }
                             //Next upward difference
-                            if (y < Ny - 1) {
+                            if(y < Ny-1){
                                 GradUp = 1;//Dcs[c_index(x,y,comp,ion,Nx)*2+1]*(c[c_index(x,y,comp,ion,Nx)]+c[c_index(x,y+1,comp,ion,Nx)])/2;
-                                GradUp = GradUp * (log(c[c_index(x, y + 1, 0, comp, ion, Nx, 0)]) -
-                                                   log(c[c_index(x, y, 0, comp, ion, Nx, 0)]) +
-                                                   z_charge[ion] * (phi[phi_index(x, y + 1, 0, comp, Nx, 0)] -
-                                                             phi[phi_index(x, y, 0, comp, Nx, 0)])) / dy;
+                                GradUp = GradUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny)])-
+                                                 log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+
+                                                 z_charge[ion]*(phi[phi_index(x,y+1,z,comp,Nx,Ny)]-
+                                                                phi[phi_index(x,y,z,comp,Nx,Ny)]))/dy;
                                 count_y++;
                             }
 
-                            Gradx = (Gradleft + GradRight) / count_x;
-                            Grady = (GradUp + GradDown) / count_y;
+                            Gradx = (Gradleft+GradRight)/count_x;
+                            Grady = (GradUp+GradDown)/count_y;
 
-                            if (x == Nx - 1 & y == Ny - 1) {
-                                fprintf(fp, "%f,%f\n", Gradx, Grady);
-                            } else {
-                                fprintf(fp, "%f,%f,", Gradx, Grady);
+                            if(x == Nx-1 & y == Ny-1){
+                                fprintf(fp,"%f,%f\n",Gradx,Grady);
+                            }else{
+                                fprintf(fp,"%f,%f,",Gradx,Grady);
                             }
 
                         }
@@ -1113,7 +1132,7 @@ void calculate_measures(FILE *fp, struct AppCtx *user,PetscInt numrecords,int st
 void calculate_energy(FILE *fp, struct AppCtx *user, PetscInt numrecords, int start){
     if (start) {
         fprintf(fp, "%d,%d,%d,%d,%d\n", user->Nx, user->Ny, numrecords, 0, 0);
-        write_data(fp, user, numrecords, 0);
+        calculate_energy(fp, user, numrecords, 0);
     }else{
         PetscScalar *c = user->state_vars->c;
         PetscScalar *phi = user->state_vars->phi;
@@ -1172,19 +1191,19 @@ void draw_csd(struct AppCtx *user)
     threshhold = -10;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt z = 0;
 
     for(PetscInt x=0;x<Nx;x++){
         printf("|");
         for(PetscInt y=0;y<Ny;y++){
-            vm = user->state_vars->phi[phi_index(x, y, 0, 0, Nx, 0)] - user->state_vars->phi[phi_index(x, y, 0, Nc - 1,
-                                                                                                       Nx, 0)];
-            vm = vm * RTFC;
-            if(x==0|| x==(Nx-1)){
+            vm = user->state_vars->phi[phi_index(x,y,z,0,Nx,Ny)]-user->state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)];
+            vm = vm*RTFC;
+            if(x == 0 || x == (Nx-1)){
                 printf("_");
-            } else {
-                if (vm > threshhold) {
+            }else{
+                if(vm > threshhold){
                     printf("x");
-                } else {
+                }else{
                     printf(" ");
                 }
             }
