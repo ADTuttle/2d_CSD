@@ -10,7 +10,7 @@
 
 // General options
 
-#define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
+#define details 1 //if true, will show how many iterations were necessary for each newton solve, and the residual
 #define mid_points_exct 0
 #define one_point_exct 0 //if true, triggers SD at origin
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave

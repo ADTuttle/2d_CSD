@@ -350,8 +350,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
     //    Get Nx, Ny, and dt from options if possible
 
-    user->Nx = 16;
-    user->Ny = 16;
+    user->Nx = 32;
+    user->Ny = 32;
     user->Nz = 4;
     user->dt =0.01;
 

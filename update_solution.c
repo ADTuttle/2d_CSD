@@ -1070,8 +1070,6 @@ void volume_update(struct SimState *state_vars,struct SimState *state_vars_past,
     }
     int x,y,z,comp;
     PetscReal dt = user->dt;
-    PetscReal dx = user->dx;
-    PetscReal dy = user->dy;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
     PetscInt Nz = user->Nz;
@@ -1200,7 +1198,7 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
                         }
                         //Add Second right moving difference
                         if(x < Nx-1){
-                            RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
+                            RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
                                     cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2;
                             RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny)])-
                                     log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
@@ -1420,7 +1418,6 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
     for(z=0;z<Nz;z++){
         for(y = 0; y < Ny; y++){
             for(x = 0; x < Nx; x++){
-
                 for(comp = 0; comp < Nc; comp++){
                     Fphph0x[comp] = 0;
                     Fphph1x[comp] = 0;
@@ -1777,7 +1774,7 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                     Ac = (1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)])+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
                     Aphi = Fph0x+Fph1x+Fph0y+Fph1y+Fph0z+Fph1z;
 
-                    Avolt = z_charge[ion]*(Fc0x+Fc1x+Fc0y+Fc1y);
+                    Avolt = z_charge[ion]*(Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z);
 
                     //Add up terms for voltage eqns
                     Fphph0x[comp] += z_charge[ion]*Fph0x;
