@@ -203,7 +203,7 @@ void init_arrays(struct AppCtx*user)
     PetscInt Nz = user->Nz;
     PetscInt nx = 2*width_size+1;
     PetscInt ny = 2*width_size+1;
-    PetscInt nz = 2*width_size+1;
+    PetscInt nz = user->Nz;;
     //Flux quantities
     user->flux->mflux = (PetscReal*) malloc(Nx*Ny*Nz*Ni*Nc*sizeof(PetscReal));
     user->flux->dfdci = (PetscReal*) malloc(Nx*Ny*Nz*Ni*Nc*sizeof(PetscReal));
@@ -297,13 +297,10 @@ void init_arrays(struct AppCtx*user)
     user->grid_vars_past->al_vec = NULL;
 
     //dt saving
-    user->dt_space = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
-    for(int z=0;z<Nz;z++) {
-        for (int y = 0; y < Ny; y++) {
-            for (int x = 0; x < Nx; x++) {
-
-                user->dt_space[xy_index(x, y, 0, Nx, 0)] = user->dt;
-            }
+    user->dt_space = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    for (int y = 0; y < Ny; y++) {
+        for (int x = 0; x < Nx; x++) {
+            user->dt_space[xy_index(x, y, 0, Nx, 0)] = user->dt;
         }
     }
 

@@ -177,7 +177,7 @@ int main(int argc, char **argv)
 
             if(count%krecordfreq==0) {
                 refinement=0;
-                for(int i=0;i<Nx*Ny*Nz;i++){
+                for(int i=0;i<Nx*Ny;i++){
                     if(user->dt_space[i]<user->dt){refinement++;}
                 }
                 KSPGetTotalIterations(user->grid_slvr->ksp,&ksp_iters_new);

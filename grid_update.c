@@ -13,286 +13,266 @@ void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
 
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt Nz = user->Nz;
     PetscInt nx = 2*width_size+1;
     PetscInt ny = 2*width_size+1;
-    PetscInt xind,yind,ion,comp,x,y;
+    PetscInt nz = Nz;
+    PetscInt xind,yind,zind,ion,comp,x,y,z;
 
-    for( x=0;x<nx;x++) {
-        for ( y = 0; y < ny; y++) {
-            xind = x-width_size+xi;
-            yind = y-width_size+yi;
-            //If in interior just copy
-            if(xind>-1 && yind>-1 && xind<Nx && yind<Ny) {
+    for( z=0;z<nz;z++){
+        for(y = 0; y < ny; y++){
+            for(x = 0; x < nx; x++){
+                xind = x-width_size+xi;
+                yind = y-width_size+yi;
+                zind = z;
+                //If in interior just copy
+                if(xind > -1 && yind > -1 && xind < Nx && yind < Ny){
 
-                grid_gate->mNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaT[xy_index(xind, yind, 0, Nx, 0)];
-                grid_gate->hNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaT[xy_index(xind, yind, 0, Nx, 0)];
-                grid_gate->gNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaT[xy_index(xind, yind, 0, Nx, 0)];
-                grid_gate->mNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaP[xy_index(xind, yind, 0, Nx, 0)];
-                grid_gate->hNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaP[xy_index(xind, yind, 0, Nx, 0)];
-                grid_gate->gNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaP[xy_index(xind, yind, 0, Nx, 0)];
-                grid_gate->mKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->mKDR[xy_index(xind, yind, 0, Nx, 0)];
-                grid_gate->gKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->gKDR[xy_index(xind, yind, 0, Nx, 0)];
-                grid_gate->mKA[xy_index(x, y, 0, nx, 0)] = gate_vars->mKA[xy_index(xind, yind, 0, Nx, 0)];
-                grid_gate->hKA[xy_index(x, y, 0, nx, 0)] = gate_vars->hKA[xy_index(xind, yind, 0, Nx, 0)];
-                grid_gate->gKA[xy_index(x, y, 0, nx, 0)] = gate_vars->gKA[xy_index(xind, yind, 0, Nx, 0)];
+                    grid_gate->mNaT[xy_index(x,y,z,nx,ny)] = gate_vars->mNaT[xy_index(xind,yind,zind,Nx,Ny)];
+                    grid_gate->hNaT[xy_index(x,y,z,nx,ny)] = gate_vars->hNaT[xy_index(xind,yind,zind,Nx,Ny)];
+                    grid_gate->gNaT[xy_index(x,y,z,nx,ny)] = gate_vars->gNaT[xy_index(xind,yind,zind,Nx,Ny)];
+                    grid_gate->mNaP[xy_index(x,y,z,nx,ny)] = gate_vars->mNaP[xy_index(xind,yind,zind,Nx,Ny)];
+                    grid_gate->hNaP[xy_index(x,y,z,nx,ny)] = gate_vars->hNaP[xy_index(xind,yind,zind,Nx,Ny)];
+                    grid_gate->gNaP[xy_index(x,y,z,nx,ny)] = gate_vars->gNaP[xy_index(xind,yind,zind,Nx,Ny)];
+                    grid_gate->mKDR[xy_index(x,y,z,nx,ny)] = gate_vars->mKDR[xy_index(xind,yind,zind,Nx,Ny)];
+                    grid_gate->gKDR[xy_index(x,y,z,nx,ny)] = gate_vars->gKDR[xy_index(xind,yind,zind,Nx,Ny)];
+                    grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind,yind,zind,Nx,Ny)];
+                    grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind,yind,zind,Nx,Ny)];
+                    grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind,yind,zind,Nx,Ny)];
 
-                for (comp = 0; comp < Nc; comp++) {
-                    for (ion = 0; ion < Ni; ion++) {
-                        grid_vars->c[c_index(x, y, 0, comp, ion, nx, 0)] = state_vars->c[c_index(xind, yind, 0, comp,
-                                                                                                 ion, Nx,
-                                                                                                 0)];
-                    }
-                    grid_vars->phi[phi_index(x, y, 0, comp, nx, 0)] = state_vars->phi[phi_index(xind, yind, 0, comp, Nx,
-                                                                                                0)];
-                }
-                for (comp = 0; comp < Nc - 1; comp++) {
-                    grid_vars->alpha[al_index(x, y, 0, comp, nx, 0)] = state_vars->alpha[al_index(xind, yind, 0, comp,
-                                                                                                  Nx, 0)];
-                }
-            } else{
-                //If not the interior get closest point
-                //Right side
-                if(xind==Nx && yind>-1 && yind<Ny){
-                    grid_gate->mNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaT[xy_index(xind - 1, yind, 0, Nx, 0)];
-                    grid_gate->hNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaT[xy_index(xind - 1, yind, 0, Nx, 0)];
-                    grid_gate->gNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaT[xy_index(xind - 1, yind, 0, Nx, 0)];
-                    grid_gate->mNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaP[xy_index(xind - 1, yind, 0, Nx, 0)];
-                    grid_gate->hNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaP[xy_index(xind - 1, yind, 0, Nx, 0)];
-                    grid_gate->gNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaP[xy_index(xind - 1, yind, 0, Nx, 0)];
-                    grid_gate->mKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->mKDR[xy_index(xind - 1, yind, 0, Nx, 0)];
-                    grid_gate->gKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->gKDR[xy_index(xind - 1, yind, 0, Nx, 0)];
-                    grid_gate->mKA[xy_index(x, y, 0, nx, 0)] = gate_vars->mKA[xy_index(xind - 1, yind, 0, Nx, 0)];
-                    grid_gate->hKA[xy_index(x, y, 0, nx, 0)] = gate_vars->hKA[xy_index(xind - 1, yind, 0, Nx, 0)];
-                    grid_gate->gKA[xy_index(x, y, 0, nx, 0)] = gate_vars->gKA[xy_index(xind - 1, yind, 0, Nx, 0)];
-
-                    for (comp = 0; comp < Nc; comp++) {
-                        for (ion = 0; ion < Ni; ion++) {
-                            grid_vars->c[c_index(x, y, 0, comp, ion, nx, 0)] = state_vars->c[c_index(xind - 1, yind, 0,
-                                                                                                     comp,
-                                                                                                     ion, Nx, 0)];
+                    for(comp = 0; comp < Nc; comp++){
+                        for(ion = 0; ion < Ni; ion++){
+                            grid_vars->c[c_index(x,y,z,comp,ion,nx,ny)] =
+                                    state_vars->c[c_index(xind,yind,zind,comp,ion,Nx,Ny)];
                         }
-                        grid_vars->phi[phi_index(x, y, 0, comp, nx, 0)] = state_vars->phi[phi_index(xind - 1, yind, 0,
-                                                                                                    comp,
-                                                                                                    Nx, 0)];
+                        grid_vars->phi[phi_index(x,y,z,comp,nx,ny)] =
+                                state_vars->phi[phi_index(xind,yind,zind,comp,Nx,Ny)];
                     }
-                    for (comp = 0; comp < Nc - 1; comp++) {
-                        grid_vars->alpha[al_index(x, y, 0, comp, nx, 0)] = state_vars->alpha[al_index(xind - 1, yind, 0,
-                                                                                                      comp,
-                                                                                                      Nx, 0)];
+                    for(comp = 0; comp < Nc-1; comp++){
+                        grid_vars->alpha[al_index(x,y,z,comp,nx,ny)] =
+                                state_vars->alpha[al_index(xind,yind,zind,comp,Nx,Ny)];
                     }
-                }
-                //Top side
-                if(yind==Ny && xind>-1 && xind<Nx){
-                    grid_gate->mNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaT[xy_index(xind, yind - 1, 0, Nx, 0)];
-                    grid_gate->hNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaT[xy_index(xind, yind - 1, 0, Nx, 0)];
-                    grid_gate->gNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaT[xy_index(xind, yind - 1, 0, Nx, 0)];
-                    grid_gate->mNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaP[xy_index(xind, yind - 1, 0, Nx, 0)];
-                    grid_gate->hNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaP[xy_index(xind, yind - 1, 0, Nx, 0)];
-                    grid_gate->gNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaP[xy_index(xind, yind - 1, 0, Nx, 0)];
-                    grid_gate->mKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->mKDR[xy_index(xind, yind - 1, 0, Nx, 0)];
-                    grid_gate->gKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->gKDR[xy_index(xind, yind - 1, 0, Nx, 0)];
-                    grid_gate->mKA[xy_index(x, y, 0, nx, 0)] = gate_vars->mKA[xy_index(xind, yind - 1, 0, Nx, 0)];
-                    grid_gate->hKA[xy_index(x, y, 0, nx, 0)] = gate_vars->hKA[xy_index(xind, yind - 1, 0, Nx, 0)];
-                    grid_gate->gKA[xy_index(x, y, 0, nx, 0)] = gate_vars->gKA[xy_index(xind, yind - 1, 0, Nx, 0)];
+                }else{
+                    //If not the interior get closest point
+                    //Right side
+                    if(xind == Nx && yind > -1 && yind < Ny){
+                        grid_gate->mNaT[xy_index(x,y,z,nx,ny)] = gate_vars->mNaT[xy_index(xind-1,yind,zind,Nx,Ny)];
+                        grid_gate->hNaT[xy_index(x,y,z,nx,ny)] = gate_vars->hNaT[xy_index(xind-1,yind,zind,Nx,Ny)];
+                        grid_gate->gNaT[xy_index(x,y,z,nx,ny)] = gate_vars->gNaT[xy_index(xind-1,yind,zind,Nx,Ny)];
+                        grid_gate->mNaP[xy_index(x,y,z,nx,ny)] = gate_vars->mNaP[xy_index(xind-1,yind,zind,Nx,Ny)];
+                        grid_gate->hNaP[xy_index(x,y,z,nx,ny)] = gate_vars->hNaP[xy_index(xind-1,yind,zind,Nx,Ny)];
+                        grid_gate->gNaP[xy_index(x,y,z,nx,ny)] = gate_vars->gNaP[xy_index(xind-1,yind,zind,Nx,Ny)];
+                        grid_gate->mKDR[xy_index(x,y,z,nx,ny)] = gate_vars->mKDR[xy_index(xind-1,yind,zind,Nx,Ny)];
+                        grid_gate->gKDR[xy_index(x,y,z,nx,ny)] = gate_vars->gKDR[xy_index(xind-1,yind,zind,Nx,Ny)];
+                        grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind-1,yind,zind,Nx,Ny)];
+                        grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind-1,yind,zind,Nx,Ny)];
+                        grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind-1,yind,zind,Nx,Ny)];
 
-                    for (comp = 0; comp < Nc; comp++) {
-                        for (ion = 0; ion < Ni; ion++) {
-                            grid_vars->c[c_index(x, y, 0, comp, ion, nx, 0)] = state_vars->c[c_index(xind, yind - 1, 0,
-                                                                                                     comp,
-                                                                                                     ion, Nx, 0)];
+                        for(comp = 0; comp < Nc; comp++){
+                            for(ion = 0; ion < Ni; ion++){
+                                grid_vars->c[c_index(x,y,z,comp,ion,nx,ny)] =
+                                        state_vars->c[c_index(xind-1,yind,zind,comp,ion,Nx,Ny)];
+                            }
+                            grid_vars->phi[phi_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->phi[phi_index(xind-1,yind,zind,comp,Nx,Ny)];
                         }
-                        grid_vars->phi[phi_index(x, y, 0, comp, nx, 0)] = state_vars->phi[phi_index(xind, yind - 1, 0,
-                                                                                                    comp,
-                                                                                                    Nx, 0)];
-                    }
-                    for (comp = 0; comp < Nc - 1; comp++) {
-                        grid_vars->alpha[al_index(x, y, 0, comp, nx, 0)] = state_vars->alpha[al_index(xind, yind - 1, 0,
-                                                                                                      comp,
-                                                                                                      Nx, 0)];
-                    }
-                }
-                //left side
-                if(xind==-1 && yind>-1 && yind<Ny){
-                    grid_gate->mNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaT[xy_index(xind + 1, yind, 0, Nx, 0)];
-                    grid_gate->hNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaT[xy_index(xind + 1, yind, 0, Nx, 0)];
-                    grid_gate->gNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaT[xy_index(xind + 1, yind, 0, Nx, 0)];
-                    grid_gate->mNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaP[xy_index(xind + 1, yind, 0, Nx, 0)];
-                    grid_gate->hNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaP[xy_index(xind + 1, yind, 0, Nx, 0)];
-                    grid_gate->gNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaP[xy_index(xind + 1, yind, 0, Nx, 0)];
-                    grid_gate->mKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->mKDR[xy_index(xind + 1, yind, 0, Nx, 0)];
-                    grid_gate->gKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->gKDR[xy_index(xind + 1, yind, 0, Nx, 0)];
-                    grid_gate->mKA[xy_index(x, y, 0, nx, 0)] = gate_vars->mKA[xy_index(xind + 1, yind, 0, Nx, 0)];
-                    grid_gate->hKA[xy_index(x, y, 0, nx, 0)] = gate_vars->hKA[xy_index(xind + 1, yind, 0, Nx, 0)];
-                    grid_gate->gKA[xy_index(x, y, 0, nx, 0)] = gate_vars->gKA[xy_index(xind + 1, yind, 0, Nx, 0)];
-
-                    for (comp = 0; comp < Nc; comp++) {
-                        for (ion = 0; ion < Ni; ion++) {
-                            grid_vars->c[c_index(x, y, 0, comp, ion, nx, 0)] = state_vars->c[c_index(xind + 1, yind, 0,
-                                                                                                     comp,
-                                                                                                     ion, Nx, 0)];
+                        for(comp = 0; comp < Nc-1; comp++){
+                            grid_vars->alpha[al_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->alpha[al_index(xind-1,yind,zind,comp,Nx,Ny)];
                         }
-                        grid_vars->phi[phi_index(x, y, 0, comp, nx, 0)] = state_vars->phi[phi_index(xind + 1, yind, 0,
-                                                                                                    comp,
-                                                                                                    Nx, 0)];
                     }
-                    for (comp = 0; comp < Nc - 1; comp++) {
-                        grid_vars->alpha[al_index(x, y, 0, comp, nx, 0)] = state_vars->alpha[al_index(xind + 1, yind, 0,
-                                                                                                      comp,
-                                                                                                      Nx, 0)];
-                    }
-                }
-                //Bottom side
-                if(yind==-1 && xind>-1 && xind<Nx){
-                    grid_gate->mNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaT[xy_index(xind, yind + 1, 0, Nx, 0)];
-                    grid_gate->hNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaT[xy_index(xind, yind + 1, 0, Nx, 0)];
-                    grid_gate->gNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaT[xy_index(xind, yind + 1, 0, Nx, 0)];
-                    grid_gate->mNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaP[xy_index(xind, yind + 1, 0, Nx, 0)];
-                    grid_gate->hNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaP[xy_index(xind, yind + 1, 0, Nx, 0)];
-                    grid_gate->gNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaP[xy_index(xind, yind + 1, 0, Nx, 0)];
-                    grid_gate->mKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->mKDR[xy_index(xind, yind + 1, 0, Nx, 0)];
-                    grid_gate->gKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->gKDR[xy_index(xind, yind + 1, 0, Nx, 0)];
-                    grid_gate->mKA[xy_index(x, y, 0, nx, 0)] = gate_vars->mKA[xy_index(xind, yind + 1, 0, Nx, 0)];
-                    grid_gate->hKA[xy_index(x, y, 0, nx, 0)] = gate_vars->hKA[xy_index(xind, yind + 1, 0, Nx, 0)];
-                    grid_gate->gKA[xy_index(x, y, 0, nx, 0)] = gate_vars->gKA[xy_index(xind, yind + 1, 0, Nx, 0)];
+                    //Top side
+                    if(yind == Ny && xind > -1 && xind < Nx){
+                        grid_gate->mNaT[xy_index(x,y,z,nx,ny)] = gate_vars->mNaT[xy_index(xind,yind-1,z,Nx,Ny)];
+                        grid_gate->hNaT[xy_index(x,y,z,nx,ny)] = gate_vars->hNaT[xy_index(xind,yind-1,z,Nx,Ny)];
+                        grid_gate->gNaT[xy_index(x,y,z,nx,ny)] = gate_vars->gNaT[xy_index(xind,yind-1,z,Nx,Ny)];
+                        grid_gate->mNaP[xy_index(x,y,z,nx,ny)] = gate_vars->mNaP[xy_index(xind,yind-1,z,Nx,Ny)];
+                        grid_gate->hNaP[xy_index(x,y,z,nx,ny)] = gate_vars->hNaP[xy_index(xind,yind-1,z,Nx,Ny)];
+                        grid_gate->gNaP[xy_index(x,y,z,nx,ny)] = gate_vars->gNaP[xy_index(xind,yind-1,z,Nx,Ny)];
+                        grid_gate->mKDR[xy_index(x,y,z,nx,ny)] = gate_vars->mKDR[xy_index(xind,yind-1,z,Nx,Ny)];
+                        grid_gate->gKDR[xy_index(x,y,z,nx,ny)] = gate_vars->gKDR[xy_index(xind,yind-1,z,Nx,Ny)];
+                        grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind,yind-1,z,Nx,Ny)];
+                        grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind,yind-1,z,Nx,Ny)];
+                        grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind,yind-1,z,Nx,Ny)];
 
-                    for (comp = 0; comp < Nc; comp++) {
-                        for (ion = 0; ion < Ni; ion++) {
-                            grid_vars->c[c_index(x, y, 0, comp, ion, nx, 0)] = state_vars->c[c_index(xind, yind + 1, 0,
-                                                                                                     comp,
-                                                                                                     ion, Nx, 0)];
+                        for(comp = 0; comp < Nc; comp++){
+                            for(ion = 0; ion < Ni; ion++){
+                                grid_vars->c[c_index(x,y,z,comp,ion,nx,ny)] =
+                                        state_vars->c[c_index(xind,yind-1,z,comp,ion,Nx,Ny)];
+                            }
+                            grid_vars->phi[phi_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->phi[phi_index(xind,yind-1,z,comp,Nx,Ny)];
                         }
-                        grid_vars->phi[phi_index(x, y, 0, comp, nx, 0)] = state_vars->phi[phi_index(xind, yind + 1, 0,
-                                                                                                    comp,
-                                                                                                    Nx, 0)];
-                    }
-                    for (comp = 0; comp < Nc - 1; comp++) {
-                        grid_vars->alpha[al_index(x, y, 0, comp, nx, 0)] = state_vars->alpha[al_index(xind, yind + 1, 0,
-                                                                                                      comp,
-                                                                                                      Nx, 0)];
-                    }
-                }
-                //Top Right corner
-                if(xind==Nx &&yind==Ny){
-                    grid_gate->mNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaT[xy_index(xind - 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->hNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaT[xy_index(xind - 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->gNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaT[xy_index(xind - 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->mNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaP[xy_index(xind - 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->hNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaP[xy_index(xind - 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->gNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaP[xy_index(xind - 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->mKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->mKDR[xy_index(xind - 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->gKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->gKDR[xy_index(xind - 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->mKA[xy_index(x, y, 0, nx, 0)] = gate_vars->mKA[xy_index(xind - 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->hKA[xy_index(x, y, 0, nx, 0)] = gate_vars->hKA[xy_index(xind - 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->gKA[xy_index(x, y, 0, nx, 0)] = gate_vars->gKA[xy_index(xind - 1, yind - 1, 0, Nx, 0)];
-
-                    for (comp = 0; comp < Nc; comp++) {
-                        for (ion = 0; ion < Ni; ion++) {
-                            grid_vars->c[c_index(x, y, 0, comp, ion, nx, 0)] = state_vars->c[c_index(xind - 1, yind - 1,
-                                                                                                     0,
-                                                                                                     comp, ion, Nx, 0)];
+                        for(comp = 0; comp < Nc-1; comp++){
+                            grid_vars->alpha[al_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->alpha[al_index(xind,yind-1,z,comp,Nx,Ny)];
                         }
-                        grid_vars->phi[phi_index(x, y, 0, comp, nx, 0)] = state_vars->phi[phi_index(xind - 1, yind - 1,
-                                                                                                    0,
-                                                                                                    comp, Nx, 0)];
                     }
-                    for (comp = 0; comp < Nc - 1; comp++) {
-                        grid_vars->alpha[al_index(x, y, 0, comp, nx, 0)] = state_vars->alpha[al_index(xind - 1,
-                                                                                                      yind - 1, 0,
-                                                                                                      comp, Nx, 0)];
-                    }
-                }
-                // Top left corner
-                if(yind==Ny && xind==-1){
-                    grid_gate->mNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaT[xy_index(xind + 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->hNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaT[xy_index(xind + 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->gNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaT[xy_index(xind + 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->mNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaP[xy_index(xind + 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->hNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaP[xy_index(xind + 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->gNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaP[xy_index(xind + 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->mKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->mKDR[xy_index(xind + 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->gKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->gKDR[xy_index(xind + 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->mKA[xy_index(x, y, 0, nx, 0)] = gate_vars->mKA[xy_index(xind + 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->hKA[xy_index(x, y, 0, nx, 0)] = gate_vars->hKA[xy_index(xind + 1, yind - 1, 0, Nx, 0)];
-                    grid_gate->gKA[xy_index(x, y, 0, nx, 0)] = gate_vars->gKA[xy_index(xind + 1, yind - 1, 0, Nx, 0)];
+                    //left side
+                    if(xind == -1 && yind > -1 && yind < Ny){
+                        grid_gate->mNaT[xy_index(x,y,z,nx,ny)] = gate_vars->mNaT[xy_index(xind+1,yind,zind,Nx,Ny)];
+                        grid_gate->hNaT[xy_index(x,y,z,nx,ny)] = gate_vars->hNaT[xy_index(xind+1,yind,zind,Nx,Ny)];
+                        grid_gate->gNaT[xy_index(x,y,z,nx,ny)] = gate_vars->gNaT[xy_index(xind+1,yind,zind,Nx,Ny)];
+                        grid_gate->mNaP[xy_index(x,y,z,nx,ny)] = gate_vars->mNaP[xy_index(xind+1,yind,zind,Nx,Ny)];
+                        grid_gate->hNaP[xy_index(x,y,z,nx,ny)] = gate_vars->hNaP[xy_index(xind+1,yind,zind,Nx,Ny)];
+                        grid_gate->gNaP[xy_index(x,y,z,nx,ny)] = gate_vars->gNaP[xy_index(xind+1,yind,zind,Nx,Ny)];
+                        grid_gate->mKDR[xy_index(x,y,z,nx,ny)] = gate_vars->mKDR[xy_index(xind+1,yind,zind,Nx,Ny)];
+                        grid_gate->gKDR[xy_index(x,y,z,nx,ny)] = gate_vars->gKDR[xy_index(xind+1,yind,zind,Nx,Ny)];
+                        grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind+1,yind,zind,Nx,Ny)];
+                        grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind+1,yind,zind,Nx,Ny)];
+                        grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind+1,yind,zind,Nx,Ny)];
 
-                    for (comp = 0; comp < Nc; comp++) {
-                        for (ion = 0; ion < Ni; ion++) {
-                            grid_vars->c[c_index(x, y, 0, comp, ion, nx, 0)] = state_vars->c[c_index(xind + 1, yind - 1,
-                                                                                                     0,
-                                                                                                     comp, ion, Nx, 0)];
+                        for(comp = 0; comp < Nc; comp++){
+                            for(ion = 0; ion < Ni; ion++){
+                                grid_vars->c[c_index(x,y,z,comp,ion,nx,ny)] =
+                                        state_vars->c[c_index(xind+1,yind,zind,comp,ion,Nx,Ny)];
+                            }
+                            grid_vars->phi[phi_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->phi[phi_index(xind+1,yind,zind,comp,Nx,Ny)];
                         }
-                        grid_vars->phi[phi_index(x, y, 0, comp, nx, 0)] = state_vars->phi[phi_index(xind + 1, yind - 1,
-                                                                                                    0,
-                                                                                                    comp, Nx, 0)];
-                    }
-                    for (comp = 0; comp < Nc - 1; comp++) {
-                        grid_vars->alpha[al_index(x, y, 0, comp, nx, 0)] = state_vars->alpha[al_index(xind + 1,
-                                                                                                      yind - 1, 0,
-                                                                                                      comp, Nx, 0)];
-                    }
-                }
-                //Bottom left
-                if(xind==-1 && yind==-1){
-                    grid_gate->mNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaT[xy_index(xind + 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->hNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaT[xy_index(xind + 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->gNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaT[xy_index(xind + 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->mNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaP[xy_index(xind + 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->hNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaP[xy_index(xind + 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->gNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaP[xy_index(xind + 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->mKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->mKDR[xy_index(xind + 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->gKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->gKDR[xy_index(xind + 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->mKA[xy_index(x, y, 0, nx, 0)] = gate_vars->mKA[xy_index(xind + 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->hKA[xy_index(x, y, 0, nx, 0)] = gate_vars->hKA[xy_index(xind + 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->gKA[xy_index(x, y, 0, nx, 0)] = gate_vars->gKA[xy_index(xind + 1, yind + 1, 0, Nx, 0)];
-
-                    for (comp = 0; comp < Nc; comp++) {
-                        for (ion = 0; ion < Ni; ion++) {
-                            grid_vars->c[c_index(x, y, 0, comp, ion, nx, 0)] = state_vars->c[c_index(xind + 1, yind + 1,
-                                                                                                     0,
-                                                                                                     comp, ion, Nx, 0)];
+                        for(comp = 0; comp < Nc-1; comp++){
+                            grid_vars->alpha[al_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->alpha[al_index(xind+1,yind,zind,comp,Nx,Ny)];
                         }
-                        grid_vars->phi[phi_index(x, y, 0, comp, nx, 0)] = state_vars->phi[phi_index(xind + 1, yind + 1,
-                                                                                                    0,
-                                                                                                    comp, Nx, 0)];
                     }
-                    for (comp = 0; comp < Nc - 1; comp++) {
-                        grid_vars->alpha[al_index(x, y, 0, comp, nx, 0)] = state_vars->alpha[al_index(xind + 1,
-                                                                                                      yind + 1, 0,
-                                                                                                      comp, Nx, 0)];
-                    }
-                }
-                //Bottom right
-                if(xind==Nx && yind==-1){
-                    grid_gate->mNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaT[xy_index(xind - 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->hNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaT[xy_index(xind - 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->gNaT[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaT[xy_index(xind - 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->mNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->mNaP[xy_index(xind - 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->hNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->hNaP[xy_index(xind - 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->gNaP[xy_index(x, y, 0, nx, 0)] = gate_vars->gNaP[xy_index(xind - 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->mKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->mKDR[xy_index(xind - 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->gKDR[xy_index(x, y, 0, nx, 0)] = gate_vars->gKDR[xy_index(xind - 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->mKA[xy_index(x, y, 0, nx, 0)] = gate_vars->mKA[xy_index(xind - 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->hKA[xy_index(x, y, 0, nx, 0)] = gate_vars->hKA[xy_index(xind - 1, yind + 1, 0, Nx, 0)];
-                    grid_gate->gKA[xy_index(x, y, 0, nx, 0)] = gate_vars->gKA[xy_index(xind - 1, yind + 1, 0, Nx, 0)];
+                    //Bottom side
+                    if(yind == -1 && xind > -1 && xind < Nx){
+                        grid_gate->mNaT[xy_index(x,y,z,nx,ny)] = gate_vars->mNaT[xy_index(xind,yind+1,z,Nx,Ny)];
+                        grid_gate->hNaT[xy_index(x,y,z,nx,ny)] = gate_vars->hNaT[xy_index(xind,yind+1,z,Nx,Ny)];
+                        grid_gate->gNaT[xy_index(x,y,z,nx,ny)] = gate_vars->gNaT[xy_index(xind,yind+1,z,Nx,Ny)];
+                        grid_gate->mNaP[xy_index(x,y,z,nx,ny)] = gate_vars->mNaP[xy_index(xind,yind+1,z,Nx,Ny)];
+                        grid_gate->hNaP[xy_index(x,y,z,nx,ny)] = gate_vars->hNaP[xy_index(xind,yind+1,z,Nx,Ny)];
+                        grid_gate->gNaP[xy_index(x,y,z,nx,ny)] = gate_vars->gNaP[xy_index(xind,yind+1,z,Nx,Ny)];
+                        grid_gate->mKDR[xy_index(x,y,z,nx,ny)] = gate_vars->mKDR[xy_index(xind,yind+1,z,Nx,Ny)];
+                        grid_gate->gKDR[xy_index(x,y,z,nx,ny)] = gate_vars->gKDR[xy_index(xind,yind+1,z,Nx,Ny)];
+                        grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind,yind+1,z,Nx,Ny)];
+                        grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind,yind+1,z,Nx,Ny)];
+                        grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind,yind+1,z,Nx,Ny)];
 
-                    for (comp = 0; comp < Nc; comp++) {
-                        for (ion = 0; ion < Ni; ion++) {
-                            grid_vars->c[c_index(x, y, 0, comp, ion, nx, 0)] = state_vars->c[c_index(xind - 1, yind + 1,
-                                                                                                     0,
-                                                                                                     comp, ion, Nx, 0)];
+                        for(comp = 0; comp < Nc; comp++){
+                            for(ion = 0; ion < Ni; ion++){
+                                grid_vars->c[c_index(x,y,z,comp,ion,nx,ny)] =
+                                        state_vars->c[c_index(xind,yind+1,z,comp,ion,Nx,Ny)];
+                            }
+                            grid_vars->phi[phi_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->phi[phi_index(xind,yind+1,z,comp,Nx,Ny)];
                         }
-                        grid_vars->phi[phi_index(x, y, 0, comp, nx, 0)] = state_vars->phi[phi_index(xind - 1, yind + 1,
-                                                                                                    0,
-                                                                                                    comp, Nx, 0)];
+                        for(comp = 0; comp < Nc-1; comp++){
+                            grid_vars->alpha[al_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->alpha[al_index(xind,yind+1,z,comp,Nx,Ny)];
+                        }
                     }
-                    for (comp = 0; comp < Nc - 1; comp++) {
-                        grid_vars->alpha[al_index(x, y, 0, comp, nx, 0)] = state_vars->alpha[al_index(xind - 1,
-                                                                                                      yind + 1, 0,
-                                                                                                      comp, Nx, 0)];
+                    //Top Right corner
+                    if(xind == Nx && yind == Ny){
+                        grid_gate->mNaT[xy_index(x,y,z,nx,ny)] = gate_vars->mNaT[xy_index(xind-1,yind-1,z,Nx,Ny)];
+                        grid_gate->hNaT[xy_index(x,y,z,nx,ny)] = gate_vars->hNaT[xy_index(xind-1,yind-1,z,Nx,Ny)];
+                        grid_gate->gNaT[xy_index(x,y,z,nx,ny)] = gate_vars->gNaT[xy_index(xind-1,yind-1,z,Nx,Ny)];
+                        grid_gate->mNaP[xy_index(x,y,z,nx,ny)] = gate_vars->mNaP[xy_index(xind-1,yind-1,z,Nx,Ny)];
+                        grid_gate->hNaP[xy_index(x,y,z,nx,ny)] = gate_vars->hNaP[xy_index(xind-1,yind-1,z,Nx,Ny)];
+                        grid_gate->gNaP[xy_index(x,y,z,nx,ny)] = gate_vars->gNaP[xy_index(xind-1,yind-1,z,Nx,Ny)];
+                        grid_gate->mKDR[xy_index(x,y,z,nx,ny)] = gate_vars->mKDR[xy_index(xind-1,yind-1,z,Nx,Ny)];
+                        grid_gate->gKDR[xy_index(x,y,z,nx,ny)] = gate_vars->gKDR[xy_index(xind-1,yind-1,z,Nx,Ny)];
+                        grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind-1,yind-1,z,Nx,Ny)];
+                        grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind-1,yind-1,z,Nx,Ny)];
+                        grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind-1,yind-1,z,Nx,Ny)];
+
+                        for(comp = 0; comp < Nc; comp++){
+                            for(ion = 0; ion < Ni; ion++){
+                                grid_vars->c[c_index(x,y,z,comp,ion,nx,ny)] =
+                                        state_vars->c[c_index(xind-1,yind-1,z,comp,ion,Nx,Ny)];
+                            }
+                            grid_vars->phi[phi_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->phi[phi_index(xind-1,yind-1,z,comp,Nx,Ny)];
+                        }
+                        for(comp = 0; comp < Nc-1; comp++){
+                            grid_vars->alpha[al_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->alpha[al_index(xind-1,yind-1,z,comp,Nx,Ny)];
+                        }
                     }
+                    // Top left corner
+                    if(yind == Ny && xind == -1){
+                        grid_gate->mNaT[xy_index(x,y,z,nx,ny)] = gate_vars->mNaT[xy_index(xind+1,yind-1,z,Nx,Ny)];
+                        grid_gate->hNaT[xy_index(x,y,z,nx,ny)] = gate_vars->hNaT[xy_index(xind+1,yind-1,z,Nx,Ny)];
+                        grid_gate->gNaT[xy_index(x,y,z,nx,ny)] = gate_vars->gNaT[xy_index(xind+1,yind-1,z,Nx,Ny)];
+                        grid_gate->mNaP[xy_index(x,y,z,nx,ny)] = gate_vars->mNaP[xy_index(xind+1,yind-1,z,Nx,Ny)];
+                        grid_gate->hNaP[xy_index(x,y,z,nx,ny)] = gate_vars->hNaP[xy_index(xind+1,yind-1,z,Nx,Ny)];
+                        grid_gate->gNaP[xy_index(x,y,z,nx,ny)] = gate_vars->gNaP[xy_index(xind+1,yind-1,z,Nx,Ny)];
+                        grid_gate->mKDR[xy_index(x,y,z,nx,ny)] = gate_vars->mKDR[xy_index(xind+1,yind-1,z,Nx,Ny)];
+                        grid_gate->gKDR[xy_index(x,y,z,nx,ny)] = gate_vars->gKDR[xy_index(xind+1,yind-1,z,Nx,Ny)];
+                        grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind+1,yind-1,z,Nx,Ny)];
+                        grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind+1,yind-1,z,Nx,Ny)];
+                        grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind+1,yind-1,z,Nx,Ny)];
+
+                        for(comp = 0; comp < Nc; comp++){
+                            for(ion = 0; ion < Ni; ion++){
+                                grid_vars->c[c_index(x,y,z,comp,ion,nx,ny)] =
+                                        state_vars->c[c_index(xind+1,yind-1,z,comp,ion,Nx,Ny)];
+                            }
+                            grid_vars->phi[phi_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->phi[phi_index(xind+1,yind-1,z,comp,Nx,Ny)];
+                        }
+                        for(comp = 0; comp < Nc-1; comp++){
+                            grid_vars->alpha[al_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->alpha[al_index(xind+1,yind-1,z,comp,Nx,Ny)];
+                        }
+                    }
+                    //Bottom left
+                    if(xind == -1 && yind == -1){
+                        grid_gate->mNaT[xy_index(x,y,z,nx,ny)] = gate_vars->mNaT[xy_index(xind+1,yind+1,z,Nx,Ny)];
+                        grid_gate->hNaT[xy_index(x,y,z,nx,ny)] = gate_vars->hNaT[xy_index(xind+1,yind+1,z,Nx,Ny)];
+                        grid_gate->gNaT[xy_index(x,y,z,nx,ny)] = gate_vars->gNaT[xy_index(xind+1,yind+1,z,Nx,Ny)];
+                        grid_gate->mNaP[xy_index(x,y,z,nx,ny)] = gate_vars->mNaP[xy_index(xind+1,yind+1,z,Nx,Ny)];
+                        grid_gate->hNaP[xy_index(x,y,z,nx,ny)] = gate_vars->hNaP[xy_index(xind+1,yind+1,z,Nx,Ny)];
+                        grid_gate->gNaP[xy_index(x,y,z,nx,ny)] = gate_vars->gNaP[xy_index(xind+1,yind+1,z,Nx,Ny)];
+                        grid_gate->mKDR[xy_index(x,y,z,nx,ny)] = gate_vars->mKDR[xy_index(xind+1,yind+1,z,Nx,Ny)];
+                        grid_gate->gKDR[xy_index(x,y,z,nx,ny)] = gate_vars->gKDR[xy_index(xind+1,yind+1,z,Nx,Ny)];
+                        grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind+1,yind+1,z,Nx,Ny)];
+                        grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind+1,yind+1,z,Nx,Ny)];
+                        grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind+1,yind+1,z,Nx,Ny)];
+
+                        for(comp = 0; comp < Nc; comp++){
+                            for(ion = 0; ion < Ni; ion++){
+                                grid_vars->c[c_index(x,y,z,comp,ion,nx,ny)] =
+                                        state_vars->c[c_index(xind+1,yind+1,z,comp,ion,Nx,Ny)];
+                            }
+                            grid_vars->phi[phi_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->phi[phi_index(xind+1,yind+1,z,comp,Nx,Ny)];
+                        }
+                        for(comp = 0; comp < Nc-1; comp++){
+                            grid_vars->alpha[al_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->alpha[al_index(xind+1,yind+1,z,comp,Nx,Ny)];
+                        }
+                    }
+                    //Bottom right
+                    if(xind == Nx && yind == -1){
+                        grid_gate->mNaT[xy_index(x,y,z,nx,ny)] = gate_vars->mNaT[xy_index(xind-1,yind+1,z,Nx,Ny)];
+                        grid_gate->hNaT[xy_index(x,y,z,nx,ny)] = gate_vars->hNaT[xy_index(xind-1,yind+1,z,Nx,Ny)];
+                        grid_gate->gNaT[xy_index(x,y,z,nx,ny)] = gate_vars->gNaT[xy_index(xind-1,yind+1,z,Nx,Ny)];
+                        grid_gate->mNaP[xy_index(x,y,z,nx,ny)] = gate_vars->mNaP[xy_index(xind-1,yind+1,z,Nx,Ny)];
+                        grid_gate->hNaP[xy_index(x,y,z,nx,ny)] = gate_vars->hNaP[xy_index(xind-1,yind+1,z,Nx,Ny)];
+                        grid_gate->gNaP[xy_index(x,y,z,nx,ny)] = gate_vars->gNaP[xy_index(xind-1,yind+1,z,Nx,Ny)];
+                        grid_gate->mKDR[xy_index(x,y,z,nx,ny)] = gate_vars->mKDR[xy_index(xind-1,yind+1,z,Nx,Ny)];
+                        grid_gate->gKDR[xy_index(x,y,z,nx,ny)] = gate_vars->gKDR[xy_index(xind-1,yind+1,z,Nx,Ny)];
+                        grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind-1,yind+1,z,Nx,Ny)];
+                        grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind-1,yind+1,z,Nx,Ny)];
+                        grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind-1,yind+1,z,Nx,Ny)];
+
+                        for(comp = 0; comp < Nc; comp++){
+                            for(ion = 0; ion < Ni; ion++){
+                                grid_vars->c[c_index(x,y,z,comp,ion,nx,ny)] =
+                                        state_vars->c[c_index(xind-1,yind+1,z,comp,ion,Nx,Ny)];
+                            }
+                            grid_vars->phi[phi_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->phi[phi_index(xind-1,yind+1,z,comp,Nx,Ny)];
+                        }
+                        for(comp = 0; comp < Nc-1; comp++){
+                            grid_vars->alpha[al_index(x,y,z,comp,nx,ny)] =
+                                    state_vars->alpha[al_index(xind-1,yind+1,z,comp,Nx,Ny)];
+                        }
+                    }
+
+
                 }
-
-
             }
         }
     }
@@ -301,50 +281,45 @@ void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
     }
 }
 
-void Unload_Grid(struct AppCtx *user,PetscInt x, PetscInt y){
+void Unload_Grid(struct AppCtx *user,PetscInt x,PetscInt y){
     if(Profiling_on) {
         PetscLogEventBegin(event[13], 0, 0, 0, 0);
     }
     PetscInt comp,ion;
     PetscInt Nx = user->Nx;
+    PetscInt Ny = user->Ny;
+    PetscInt Nz = user->Nz;
     PetscInt nx = 2*width_size+1;
-    for ( comp = 0; comp < Nc; comp++) {
-        for ( ion = 0; ion < Ni; ion++) {
-            user->state_vars->c[c_index(x, y, 0, comp, ion, Nx, 0)]=user->grid_vars->c[c_index(width_size, width_size, 0,
-                                                                                               comp,
-                                                                                               ion, nx, 0)];
+    PetscInt ny = 2*width_size+1;
+    for(PetscInt z=0;z<Nz;z++){
+        for(comp = 0; comp < Nc; comp++){
+            for(ion = 0; ion < Ni; ion++){
+                user->state_vars->c[c_index(x,y,z,comp,ion,Nx,Ny)] =
+                        user->grid_vars->c[c_index(width_size,width_size,z,comp,ion,nx,ny)];
+            }
+            user->state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)] =
+                    user->grid_vars->phi[phi_index(width_size,width_size,z,comp,nx,ny)];
         }
-        user->state_vars->phi[phi_index(x, y, 0, comp, Nx, 0)]=user->grid_vars->phi[phi_index(width_size, width_size, 0,
-                                                                                              comp,
-                                                                                              nx, 0)];
-    }
-    //Save the held variable
-    for ( comp = 0; comp < Nc-1; comp++) {
-        user->state_vars->alpha[al_index(x, y, 0, comp, Nx, 0)]=user->grid_vars->alpha[al_index(width_size, width_size,
-                                                                                                0, comp,
-                                                                                                nx, 0)];
-    }
-    //Save the gating variables
-    user->gate_vars->mNaT[xy_index(x, y, 0, Nx, 0)] = user->grid_gate_vars->mNaT[xy_index(width_size, width_size, 0, nx,
-                                                                                          0)];
-    user->gate_vars->hNaT[xy_index(x, y, 0, Nx, 0)] = user->grid_gate_vars->hNaT[xy_index(width_size, width_size, 0, nx,
-                                                                                          0)];
-    user->gate_vars->gNaT[xy_index(x, y, 0, Nx, 0)] = user->grid_gate_vars->gNaT[xy_index(width_size, width_size, 0, nx,
-                                                                                          0)];
-    user->gate_vars->mNaP[xy_index(x, y, 0, Nx, 0)] = user->grid_gate_vars->mNaP[xy_index(width_size, width_size, 0, nx,
-                                                                                          0)];
-    user->gate_vars->hNaP[xy_index(x, y, 0, Nx, 0)] = user->grid_gate_vars->hNaP[xy_index(width_size, width_size, 0, nx,
-                                                                                          0)];
-    user->gate_vars->gNaP[xy_index(x, y, 0, Nx, 0)] = user->grid_gate_vars->gNaP[xy_index(width_size, width_size, 0, nx,
-                                                                                          0)];
-    user->gate_vars->mKDR[xy_index(x, y, 0, Nx, 0)] = user->grid_gate_vars->mKDR[xy_index(width_size, width_size, 0, nx,
-                                                                                          0)];
-    user->gate_vars->gKDR[xy_index(x, y, 0, Nx, 0)] = user->grid_gate_vars->gKDR[xy_index(width_size, width_size, 0, nx,
-                                                                                          0)];
-    user->gate_vars->mKA[xy_index(x, y, 0, Nx, 0)] = user->grid_gate_vars->mKA[xy_index(width_size, width_size, 0, nx, 0)];
-    user->gate_vars->hKA[xy_index(x, y, 0, Nx, 0)] = user->grid_gate_vars->hKA[xy_index(width_size, width_size, 0, nx, 0)];
-    user->gate_vars->gKA[xy_index(x, y, 0, Nx, 0)] = user->grid_gate_vars->gKA[xy_index(width_size, width_size, 0, nx, 0)];
+        //Save the held variable
+        for(comp = 0; comp < Nc-1; comp++){
+            user->state_vars->alpha[al_index(x,y,z,comp,Nx,Ny)] =
+                    user->grid_vars->alpha[al_index(width_size,width_size,z,comp,nx,ny)];
+        }
+        //Save the gating variables
 
+        user->gate_vars->mNaT[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->mNaT[xy_index(width_size,width_size,z,nx,ny)];
+        user->gate_vars->hNaT[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->hNaT[xy_index(width_size,width_size,z,nx,ny)];
+        user->gate_vars->gNaT[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->gNaT[xy_index(width_size,width_size,z,nx,ny)];
+        user->gate_vars->mNaP[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->mNaP[xy_index(width_size,width_size,z,nx,ny)];
+        user->gate_vars->hNaP[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->hNaP[xy_index(width_size,width_size,z,nx,ny)];
+        user->gate_vars->gNaP[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->gNaP[xy_index(width_size,width_size,z,nx,ny)];
+        user->gate_vars->mKDR[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->mKDR[xy_index(width_size,width_size,z,nx,ny)];
+        user->gate_vars->gKDR[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->gKDR[xy_index(width_size,width_size,z,nx,ny)];
+        user->gate_vars->mKA[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->mKA[xy_index(width_size,width_size,z,nx,ny)];
+        user->gate_vars->hKA[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->hKA[xy_index(width_size,width_size,z,nx,ny)];
+        user->gate_vars->gKA[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->gKA[xy_index(width_size,width_size,z,nx,ny)];
+
+    }
     if(Profiling_on) {
         PetscLogEventEnd(event[13], 0, 0, 0, 0);
     }
@@ -1110,215 +1085,205 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
     PetscReal dt = user->dt;
     PetscReal dx = user->dx;
     PetscReal dy = user->dy;
+    PetscReal dz = user->dz;
     PetscInt Nx = 2*width_size+1;
     PetscInt Ny = 2*width_size+1;
+    PetscInt Nz = user->Nz;
 
     //Residual for concentration equations
-    PetscReal Rcvx,Rcvy,Resc;
-    PetscReal RcvxRight,RcvyUp;
+    PetscReal Rcvx,Rcvy,Rcvz,Resc;
+    PetscReal RcvxRight,RcvyUp,RcvzTop;
 
     PetscReal alNc,alpNc;
-    PetscInt ion,comp,x,y;
+    PetscInt ion,comp,x,y,z;
 
+    for(z=0;z<Nz;z++){
+        for(y = 0; y < Ny; y++){
+            for(x = 0; x < Nx; x++){
+                for(ion = 0; ion < Ni; ion++){
+                    for(comp = 0; comp < Nc-1; comp++){
+                        Rcvx = 0;
+                        RcvxRight = 0;
+                        if(x > 0){
+                            //First difference term
+                            Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
+                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
+                            Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-
+                                    log(c[c_index(x-1,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
+                                    (phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x-1,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                        }
+                        //Add Second right moving difference
+                        if(x < Nx-1){
+                            RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
+                                    cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2;
+                            RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny)])-
+                                    log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
+                                    (phi[phi_index(x+1,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                        }
+                        Rcvy = 0;
+                        RcvyUp = 0;
+                        //Up down difference
+                        if(y > 0){
+                            Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
+                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
+                            Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny)])+
+                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
+                                    phi[phi_index(x,y-1,z,comp,Nx,Ny)]))/dy*dt/dy;
+                        }
+                        //Next upward difference
+                        if(y < Ny-1){
+                            RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
+                                    cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2;
+                            RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny)])-
+                                    log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
+                                    (phi[phi_index(x,y+1,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dy*dt/dy;
+                        }
+                        Rcvz = 0;
+                        RcvzTop = 0;
+                        if(z > 0){
+                            //First difference term
+                            Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
+                                                                           cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
+                            Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-
+                                         log(c[c_index(x,y,z-1,comp,ion,Nx,Ny)])+z_charge[ion]*
+                                         (phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z-1,comp,Nx,Ny)]))/dz*dt/dz;
+                        }
+                        //Add Second right moving difference
+                        if(z < Nx-1){
+                            RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
+                                                                              cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2;
+                            RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny)])-
+                                    log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
+                                    (phi[phi_index(x,y,z+1,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dz*dt/dz;
+                        }
+                        Resc = al[al_index(x,y,z,comp,Nx,Ny)]*c[c_index(x,y,z,comp,ion,Nx,Ny)]-
+                                alp[al_index(x,y,z,comp,Nx,Ny)]*cp[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
 
-    for(x=0;x<Nx;x++) {
-        for(y=0;y<Ny;y++) {
-            for(ion=0;ion<Ni;ion++) {
-                for(comp=0;comp<Nc-1;comp++) {
+                        ierr = VecSetValue(Res,Ind_2(x,y,z,ion,comp,Nx,Ny),Resc,INSERT_VALUES);
+                        CHKERRQ(ierr);
+
+                    }
+                    //Set Extracellular values
+                    alNc = 1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)];
+                    alpNc = 1-alp[al_index(x,y,z,0,Nx,Ny)]-alp[al_index(x,y,z,1,Nx,Ny)];
+                    comp = Nc-1;
                     Rcvx = 0;
                     RcvxRight = 0;
-                    if(x>0) {
+                    if(x > 0){
                         //First difference term
-                        Rcvx = Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x - 1, y, 0, comp, ion, Nx,
-                                                                                             0)] + cp[c_index(x, y, 0,
-                                                                                                              comp, ion,
-                                                                                                              Nx, 0)]) / 2;
-                        Rcvx = Rcvx * (log(c[c_index(x, y, 0, comp, ion, Nx, 0)]) - log(c[c_index(x - 1, y, 0, comp,
-                                                                                                  ion, Nx, 0)]) + z_charge[ion] * (phi[phi_index(
-                                x, y, 0, comp, Nx, 0)] - phi[phi_index(
-                                x - 1, y, 0, comp, Nx, 0)])) / dx * dt / dx;
+                        Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
+                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
+                        Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x-1,y,z,comp,ion,Nx,Ny)])+
+                                z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x-1,y,z,comp,Nx,Ny)]))/dx*dt/dx;
                     }
                     //Add Second right moving difference
-                    if(x<Nx-1) {
-                        RcvxRight = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x, y, 0, comp, ion, Nx,
-                                                                                              0)] + cp[c_index(x + 1, y,
-                                                                                                               0, comp,
-                                                                                                               ion, Nx,
-                                                                                                               0)]) / 2;
-                        RcvxRight = RcvxRight * (log(c[c_index(x + 1, y, 0, comp, ion, Nx, 0)]) - log(c[c_index(x, y, 0,
-                                                                                                                comp,
-                                                                                                                ion, Nx,
-                                                                                                                0)]) + z_charge[ion] * (phi[phi_index(
-                                x + 1, y, 0, comp, Nx, 0)] - phi[phi_index(
-                                x, y, 0, comp, Nx, 0)])) / dx * dt / dx;
+                    if(x < Nx-1){
+                        RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
+                                cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2;
+                        RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny)])-
+                                log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
+                                (phi[phi_index(x+1,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dx*dt/dx;
                     }
                     Rcvy = 0;
                     RcvyUp = 0;
                     //Up down difference
-                    if(y>0) {
-                        Rcvy = Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y - 1, 0, comp, ion,
-                                                                                                 Nx, 0)] + cp[c_index(x,
-                                                                                                                      y,
-                                                                                                                      0,
-                                                                                                                      comp,
-                                                                                                                      ion,
-                                                                                                                      Nx,
-                                                                                                                      0)]) / 2;
-                        Rcvy = Rcvy * (log(c[c_index(x, y, 0, comp, ion, Nx, 0)]) - log(c[c_index(x, y - 1, 0, comp,
-                                                                                                  ion, Nx, 0)]) + z_charge[ion] * (phi[phi_index(
-                                x, y, 0, comp, Nx, 0)] - phi[phi_index(
-                                x, y - 1, 0, comp, Nx, 0)])) / dy * dt / dy;
+                    if(y > 0){
+                        Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
+                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
+                        Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny)])+
+                                z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y-1,z,comp,Nx,Ny)]))/dy*dt/dy;
                     }
                     //Next upward difference
-                    if(y<Ny-1) {
-                        RcvyUp = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y, 0, comp, ion, Nx,
-                                                                                               0)] + cp[c_index(x,
-                                                                                                                y + 1, 0,
-                                                                                                                comp,
-                                                                                                                ion,
-                                                                                                                Nx,
-                                                                                                                0)]) / 2;
-                        RcvyUp = RcvyUp * (log(c[c_index(x, y + 1, 0, comp, ion, Nx, 0)]) - log(c[c_index(x, y, 0, comp,
-                                                                                                          ion, Nx,
-                                                                                                          0)]) + z_charge[ion] * (phi[phi_index(
-                                x, y + 1, 0, comp, Nx, 0)] - phi[phi_index(
-                                x, y, 0, comp, Nx, 0)])) / dy * dt / dy;
+                    if(y < Ny-1){
+                        RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
+                                cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2;
+                        RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+
+                                z_charge[ion]*(phi[phi_index(x,y+1,z,comp,Nx,Ny)]-
+                                phi[phi_index(x,y,z,comp,Nx,Ny)]))/dy*dt/dy;
                     }
-                    Resc = al[al_index(x, y, 0, comp, Nx, 0)] * c[c_index(x, y, 0, comp, ion, Nx, 0)] - alp[al_index(x,
-                                                                                                                     y,
-                                                                                                                     0,
-                                                                                                                     comp,
-                                                                                                                     Nx,
-                                                                                                                     0)] * cp[c_index(
-                            x, y, 0, comp, ion, Nx, 0)];
-                    Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
+                    Rcvz = 0;
+                    RcvzTop = 0;
+                    if(z > 0){
+                        //First difference term
+                        Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
+                                                                         cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
+                        Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-
+                                     log(c[c_index(x,y,z-1,comp,ion,Nx,Ny)])+z_charge[ion]*
+                                     (phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z-1,comp,Nx,Ny)]))/dz*dt/dz;
+                    }
+                    //Add Second right moving difference
+                    if(z < Nx-1){
+                        RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
+                                                                          cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2;
+                        RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny)])-
+                                           log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
+                                           (phi[phi_index(x,y,z+1,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dz*dt/dz;
+                    }
+                    Resc = alNc*c[c_index(x,y,z,comp,ion,Nx,Ny)]-alpNc*cp[c_index(x,y,z,comp,ion,Nx,Ny)];
+                    Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                    //Add bath variables
 
-                    ierr = VecSetValue(Res, Ind_2(x, y, 0, ion, comp, Nx, 0), Resc, INSERT_VALUES);CHKERRQ(ierr);
+                    Resc -= sqrt(pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3],2)+
+                            pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3+1],2)+
+                            pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3+2],2))*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
+                                    cbath[ion])/2.0*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(cbath[ion])+
+                                            z_charge[ion]*phi[phi_index(x,y,z,comp,Nx,Ny)]-z_charge[ion]*phibath)*dt;
+                    ierr = VecSetValue(Res,Ind_2(x,y,z,ion,comp,Nx,Ny),Resc,INSERT_VALUES);
+                    CHKERRQ(ierr);
 
                 }
-                //Set Extracellular values
-                alNc = 1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)];
-                alpNc = 1 - alp[al_index(x, y, 0, 0, Nx, 0)] - alp[al_index(x, y, 0, 1, Nx, 0)];
-                comp = Nc-1;
-                Rcvx = 0;
-                RcvxRight = 0;
-                if(x>0) {
-                    //First difference term
-                    Rcvx = Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x - 1, y, 0, comp, ion, Nx,
-                                                                                         0)] + cp[c_index(x, y, 0, comp,
-                                                                                                          ion, Nx,
-                                                                                                          0)]) / 2;
-                    Rcvx = Rcvx * (log(c[c_index(x, y, 0, comp, ion, Nx, 0)]) - log(c[c_index(x - 1, y, 0, comp, ion,
-                                                                                              Nx, 0)]) + z_charge[ion] * (phi[phi_index(
-                            x, y, 0, comp, Nx, 0)] - phi[phi_index(
-                            x - 1, y, 0, comp, Nx, 0)])) / dx * dt / dx;
-                }
-                //Add Second right moving difference
-                if(x<Nx-1) {
-                    RcvxRight = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(
-                            x + 1, y, 0,
-                            comp, ion, Nx,
-                            0)]) / 2;
-                    RcvxRight = RcvxRight * (log(c[c_index(x + 1, y, 0, comp, ion, Nx, 0)]) - log(c[c_index(x, y, 0,
-                                                                                                            comp, ion,
-                                                                                                            Nx, 0)]) + z_charge[ion] * (phi[phi_index(
-                            x + 1, y, 0, comp, Nx, 0)] - phi[phi_index(
-                            x, y, 0, comp, Nx, 0)])) / dx * dt / dx;
-                }
-                Rcvy = 0;
-                RcvyUp = 0;
-                //Up down difference
-                if(y>0) {
-                    Rcvy = Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y - 1, 0, comp, ion, Nx,
-                                                                                             0)] + cp[c_index(x, y, 0,
-                                                                                                              comp,
-                                                                                                              ion, Nx,
-                                                                                                              0)]) / 2;
-                    Rcvy = Rcvy * (log(c[c_index(x, y, 0, comp, ion, Nx, 0)]) - log(c[c_index(x, y - 1, 0, comp, ion,
-                                                                                              Nx, 0)]) + z_charge[ion] * (phi[phi_index(
-                            x, y, 0, comp, Nx, 0)] - phi[phi_index(
-                            x, y - 1, 0, comp, Nx, 0)])) / dy * dt / dy;
-                }
-                //Next upward difference
-                if(y<Ny-1) {
-                    RcvyUp = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(
-                            x, y + 1, 0,
-                            comp, ion, Nx,
-                            0)]) / 2;
-                    RcvyUp = RcvyUp * (log(c[c_index(x, y + 1, 0, comp, ion, Nx, 0)]) - log(c[c_index(x, y, 0, comp,
-                                                                                                      ion, Nx, 0)]) + z_charge[ion] * (phi[phi_index(
-                            x, y + 1, 0, comp, Nx, 0)] - phi[phi_index(
-                            x, y, 0, comp, Nx, 0)])) / dy * dt / dy;
-                }
-                Resc = alNc*c[c_index(x, y, 0, comp, ion, Nx, 0)] - alpNc * cp[c_index(x, y, 0, comp, ion, Nx, 0)];
-                Resc += Rcvx - RcvxRight + Rcvy - RcvyUp + flux->mflux[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
-                //Add bath variables
-
-                Resc -= sqrt(pow(Dcb[c_index(x, y, 0, comp, ion, Nx, 0) * 2], 2) + pow(Dcb[c_index(x, y, 0, comp, ion,
-                                                                                                   Nx, 0) * 2 + 1], 2)) * (cp[c_index(
-                        x, y, 0, comp, ion, Nx, 0)] + cbath[ion]) / 2.0 * (log(c[c_index(
-                        x, y, 0, comp, ion, Nx, 0)]) - log(cbath[ion]) + z_charge[ion] * phi[phi_index(x, y, 0, comp, Nx, 0)] - z_charge[ion] * phibath) * dt;
-                ierr = VecSetValue(Res, Ind_2(x, y, 0, ion, comp, Nx, 0), Resc, INSERT_VALUES);CHKERRQ(ierr);
-
             }
         }
     }
 
+    for(z=0;z<Nz;z++){
+        for(y = 0; y < Ny; y++){
+            for(x = 0; x < Nx; x++){
+                //Residual for electroneutrality condition
+                for(comp = 0; comp < Nc-1; comp++){
+                    Resc = al[al_index(x,y,z,comp,Nx,Ny)]*cz(c,z_charge,x,y,z,Nx,Ny,comp,user)+
+                            user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny)]*
+                            user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny)];
+                    ierr = VecSetValue(Res,Ind_2(x,y,z,Ni,comp,Nx,Ny),Resc,INSERT_VALUES);
+                    CHKERRQ(ierr);
+                }
+                //Extracellular term
+                comp = Nc-1;
+                Resc = (1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)])*cz(c,z_charge,x,y,z,Nx,Ny,comp,user)+
+                        user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny)]*user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny)];
+                ierr = VecSetValue(Res,Ind_2(x,y,z,Ni,comp,Nx,Ny),Resc,INSERT_VALUES);
+                CHKERRQ(ierr);
 
-    for(x=0;x<Nx;x++) {
-        for(y=0;y<Ny;y++) {
+                //Residual for water flow
+                //Plus modification to electroneutrality for non-zero mem.compacitance
+                for(comp = 0; comp < Nc-1; comp++){
+                    //Water flow
+                    ierr = VecSetValue(Res,Ind_2(x,y,z,Ni+1,comp,Nx,Ny),al[al_index(x,y,z,comp,Nx,Ny)]-
+                    alp[al_index(x,y,z,comp,Nx,Ny)]+flux->wflow[al_index(x,y,z,comp,Nx,Ny)]*dt,INSERT_VALUES);
+                    CHKERRQ(ierr);
 
-            //Residual for electroneutrality condition
-            for(comp=0;comp<Nc-1;comp++) {
-
-                Resc = al[al_index(x, y, 0, comp, Nx, 0)] *cz(c,z_charge,x,y,0,Nx,0,comp,user)+user->con_vars->zo[phi_index(0,0,0,comp,
-                                                                                                                            Nx,0)]*user->con_vars->ao[phi_index(
-                        0, 0, 0, comp, Nx, 0)];
-                ierr = VecSetValue(Res, Ind_2(x, y, 0, Ni, comp, Nx, 0), Resc, INSERT_VALUES); CHKERRQ(ierr);
-            }
-            //Extracellular term
-            comp=Nc-1;
-            Resc = (1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)]) *
-                           cz(c,z_charge,x,y,0,Nx,0,comp,user)+user->con_vars->zo[phi_index(
-                    0, 0, 0, comp, Nx, 0)]*user->con_vars->ao[phi_index(
-                    0, 0, 0, comp, Nx, 0)];
-            ierr = VecSetValue(Res, Ind_2(x, y, 0, Ni, comp, Nx, 0), Resc, INSERT_VALUES); CHKERRQ(ierr);
-
-            //Residual for water flow
-            //Plus modification to electroneutrality for non-zero mem.compacitance
-            for(comp=0;comp<Nc-1;comp++) {
-                //Water flow
-                ierr = VecSetValue(Res, Ind_2(x, y, 0, Ni + 1, comp, Nx, 0), al[al_index(x, y, 0, comp, Nx, 0)] - alp[al_index(x, y,
-                                                                                                                               0,
-                                                                                                                               comp,
-                                                                                                                               Nx,
-                                                                                                                               0)] + flux->wflow[al_index(
-                        x, y, 0, comp, Nx, 0)] * dt, INSERT_VALUES);CHKERRQ(ierr);
-
+                }
             }
         }
     }
     //Assemble before we add values in on top to modify the electroneutral.
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
-
-    for(x=0;x<Nx;x++) {
-        for(y=0;y<Ny;y++) {
-            // Add Modification to electroneutrality for non-zero mem.compacitance
-            for(comp=0;comp<Nc-1;comp++) {
-                //Extracell voltage
-                ierr = VecSetValue(Res, Ind_2(x, y, 0, Ni, Nc - 1, Nx, 0), -cm[comp] * (phi[phi_index(x, y, 0, Nc - 1, Nx, 0)] - phi[phi_index(
-                        x, y,
-                        0,
-                        comp,
-                        Nx, 0)]), ADD_VALUES);CHKERRQ(ierr);
-                //Intracell voltage mod
-                ierr = VecSetValue(Res, Ind_2(x, y, 0, Ni, comp, Nx, 0), -cm[comp] * (phi[phi_index(x, y, 0, comp, Nx, 0)] - phi[phi_index(
-                        x, y,
-                        0,
-                        Nc -
-                        1, Nx,
-                        0)]), ADD_VALUES);CHKERRQ(ierr);
+    for(z=0;z<Nz;z++){
+        for(y = 0; y < Ny; y++){
+            for(x = 0; x < Nx; x++){
+                // Add Modification to electroneutrality for non-zero mem.compacitance
+                for(comp = 0; comp < Nc-1; comp++){
+                    //Extracell voltage
+                    ierr = VecSetValue(Res,Ind_2(x,y,z,Ni,Nc-1,Nx,Ny),-cm[comp]*(phi[phi_index(x,y,z,Nc-1,Nx,Ny)]-
+                    phi[phi_index(x,y,z,comp,Nx,Ny)]),ADD_VALUES);
+                    CHKERRQ(ierr);
+                    //Intracell voltage mod
+                    ierr = VecSetValue(Res,Ind_2(x,y,z,Ni,comp,Nx,Ny),-cm[comp]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
+                    phi[phi_index(x,y,z,Nc-1,Nx,Ny)]),ADD_VALUES);
+                    CHKERRQ(ierr);
+                }
             }
         }
     }
@@ -1352,361 +1317,413 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
     PetscReal dt = user->dt;
     PetscReal dx = user->dx;
     PetscReal dy = user->dy;
+    PetscReal dz = user->dz;
     PetscInt Nx = 2*width_size+1;
     PetscInt Ny = 2*width_size+1;
+    PetscInt Nz = user->Nz;
     struct ConstVars *con_vars = user->con_vars;
 
     PetscInt ind = 0;
-    PetscInt x,y,ion,comp;
+    PetscInt x,y,z,ion,comp;
 
     PetscReal Ftmpx,Fc0x,Fc1x,Fph0x,Fph1x;
     PetscReal Ftmpy,Fc0y,Fc1y,Fph0y,Fph1y;
+    PetscReal Ftmpz,Fc0z,Fc1z,Fph0z,Fph1z;
     PetscReal Ac,Aphi;
 
 
     //Ionic concentration equations
-    for(x=0;x<Nx;x++) {
-        for(y=0;y<Ny;y++) {
-            for(ion=0;ion<Ni;ion++) {
-                for(comp=0;comp<Nc-1;comp++) {
+    for(z=0;z<Nz;z++){
+        for(y = 0; y < Ny; y++){
+            for(x = 0; x < Nx; x++){
+                for(ion = 0; ion < Ni; ion++){
+                    for(comp = 0; comp < Nc-1; comp++){
+                        //Electrodiffusion contributions
+                        Ftmpx = 0;Fc0x = 0;Fc1x = 0;Fph0x = 0;Fph1x = 0;
+                        Ftmpy = 0;Fc0y = 0;Fc1y = 0;Fph0y = 0;Fph1y = 0;
+                        Ftmpz = 0;Fc0z = 0;Fc1z = 0;Fph0z = 0;Fph1z = 0;
+                        if(x < Nx-1){
+                            Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
+                                    cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
+                            Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Fph0x = z_charge[ion]*Ftmpx;
+                            // Right c with left c (-Fc0x)
+
+                            ierr = MatSetValue(Jac,Ind_2(x+1,y,z,ion,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                    -Fc0x,INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+                            //Right c with left phi (-Fph0x)
+                            ierr = MatSetValue(Jac,Ind_2(x+1,y,z,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),
+                                    -Fph0x,INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+
+                        }
+                        if(x > 0){
+                            Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
+                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
+                            Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Fph1x = z_charge[ion]*Ftmpx;
+                            //left c with right c (-Fc1x)
+                            ierr = MatSetValue(Jac,Ind_2(x-1,y,z,ion,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                    -Fc1x,INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+                            //Left c with right phi (-Fph1x)
+                            ierr = MatSetValue(Jac,Ind_2(x-1,y,z,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),
+                                    -Fph1x,INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+                        }
+                        if(y < Ny-1){
+                            Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
+                                    cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
+                            Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Fph0y = z_charge[ion]*Ftmpy;
+                            // Upper c with lower c (-Fc0y)
+                            ierr = MatSetValue(Jac,Ind_2(x,y+1,z,ion,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                    -Fc0y,INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+                            //Upper c with lower phi (-Fph0y)
+                            ierr = MatSetValue(Jac,Ind_2(x,y+1,z,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),
+                                    -Fph0y,INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+                        }
+                        if(y > 0){
+                            Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
+                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
+                            Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Fph1y = z_charge[ion]*Ftmpy;
+                            //Lower c with Upper c (-Fc1y)
+                            ierr = MatSetValue(Jac,Ind_2(x,y-1,z,ion,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                    -Fc1y,INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+                            //Lower c with Upper phi (-Fph1y)
+                            ierr = MatSetValue(Jac,Ind_2(x,y-1,z,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),
+                                    -Fph1y,INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+                        }
+                        if(z < Nz-1){
+                            Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
+                                    cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2/dz*dt/dz;
+                            Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Fph0z = z_charge[ion]*Ftmpz;
+                            // Upper c with lower c (-Fc0y)
+                            ierr = MatSetValue(Jac,Ind_2(x,y,z+1,ion,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                               -Fc0z,INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+                            //Upper c with lower phi (-Fph0y)
+                            ierr = MatSetValue(Jac,Ind_2(x,y,z+1,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),
+                                               -Fph0z,INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+                        }
+                        if(z > 0){
+                            Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
+                                                                              cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dz*dt/dz;
+                            Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Fph1z = z_charge[ion]*Ftmpz;
+                            //Lower c with Upper c (-Fc1y)
+                            ierr = MatSetValue(Jac,Ind_2(x,y,z-1,ion,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                               -Fc1z,INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+                            //Lower c with Upper phi (-Fph1y)
+                            ierr = MatSetValue(Jac,Ind_2(x,y,z-1,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),
+                                               -Fph1z,INSERT_VALUES);
+                            CHKERRQ(ierr);
+                            ind++;
+                        }
+                        //Diagonal term contribution
+                        Ac = al[al_index(x,y,z,comp,Nx,Ny)]+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
+                        Aphi = Fph0x+Fph1x+Fph0y+Fph1y+Fph0z+Fph1z;
+
+
+                        //membrane current contributions
+                        Ac += flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        // Different Compartment Terms
+                        // C Extracellular with C Inside
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z,ion,Nc-1,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                           -flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        // C Intra with C Extra
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z,ion,comp,Nx,Ny),Ind_2(x,y,z,ion,Nc-1,Nx,Ny),
+                                           flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        // C Extracellular with Phi Inside
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z,ion,Nc-1,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),
+                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        // C Intra with Phi Extra
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni,Nc-1,Nx,Ny),
+                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        //Volume terms
+                        //C extra with intra alpha
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z,ion,Nc-1,Nx,Ny),Ind_2(x,y,z,Ni+1,comp,Nx,Ny),
+                                -c[c_index(x,y,z,Nc-1,ion,Nx,Ny)],INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        //C intra with intra alpha
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni+1,comp,Nx,Ny),
+                                c[c_index(x,y,z,comp,ion,Nx,Ny)],INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        //Same compartment terms
+                        // c with c
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z,ion,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),Ac,INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        // c with phi
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),Aphi,INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+
+                    }
+                    //Extracellular terms
+                    comp = Nc-1;
                     //Electrodiffusion contributions
-                    Ftmpx = 0;
-                    Fc0x = 0;
-                    Fc1x = 0;
-                    Fph0x = 0;
-                    Fph1x = 0;
-                    Ftmpy = 0;
-                    Fc0y = 0;
-                    Fc1y = 0;
-                    Fph0y = 0;
-                    Fph1y = 0;
-                    if(x<Nx-1) {
-                        Ftmpx = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(
-                                x + 1, y, 0,
-                                comp, ion, Nx,
-                                0)]) / 2 / dx * dt / dx;
-                        Fc0x = Ftmpx/c[c_index(x, y, 0, comp, ion, Nx, 0)];
+                    Ftmpx = 0;Fc0x = 0;Fc1x = 0;Fph0x = 0;Fph1x = 0;
+                    Ftmpy = 0;Fc0y = 0;Fc1y = 0;Fph0y = 0;Fph1y = 0;
+                    Ftmpz = 0;Fc0z = 0;Fc1z = 0;Fph0z = 0;Fph1z = 0;
+                    if(x < Nx-1){
+                        Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
+                                cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
+                        Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
                         Fph0x = z_charge[ion]*Ftmpx;
                         // Right c with left c (-Fc0x)
-
-                        ierr = MatSetValue(Jac, Ind_2(x + 1, y, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, ion, comp, Nx, 0), -Fc0x, INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x+1,y,z,ion,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                -Fc0x,INSERT_VALUES);
+                        CHKERRQ(ierr);
                         ind++;
                         //Right c with left phi (-Fph0x)
-                        ierr = MatSetValue(Jac, Ind_2(x + 1, y, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, Ni, comp, Nx, 0), -Fph0x, INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x+1,y,z,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),
+                                -Fph0x,INSERT_VALUES);
+                        CHKERRQ(ierr);
                         ind++;
-
                     }
-                    if(x>0) {
-                        Ftmpx = Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x - 1, y, 0, comp, ion,
-                                                                                              Nx, 0)] + cp[c_index(x, y,
-                                                                                                                   0,
-                                                                                                                   comp,
-                                                                                                                   ion,
-                                                                                                                   Nx,
-                                                                                                                   0)]) / 2 / dx * dt / dx;
-                        Fc1x = Ftmpx/c[c_index(x, y, 0, comp, ion, Nx, 0)];
+                    if(x > 0){
+                        Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
+                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
+                        Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
                         Fph1x = z_charge[ion]*Ftmpx;
                         //left c with right c (-Fc1x)
-                        ierr = MatSetValue(Jac, Ind_2(x - 1, y, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, ion, comp, Nx, 0), -Fc1x, INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x-1,y,z,ion,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                -Fc1x,INSERT_VALUES);
+                        CHKERRQ(ierr);
                         ind++;
                         //Left c with right phi (-Fph1x)
-                        ierr = MatSetValue(Jac, Ind_2(x - 1, y, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, Ni, comp, Nx, 0), -Fph1x, INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x-1,y,z,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),
+                                -Fph1x,INSERT_VALUES);
+                        CHKERRQ(ierr);
                         ind++;
                     }
-                    if(y<Ny-1) {
-                        Ftmpy = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y, 0, comp, ion, Nx,
-                                                                                              0)] + cp[c_index(x, y + 1,
-                                                                                                               0,
-                                                                                                               comp,
-                                                                                                               ion,
-                                                                                                               Nx,
-                                                                                                               0)]) / 2 / dy * dt / dy;
-                        Fc0y = Ftmpy/c[c_index(x, y, 0, comp, ion, Nx, 0)];
+                    if(y < Ny-1){
+                        Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
+                                cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
+                        Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
                         Fph0y = z_charge[ion]*Ftmpy;
                         // Upper c with lower c (-Fc0y)
-                        ierr = MatSetValue(Jac, Ind_2(x, y + 1, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, ion, comp, Nx, 0), -Fc0y, INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x,y+1,z,ion,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                -Fc0y,INSERT_VALUES);
+                        CHKERRQ(ierr);
                         ind++;
                         //Upper c with lower phi (-Fph0y)
-                        ierr = MatSetValue(Jac, Ind_2(x, y + 1, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, Ni, comp, Nx, 0), -Fph0y, INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x,y+1,z,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),
+                                -Fph0y,INSERT_VALUES);
+                        CHKERRQ(ierr);
                         ind++;
                     }
-                    if(y>0) {
-                        Ftmpy = Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y - 1, 0, comp,
-                                                                                                  ion, Nx, 0)] + cp[c_index(
-                                x, y, 0,
-                                comp,
-                                ion, Nx,
-                                0)]) / 2 / dy * dt / dy;
-                        Fc1y = Ftmpy/c[c_index(x, y, 0, comp, ion, Nx, 0)];
+                    if(y > 0){
+                        Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
+                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
+                        Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
                         Fph1y = z_charge[ion]*Ftmpy;
                         //Lower c with Upper c (-Fc1y)
-                        ierr = MatSetValue(Jac, Ind_2(x, y - 1, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, ion, comp, Nx, 0), -Fc1y, INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x,y-1,z,ion,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                -Fc1y,INSERT_VALUES);
+                        CHKERRQ(ierr);
                         ind++;
                         //Lower c with Upper phi (-Fph1y)
-                        ierr = MatSetValue(Jac, Ind_2(x, y - 1, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, Ni, comp, Nx, 0), -Fph1y, INSERT_VALUES);CHKERRQ(ierr);
+                        ierr = MatSetValue(Jac,Ind_2(x,y-1,z,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),
+                                -Fph1y,INSERT_VALUES);
+                        CHKERRQ(ierr);
                         ind++;
                     }
+                    if(z < Nz-1){
+                        Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
+                                                                        cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2/dz*dt/dz;
+                        Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Fph0z = z_charge[ion]*Ftmpz;
+                        // Upper c with lower c (-Fc0y)
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z+1,ion,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                           -Fc0z,INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        //Upper c with lower phi (-Fph0y)
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z+1,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),
+                                           -Fph0z,INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                    if(z > 0){
+                        Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
+                                                                          cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dz*dt/dz;
+                        Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Fph1z = z_charge[ion]*Ftmpz;
+                        //Lower c with Upper c (-Fc1y)
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z-1,ion,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                           -Fc1z,INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        //Lower c with Upper phi (-Fph1y)
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z-1,ion,comp,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),
+                                           -Fph1z,INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+
                     //Diagonal term contribution
-                    Ac = al[al_index(x, y, 0, comp, Nx, 0)] + Fc0x + Fc1x + Fc0y + Fc1y;
-                    Aphi = Fph0x + Fph1x + Fph0y + Fph1y;
+                    Ac = (1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)])+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
+                    Aphi = Fph0x+Fph1x+Fph0y+Fph1y+Fph0z+Fph1z;
 
+                    //Membrane current contribution
+                    for(comp = 0; comp < Nc-1; comp++){
+                        Ac -= flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                    }
+                    //Add bath contributions
+                    Ftmpx = sqrt(pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3],2)+
+                            pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+1],2)+
+                            pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+2],2));
+                    Ac -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny)]+cbath[ion])/(2*c[c_index(x,y,z,Nc-1,ion,Nx,Ny)])*dt;
+                    Aphi -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny)]+cbath[ion])*z_charge[ion]/2*dt;
 
-                    //membrane current contributions
-                    Ac+= flux->dfdci[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
-                    Aphi+= flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
-                    // Different Compartment Terms
-                    // C Extracellular with C Inside
-                    ierr = MatSetValue(Jac, Ind_2(x, y, 0, ion, Nc - 1, Nx, 0), Ind_2(x, y, 0, ion, comp, Nx, 0), -flux->dfdci[c_index(x, y, 0,
-                                                                                                                                       comp,
-                                                                                                                                       ion,
-                                                                                                                                       Nx,
-                                                                                                                                       0)] * dt, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                    // C Intra with C Extra
-                    ierr = MatSetValue(Jac, Ind_2(x, y, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, ion, Nc - 1, Nx, 0), flux->dfdce[c_index(x, y, 0,
-                                                                                                                                      comp,
-                                                                                                                                      ion,
-                                                                                                                                      Nx,
-                                                                                                                                      0)] * dt, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                    // C Extracellular with Phi Inside
-                    ierr = MatSetValue(Jac, Ind_2(x, y, 0, ion, Nc - 1, Nx, 0), Ind_2(x, y, 0, Ni, comp, Nx, 0), -flux->dfdphim[c_index(x, y,
-                                                                                                                                        0,
-                                                                                                                                        comp,
-                                                                                                                                        ion,
-                                                                                                                                        Nx,
-                                                                                                                                        0)] * dt, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                    // C Intra with Phi Extra
-                    ierr = MatSetValue(Jac, Ind_2(x, y, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, Ni, Nc - 1, Nx, 0), -flux->dfdphim[c_index(x, y,
-                                                                                                                                        0,
-                                                                                                                                        comp,
-                                                                                                                                        ion,
-                                                                                                                                        Nx,
-                                                                                                                                        0)] * dt, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                    //Volume terms
-                    //C extra with intra alpha
-                    ierr = MatSetValue(Jac, Ind_2(x, y, 0, ion, Nc - 1, Nx, 0), Ind_2(x, y, 0, Ni + 1, comp, Nx, 0), -c[c_index(x, y, 0, Nc - 1,
-                                                                                                                                ion, Nx, 0)], INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                    //C intra with intra alpha
-                    ierr = MatSetValue(Jac, Ind_2(x, y, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, Ni + 1, comp, Nx, 0), c[c_index(x, y, 0, comp,
-                                                                                                                             ion,
-                                                                                                                             Nx, 0)], INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                    //Same compartment terms
+                    //Insert extracell to extracell parts
                     // c with c
-                    ierr = MatSetValue(Jac, Ind_2(x, y, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, ion, comp, Nx, 0), Ac, INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,z,ion,Nc-1,Nx,Ny),Ind_2(x,y,z,ion,Nc-1,Nx,Ny),Ac,INSERT_VALUES);
+                    CHKERRQ(ierr);
                     ind++;
                     // c with phi
-                    ierr = MatSetValue(Jac, Ind_2(x, y, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, Ni, comp, Nx, 0), Aphi, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-
-                }
-                //Extracellular terms
-                comp = Nc-1;
-                //Electrodiffusion contributions
-                Ftmpx = 0;
-                Fc0x = 0;
-                Fc1x = 0;
-                Fph0x = 0;
-                Fph1x = 0;
-                Ftmpy = 0;
-                Fc0y = 0;
-                Fc1y = 0;
-                Fph0y = 0;
-                Fph1y = 0;
-                if(x<Nx-1) {
-                    Ftmpx = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(
-                            x + 1, y, 0, comp,
-                            ion, Nx, 0)]) / 2 / dx * dt / dx;
-                    Fc0x = Ftmpx/c[c_index(x, y, 0, comp, ion, Nx, 0)];
-                    Fph0x = z_charge[ion]*Ftmpx;
-                    // Right c with left c (-Fc0x)
-                    ierr = MatSetValue(Jac, Ind_2(x + 1, y, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, ion, comp, Nx, 0), -Fc0x, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                    //Right c with left phi (-Fph0x)
-                    ierr = MatSetValue(Jac, Ind_2(x + 1, y, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, Ni, comp, Nx, 0), -Fph0x, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                }
-                if(x>0) {
-                    Ftmpx = Dcs[c_index(x - 1, y, 0, comp, ion, Nx, 0) * 2] * (cp[c_index(x - 1, y, 0, comp, ion, Nx,
-                                                                                          0)] + cp[c_index(x, y, 0,
-                                                                                                           comp,
-                                                                                                           ion, Nx,
-                                                                                                           0)]) / 2 / dx * dt / dx;
-                    Fc1x = Ftmpx/c[c_index(x, y, 0, comp, ion, Nx, 0)];
-                    Fph1x = z_charge[ion]*Ftmpx;
-                    //left c with right c (-Fc1x)
-                    ierr = MatSetValue(Jac, Ind_2(x - 1, y, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, ion, comp, Nx, 0), -Fc1x, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                    //Left c with right phi (-Fph1x)
-                    ierr = MatSetValue(Jac, Ind_2(x - 1, y, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, Ni, comp, Nx, 0), -Fph1x, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                }
-                if(y<Ny-1) {
-                    Ftmpy = Dcs[c_index(x, y, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y, 0, comp, ion, Nx, 0)] + cp[c_index(
-                            x, y + 1, 0,
-                            comp, ion, Nx, 0)]) / 2 / dy * dt / dy;
-                    Fc0y = Ftmpy/c[c_index(x, y, 0, comp, ion, Nx, 0)];
-                    Fph0y = z_charge[ion]*Ftmpy;
-                    // Upper c with lower c (-Fc0y)
-                    ierr = MatSetValue(Jac, Ind_2(x, y + 1, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, ion, comp, Nx, 0), -Fc0y, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                    //Upper c with lower phi (-Fph0y)
-                    ierr = MatSetValue(Jac, Ind_2(x, y + 1, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, Ni, comp, Nx, 0), -Fph0y, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                }
-                if(y>0) {
-                    Ftmpy = Dcs[c_index(x, y - 1, 0, comp, ion, Nx, 0) * 2 + 1] * (cp[c_index(x, y - 1, 0, comp, ion,
-                                                                                              Nx, 0)] + cp[c_index(x, y,
-                                                                                                                   0,
-                                                                                                                   comp,
-                                                                                                                   ion,
-                                                                                                                   Nx,
-                                                                                                                   0)]) / 2 / dy * dt / dy;
-                    Fc1y = Ftmpy/c[c_index(x, y, 0, comp, ion, Nx, 0)];
-                    Fph1y = z_charge[ion]*Ftmpy;
-                    //Lower c with Upper c (-Fc1y)
-                    ierr = MatSetValue(Jac, Ind_2(x, y - 1, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, ion, comp, Nx, 0), -Fc1y, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                    //Lower c with Upper phi (-Fph1y)
-                    ierr = MatSetValue(Jac, Ind_2(x, y - 1, 0, ion, comp, Nx, 0), Ind_2(x, y, 0, Ni, comp, Nx, 0), -Fph1y, INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_2(x,y,z,ion,Nc-1,Nx,Ny),Ind_2(x,y,z,Ni,Nc-1,Nx,Ny),Aphi,INSERT_VALUES);
+                    CHKERRQ(ierr);
                     ind++;
                 }
 
-                //Diagonal term contribution
-                Ac = (1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)]) + Fc0x + Fc1x + Fc0y + Fc1y;
-                Aphi = Fph0x + Fph1x + Fph0y + Fph1y;
-
-                //Membrane current contribution
-                for(comp=0;comp<Nc-1;comp++) {
-                    Ac -= flux->dfdce[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
-                    Aphi += flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
-                }
-                //Add bath contributions
-                Ftmpx=sqrt(pow(Dcb[c_index(x, y, 0, Nc - 1, ion, Nx, 0) * 2], 2) + pow(Dcb[c_index(x, y, 0, Nc - 1, ion,
-                                                                                                   Nx, 0) * 2 + 1], 2));
-                Ac -= Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) / (2 * c[c_index(x, y, 0, Nc - 1,
-                                                                                                       ion, Nx, 0)]) * dt;
-                Aphi -= Ftmpx * (cp[c_index(x, y, 0, Nc - 1, ion, Nx, 0)] + cbath[ion]) * z_charge[ion] / 2 * dt;
-
-                //Insert extracell to extracell parts
-                // c with c
-                ierr = MatSetValue(Jac, Ind_2(x, y, 0, ion, Nc - 1, Nx, 0), Ind_2(x, y, 0, ion, Nc - 1, Nx, 0), Ac, INSERT_VALUES);CHKERRQ(ierr);
-                ind++;
-                // c with phi
-                ierr = MatSetValue(Jac, Ind_2(x, y, 0, ion, Nc - 1, Nx, 0), Ind_2(x, y, 0, Ni, Nc - 1, Nx, 0), Aphi, INSERT_VALUES);CHKERRQ(ierr);
-                ind++;
             }
-
         }
     }
 
-    //Electroneutrality charge-capcitance condition
-    for(x=0;x<Nx;x++) {
-        for(y=0;y<Ny;y++) {
-            //electroneutral-concentration entries
-            for(ion=0;ion<Ni;ion++) {
-                for(comp=0;comp<Nc-1;comp++) {
-                    //Phi with C entries
-                    ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni, comp, Nx, 0), Ind_2(x, y, 0, ion, comp, Nx, 0), z_charge[ion] * al[al_index(x, y, 0,
-                                                                                                                                    comp, Nx, 0)], INSERT_VALUES); CHKERRQ(ierr);
+        //Electroneutrality charge-capcitance condition
+    for(z=0;z<Nz;z++){
+        for(y = 0; y < Ny; y++){
+            for(x = 0; x < Nx; x++){
+                //electroneutral-concentration entries
+                for(ion = 0; ion < Ni; ion++){
+                    for(comp = 0; comp < Nc-1; comp++){
+                        //Phi with C entries
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                           z_charge[ion]*al[al_index(x,y,z,comp,Nx,Ny)],INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                    //Phi with C extracellular one
+                    comp = Nc-1;
+                    ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                       z_charge[ion]*
+                                       (1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)]),INSERT_VALUES);
+                    CHKERRQ(ierr);
                     ind++;
-                }
-                //Phi with C extracellular one
-                comp = Nc-1;
-                ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni, comp, Nx, 0), Ind_2(x, y, 0, ion, comp, Nx, 0), z_charge[ion] * (1 - al[al_index(x, y, 0,
-                                                                                                                                     0,
-                                                                                                                                     Nx, 0)] - al[al_index(
-                        x, y, 0, 1, Nx, 0)]), INSERT_VALUES); CHKERRQ(ierr);
-                ind++;
 
-            }
-            //electroneutrality-voltage entries
-            Aphi = 0;
-            for(comp=0;comp<Nc-1;comp++) {
-                Aphi -= cm[comp];
-            }
-            //extraphi with extra phi
-            ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni, Nc - 1, Nx, 0), Ind_2(x, y, 0, Ni, Nc - 1, Nx, 0), Aphi, INSERT_VALUES);CHKERRQ(ierr);
-            ind++;
-            for(comp=0;comp<Nc-1;comp++) {
-                //The next 3 are inserted in init jacobian for the grid
-                //Extra phi with intra phi
+                }
+                //electroneutrality-voltage entries
+                Aphi = 0;
+                for(comp = 0; comp < Nc-1; comp++){
+                    Aphi -= cm[comp];
+                }
+                //extraphi with extra phi
+                ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni,Nc-1,Nx,Ny),Ind_2(x,y,z,Ni,Nc-1,Nx,Ny),Aphi,INSERT_VALUES);
+                CHKERRQ(ierr);
+                ind++;
+                for(comp = 0; comp < Nc-1; comp++){
+                    //The next 3 are inserted in init jacobian for the grid
+                    //Extra phi with intra phi
 //                ierr = MatSetValue(Jac,Ind_2(x,y,Ni,Nc-1,Nx),Ind_2(x,y,Ni,comp,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
 //                ind++;
-                // Intra phi with Extraphi
+                    // Intra phi with Extraphi
 //                ierr = MatSetValue(Jac,Ind_2(x,y,Ni,comp,Nx),Ind_2(x,y,Ni,Nc-1,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
 //                ind++;
-                //Intra phi with Intra phi
+                    //Intra phi with Intra phi
 //                ierr = MatSetValue(Jac,Ind_2(x,y,Ni,comp,Nx),Ind_2(x,y,Ni,comp,Nx),-cm[comp],INSERT_VALUES);CHKERRQ(ierr);
 //                ind++;
-                //Extra phi with intra-Volume
-                ierr = MatSetValue(Jac,Ind_2(x, y, 0, Ni, Nc - 1, Nx, 0),Ind_2(x, y, 0, Ni + 1, comp, Nx, 0),-cz(c,z_charge,x,y,0,Nx,0,
-                                                                                                                 Nc-
-                                                                                                                 1,user),INSERT_VALUES);CHKERRQ(ierr);
-                ind++;
-                //Intra phi with Intra Vol
-                ierr = MatSetValue(Jac,Ind_2(x, y, 0, Ni, comp, Nx, 0),Ind_2(x, y, 0, Ni + 1, comp, Nx, 0),cz(c,z_charge,x,y,0,Nx,0,comp,user),INSERT_VALUES);CHKERRQ(ierr);
-                ind++;
+                    //Extra phi with intra-Volume
+                    ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni,Nc-1,Nx,Ny),Ind_2(x,y,z,Ni+1,comp,Nx,Ny),
+                                       -cz(c,z_charge,x,y,z,Nx,Ny,Nc-1,user),INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+                    //Intra phi with Intra Vol
+                    ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni,comp,Nx,Ny),Ind_2(x,y,z,Ni+1,comp,Nx,Ny),
+                                       cz(c,z_charge,x,y,z,Nx,Ny,comp,user),INSERT_VALUES);
+                    CHKERRQ(ierr);
+                    ind++;
+                }
             }
         }
     }
     //water flow
-    for(x=0;x<Nx;x++) {
-        for(y=0;y<Ny;y++) {
-            for(comp=0;comp<Nc-1;comp++) {
-                //Water flow volume fraction entries
-                //Volume to Volume
-                Ac=1+ (flux->dwdpi[al_index(x, y, 0, comp, Nx, 0)] * (con_vars->ao[phi_index(0, 0, 0, Nc - 1, Nx, 0)] / (pow(1 - al[al_index(
-                        x, y, 0, 0, Nx, 0)] - al[al_index(
-                        x, y, 0, 1, Nx, 0)], 2)) + con_vars->ao[phi_index(
-                        0, 0, 0, comp, Nx, 0)] / pow(al[al_index(x, y, 0, comp, Nx, 0)], 2)) + flux->dwdal[al_index(x,
-                                                                                                                    y, 0,
-                                                                                                                    comp,
-                                                                                                                    Nx,
-                                                                                                                    0)]) * dt;
-                ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni + 1, comp, Nx, 0), Ind_2(x, y, 0, Ni + 1, comp, Nx, 0), Ac, INSERT_VALUES);CHKERRQ(ierr);
-                ind++;
-                //Off diagonal (from aNc=1-sum(ak))
-                for (PetscInt l=0; l<comp; l++) {
-                    ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni + 1, comp, Nx, 0), Ind_2(x, y, 0, Ni + 1, l, Nx, 0), flux->dwdpi[al_index(x, y, 0,
-                                                                                                                                        comp,
-                                                                                                                                        Nx,
-                                                                                                                                        0)] * con_vars->ao[phi_index(
-                            0, 0, 0, Nc - 1, Nx, 0)] / pow(1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1,
-                                                                                                             Nx,
-                                                                                                             0)], 2) * dt, INSERT_VALUES);CHKERRQ(ierr);
+    for(z=0;z<Nz;z++){
+        for(y = 0; y < Ny; y++){
+            for(x = 0; x < Nx; x++){
+                for(comp = 0; comp < Nc-1; comp++){
+                    //Water flow volume fraction entries
+                    //Volume to Volume
+                    Ac = 1+(flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*(con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny)]/
+                            (pow(1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)],2))+
+                            con_vars->ao[phi_index(0,0,0,comp,Nx,Ny)]/pow(al[al_index(x,y,z,comp,Nx,Ny)],2))+
+                                    flux->dwdal[al_index(x,y,z,comp,Nx,Ny)])*dt;
+                    ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni+1,comp,Nx,Ny),Ind_2(x,y,z,Ni+1,comp,Nx,Ny),Ac,INSERT_VALUES);
+                    CHKERRQ(ierr);
                     ind++;
-                }
-                for (PetscInt l=comp+1; l<Nc-1; l++) {
-                    ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni + 1, comp, Nx, 0), Ind_2(x, y, 0, Ni + 1, l, Nx, 0), flux->dwdpi[al_index(x, y, 0,
-                                                                                                                                        comp,
-                                                                                                                                        Nx,
-                                                                                                                                        0)] * con_vars->ao[phi_index(
-                            0, 0, 0, Nc - 1, Nx, 0)] / ((1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1,
-                                                                                                           Nx, 0)]) * (1 - al[al_index(
-                            x, y, 0, 0, Nx, 0)] - al[al_index(
-                            x, y, 0, 1, Nx, 0)])) * dt, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                }
-                for (ion=0; ion<Ni; ion++) {
-                    //Volume to extra c
-                    ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni + 1, comp, Nx, 0), Ind_2(x, y, 0, ion, Nc - 1, Nx, 0), flux->dwdpi[al_index(x, y,
-                                                                                                                                          0,
-                                                                                                                                          comp,
-                                                                                                                                          Nx,
-                                                                                                                                          0)] * dt, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
-                    //Volume to intra c
-                    ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni + 1, comp, Nx, 0), Ind_2(x, y, 0, ion, comp, Nx, 0), -flux->dwdpi[al_index(x, y,
-                                                                                                                                         0,
-                                                                                                                                         comp,
-                                                                                                                                         Nx,
-                                                                                                                                         0)] * dt, INSERT_VALUES);CHKERRQ(ierr);
-                    ind++;
+                    //Off diagonal (from aNc=1-sum(ak))
+                    for(PetscInt l = 0; l < comp; l++){
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni+1,comp,Nx,Ny),Ind_2(x,y,z,Ni+1,l,Nx,Ny),
+                                flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny)]/
+                                pow(1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)],2)*dt,INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                    for(PetscInt l = comp+1; l < Nc-1; l++){
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni+1,comp,Nx,Ny),Ind_2(x,y,z,Ni+1,l,Nx,Ny),
+                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*
+                                           con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny)]/
+                                           ((1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)])*
+                                           (1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)]))*dt,INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
+                    for(ion = 0; ion < Ni; ion++){
+                        //Volume to extra c
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni+1,comp,Nx,Ny),Ind_2(x,y,z,ion,Nc-1,Nx,Ny),
+                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*dt,INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                        //Volume to intra c
+                        ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni+1,comp,Nx,Ny),Ind_2(x,y,z,ion,comp,Nx,Ny),
+                                           -flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*dt,INSERT_VALUES);
+                        CHKERRQ(ierr);
+                        ind++;
+                    }
                 }
             }
         }
@@ -1732,12 +1749,13 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
     PetscErrorCode ierr = 0;
     PetscReal const *temp;
 
-    PetscInt x,y,comp,ion;
+    PetscInt x,y,z,comp,ion;
     PetscInt Nx = 2*width_size+1;
     PetscInt Ny = 2*width_size+1;
+    PetscInt Nz = user->Nz;
 
 
-    PetscReal tol = reltol * array_max(user->grid_vars_past->c, (size_t) Nx * Ny * Ni * Nc);
+    PetscReal tol = reltol*array_max(user->grid_vars_past->c,(size_t)Nz*Nx*Ny*Ni*Nc);
     rsd = tol + 1;
 
     for (PetscInt iter = 0; iter < itermax; iter++) {
@@ -1745,7 +1763,7 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
         ierr = Grid_Residual_algebraic(user->grid_slvr->Res, xi, yi, user);CHKERRQ(ierr);
 
         ierr = VecNorm(user->grid_slvr->Res, NORM_MAX, &rsd);CHKERRQ(ierr);
-
+//        printf("(%d,%d),%.10e\n",xi,yi,rsd);
 
         if (rsd < tol) {
             if(Profiling_on) {
@@ -1763,16 +1781,19 @@ int Newton_Solve_Grid(PetscInt xi, PetscInt yi,struct AppCtx *user) {
 
 
         ierr = VecGetArrayRead(user->grid_slvr->Q, &temp);CHKERRQ(ierr);
-        for (x = 0; x < Nx; x++) {
-            for (y = 0; y < Ny; y++) {
-                for (comp = 0; comp < Nc; comp++) {
-                    for (ion = 0; ion < Ni; ion++) {
-                        user->grid_vars->c[c_index(x, y, 0, comp, ion, Nx, 0)] -= temp[Ind_2(x, y, 0, ion, comp, Nx, 0)];
+        for (z = 0; z < Nz; z++){
+            for(y = 0; y < Ny; y++){
+                for(x = 0; x < Nx; x++){
+
+                    for(comp = 0; comp < Nc; comp++){
+                        for(ion = 0; ion < Ni; ion++){
+                            user->grid_vars->c[c_index(x,y,z,comp,ion,Nx,Ny)] -= temp[Ind_2(x,y,z,ion,comp,Nx,Ny)];
+                        }
+                        user->grid_vars->phi[phi_index(x,y,z,comp,Nx,Ny)] -= temp[Ind_2(x,y,z,Ni,comp,Nx,Ny)];
                     }
-                    user->grid_vars->phi[phi_index(x, y, 0, comp, Nx, 0)] -= temp[Ind_2(x, y, 0, Ni, comp, Nx, 0)];
-                }
-                for (comp = 0; comp < Nc-1; comp++) {
-                    user->grid_vars->alpha[al_index(x, y, 0, comp, Nx, 0)] -= temp[Ind_2(x, y, 0, Ni + 1, comp, Nx, 0)];
+                    for(comp = 0; comp < Nc-1; comp++){
+                        user->grid_vars->alpha[al_index(x,y,z,comp,Nx,Ny)] -= temp[Ind_2(x,y,z,Ni+1,comp,Nx,Ny)];
+                    }
                 }
             }
         }
@@ -1796,17 +1817,18 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
 
     PetscReal dt = user->dt;
 
-    user->dt = user->dt_space[xy_index(xi, yi, 0, user->Nx, 0)];
+    user->dt = user->dt_space[xy_index(xi,yi,0,user->Nx,0)];
 
 
     PetscInt Nx = 2*width_size+1;
     PetscInt Ny = 2*width_size+1;
+    PetscInt Nz = user->Nz;
     PetscInt ion,comp,x,y,iter;
 
     //Load current variable into past variable
-    memcpy(user->grid_vars_past->c,user->grid_vars->c,sizeof(PetscReal)*Nx*Ny*Nc*Ni);
-    memcpy(user->grid_vars_past->phi,user->grid_vars->phi,sizeof(PetscReal)*Nx*Ny*Nc);
-    memcpy(user->grid_vars_past->alpha,user->grid_vars->alpha,sizeof(PetscReal)*Nx*Ny*(Nc-1));
+    memcpy(user->grid_vars_past->c,user->grid_vars->c,sizeof(PetscReal)*Nx*Ny*Nz*Nc*Ni);
+    memcpy(user->grid_vars_past->phi,user->grid_vars->phi,sizeof(PetscReal)*Nx*Ny*Nz*Nc);
+    memcpy(user->grid_vars_past->alpha,user->grid_vars->alpha,sizeof(PetscReal)*Nx*Ny*Nz*(Nc-1));
     //Calculate diffusion
     //compute diffusion coefficients
     grid_diff_coef(user->Dcs, user->grid_vars_past->alpha, 1, user,xi,yi);
@@ -1832,14 +1854,14 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
             gatevars_update_grid(user->grid_gate_vars, user->grid_vars, user->dt * 1e3, user);
 
             //Update Excitation
-            excitation_grid(user, t - dt+user->dt*steps, xi, yi);
+            excitation_grid(user,t-dt+user->dt*steps,xi,yi);
 
             accepted_step = 1;
 
             //Load current variable into past variable
-            memcpy(user->grid_vars_past->c,user->grid_vars->c,sizeof(PetscReal)*Nx*Ny*Nc*Ni);
-            memcpy(user->grid_vars_past->phi,user->grid_vars->phi,sizeof(PetscReal)*Nx*Ny*Nc);
-            memcpy(user->grid_vars_past->alpha,user->grid_vars->alpha,sizeof(PetscReal)*Nx*Ny*(Nc-1));
+            memcpy(user->grid_vars_past->c,user->grid_vars->c,sizeof(PetscReal)*Nx*Ny*Nz*Nc*Ni);
+            memcpy(user->grid_vars_past->phi,user->grid_vars->phi,sizeof(PetscReal)*Nx*Ny*Nz*Nc);
+            memcpy(user->grid_vars_past->alpha,user->grid_vars->alpha,sizeof(PetscReal)*Nx*Ny*Nz*(Nc-1));
             //Calculate diffusion
             //compute diffusion coefficients
             grid_diff_coef(user->Dcs, user->grid_vars_past->alpha, 1, user,xi,yi);
@@ -1847,7 +1869,7 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
             grid_diff_coef(user->Dcb, user->grid_vars_past->alpha, Batheps, user,xi,yi);
 
             if(xi==16&&yi==16) {
-                write_point(user->fp, user, t - dt+user->dt*steps, 16, 16);
+                write_point(user->fp,user,t-dt+user->dt*steps,16,16);
             }
 
         } else {
@@ -1857,9 +1879,9 @@ PetscErrorCode Update_Grid(PetscInt xi, PetscInt yi,PetscReal t,struct AppCtx *u
 //            printf("Reducing step at (%d,%d) to %f\n",xi,yi,user->dt);
             //Reset current vars
             //Load current variable into past variable
-            memcpy(user->grid_vars->c,user->grid_vars_past->c,sizeof(PetscReal)*Nx*Ny*Nc*Ni);
-            memcpy(user->grid_vars->phi,user->grid_vars_past->phi,sizeof(PetscReal)*Nx*Ny*Nc);
-            memcpy(user->grid_vars->alpha,user->grid_vars_past->alpha,sizeof(PetscReal)*Nx*Ny*(Nc-1));
+            memcpy(user->grid_vars->c,user->grid_vars_past->c,sizeof(PetscReal)*Nx*Ny*Nz*Nc*Ni);
+            memcpy(user->grid_vars->phi,user->grid_vars_past->phi,sizeof(PetscReal)*Nx*Ny*Nz*Nc);
+            memcpy(user->grid_vars->alpha,user->grid_vars_past->alpha,sizeof(PetscReal)*Nx*Ny*Nz*(Nc-1));
         }
     }
 
@@ -1879,31 +1901,36 @@ PetscErrorCode Update_Solution(Vec current_state,PetscReal t,struct AppCtx *user
 {
 
     PetscErrorCode ierr = 0;
-    PetscInt x,y,ion,comp;
+    PetscInt x,y,z,ion,comp;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt Nz = user->Nz;
     PetscInt nx = 2*width_size+1;
     PetscInt ny = 2*width_size+1;
     PetscReal vm_new;
     PetscReal threshhold = 0.1;//0.1; //mV threshhold for update guess.
 
 
+    for(y=0;y<Ny;y++){
+        for(x = 0; x < Nx; x++){
+            //Look over all z's.
+            z=0;
+            while(z<Nz){
+                vm_new = (user->state_vars->phi[phi_index(x,y,z,0,Nx,Ny)]-
+                          user->state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC;
 
-    for(x=0;x<Nx;x++){
-        for(y=0;y<Ny;y++) {
-            vm_new = (user->state_vars->phi[phi_index(x, y, 0, 0, Nx, 0)] -
-                      user->state_vars->phi[phi_index(x, y, 0, Nc - 1, Nx, 0)]) * RTFC;
-
-            //If it's above the threshhold. Or it previously was adaptively refined.
-            if (fabs(vm_new - user->vm_past[xy_index(x, y, 0, Nx, 0)]) > threshhold || user->dt_space[xy_index(x, y, 0,
-                                                                                                               Nx, 0)] < user->dt) {
+                //If it's above the threshhold. Or it previously was adaptively refined.
+                if(fabs(vm_new-user->vm_past[xy_index(x,y,z,Nx,Ny)]) > threshhold || user->dt_space[xy_index(x,y,0,Nx,0)]<user->dt){
 //            printf("Updating: (%d,%d)\n",x,y);
-                // Load new gridpoint
-                Load_Grid(user, x, y);
-                //Update new grid
-                Update_Grid(x, y, t, user);
-                //Save the held variable
-                Unload_Grid(user, x, y);
+                    // Load new gridpoint
+                    Load_Grid(user,x,y);
+                    //Update new grid
+                    Update_Grid(x,y,t,user);
+                    //Save the held variable
+                    Unload_Grid(user,x,y);
+                    z=Nz; // Set to break loop
+                }
+                z++;
             }
         }
     }
@@ -1918,6 +1945,7 @@ PetscErrorCode initialize_grid_jacobian(Mat Jac,struct AppCtx *user,int grid) {
     PetscErrorCode ierr;
     PetscInt Nx;
     PetscInt Ny;
+    PetscInt Nz;
     if(grid) {
         Nx = 2 * width_size + 1;
         Ny = 2 * width_size + 1;

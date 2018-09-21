@@ -111,7 +111,7 @@ PetscErrorCode Grid_Jacobian_algebraic(Mat ,PetscInt ,PetscInt ,void *);
 PetscErrorCode Update_Grid(PetscInt ,PetscInt,PetscReal ,struct AppCtx *);
 PetscErrorCode Update_Solution(Vec,PetscReal t,struct AppCtx *);
 int Newton_Solve_Grid(PetscInt, PetscInt,struct AppCtx *);
-void Unload_Grid(struct AppCtx *,PetscInt , PetscInt );
+void Unload_Grid(struct AppCtx *,PetscInt,PetscInt);
 
 void save_timestep(FILE *,struct AppCtx*,PetscInt ,int );
 
