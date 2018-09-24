@@ -341,9 +341,9 @@ void write_point(FILE *fp,struct AppCtx* user,PetscReal t,PetscInt x,PetscInt y)
     PetscInt Nz = user->Nz;
     int ion, comp;
     comp=0;
-    fprintf(fp,"%f",t);
+    fprintf(fp,"%f,",t);
     for(PetscInt z=0;z<Nz;z++){
-        fprintf(fp,"%.10e",(state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)]-
+        fprintf(fp,"%.10e,",(state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)]-
         state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC);
     }
     fprintf(fp,"\n");
@@ -1139,44 +1139,47 @@ void calculate_energy(FILE *fp, struct AppCtx *user, PetscInt numrecords, int st
         PetscScalar  *al = user->state_vars->alpha;
         PetscInt Nx = user->Nx;
         PetscInt Ny = user->Ny;
+        PetscInt Nz = user->Nz;
+        PetscReal dz = user->dz;
 
         PetscScalar Energy,alNc;
-        PetscInt comp,ion;
+        PetscInt comp,ion,z;
         for(PetscInt y=0;y<Ny;y++){
-            for(PetscInt x=0;x<Nx;x++){
+            for(PetscInt x = 0; x < Nx; x++){
                 Energy = 0;
-                //Ionic contribution
-                for(comp=0;comp<Nc-1;comp++){
-                    //Immobile ion part
-                    Energy +=user->con_vars->ao[comp]*log(user->con_vars->ao[comp])/al[al_index(x, y, 0, comp, Nx, 0)];
-                    //Mobile ions
-                    for(ion=0;ion<Ni;ion++){
-                        Energy += al[al_index(x, y, 0, comp, Nx, 0)] * c[c_index(x, y, 0, comp, ion, Nx, 0)] * log(c[c_index(x,
-                                                                                                                             y, 0,
-                                                                                                                             comp,
-                                                                                                                             ion,
-                                                                                                                             Nx,
-                                                                                                                             0)]);
+                // Integrate over z
+                for(z = 0; z < Nz; z++){
+                    //Ionic contribution
+                    for(comp = 0; comp < Nc-1; comp++){
+                        //Immobile ion part
+                        Energy += user->con_vars->ao[comp]*log(user->con_vars->ao[comp])/al[al_index(x,y,z,comp,Nx,Ny)];
+                        //Mobile ions
+                        for(ion = 0; ion < Ni; ion++){
+                            Energy += al[al_index(x,y,z,comp,Nx,Ny)]*c[c_index(x,y,z,comp,ion,Nx,Ny)]*
+                                    log(c[c_index(x,y,z,comp,ion,Nx,Ny)]);
+                        }
+                        //ElectroPotential part
+                        Energy += (cm[comp]/2)*pow((phi[phi_index(x,y,z,comp,Nx,Ny)]-
+                                phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC,2);
                     }
-                    //ElectroPotential part
-                    Energy += (cm[comp]/2)*pow((phi[phi_index(x, y, 0, comp, Nx, 0)] - phi[phi_index(x, y, 0, Nc - 1,
-                                                                                                     Nx, 0)]) * RTFC, 2);
+                    //Extracellular ion term
+                    comp = Nc-1;
+                    alNc = 1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)];
+                    //Immobile ion part
+                    Energy += user->con_vars->ao[comp]*log(user->con_vars->ao[comp])/(alNc);
+                    //Mobile ions
+                    for(ion = 0; ion < Ni; ion++){
+                        Energy += alNc*c[c_index(x,y,z,comp,ion,Nx,Ny)]*log(c[c_index(x,y,z,comp,ion,Nx,Ny)]);
+                    }
                 }
-                //Extracellular ion term
-                comp = Nc-1;
-                alNc = 1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)];
-                //Immobile ion part
-                Energy +=user->con_vars->ao[comp]*log(user->con_vars->ao[comp])/(alNc);
-                //Mobile ions
-                for(ion=0;ion<Ni;ion++){
-                    Energy += alNc * c[c_index(x, y, 0, comp, ion, Nx, 0)] * log(c[c_index(x, y, 0, comp, ion, Nx, 0)]);
-                }
+                Energy*=dz;
                 //Write to file
-                if (x == Nx - 1 & y == Ny - 1) {
-                    fprintf(fp, "%.10e\n", Energy);
-                } else {
-                    fprintf(fp, "%.10e,", Energy);
+                if(x == Nx-1 & y == Ny-1){
+                    fprintf(fp,"%.10e\n",Energy);
+                }else{
+                    fprintf(fp,"%.10e,",Energy);
                 }
+
 
             }
         }
@@ -1192,7 +1195,7 @@ void draw_csd(struct AppCtx *user)
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
     PetscInt z = 0;
-
+    printf("Layer: %d\n",z);
     for(PetscInt x=0;x<Nx;x++){
         printf("|");
         for(PetscInt y=0;y<Ny;y++){
