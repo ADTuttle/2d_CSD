@@ -32,12 +32,12 @@
 #define   Ni  3           //number of ion species (Na, K, Cl)
 static const   PetscInt z_charge[3] = {1,1,-1};//valences of ion species
 static const   PetscReal D[3] = {1.33e-5, 1.96e-5, 2.03e-5};      //diffusion coefficients in cm^2/sec
-//Diffusion multipliers {x-dir,y-dir}
-static const PetscReal DNeuronMult[3] = {0,0,0};
+//Diffusion multipliers {x-dir,y-dir,z-dir}
+static const PetscReal DNeuronMult[3] = {0,0,.5};
 static const PetscReal DGliaMult[3] = {0.25,0.25,0.25};
 static const PetscReal DExtraMult[3] = {1.0,1.0,1.0};
 
-#define Time 30.0   //total simulated time in seconds
+#define Time 1.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
