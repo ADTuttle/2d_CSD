@@ -2,6 +2,8 @@ cmake-build-debug/
 
 spiral_attempts/
 
+run_data/
+
 data_runs/
 
 mat.txt
