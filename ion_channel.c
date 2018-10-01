@@ -77,50 +77,91 @@ void mcGoldman(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,Pet
     return;
 }
 
-void glutamate_flux(struct FluxData *flux,PetscInt neuron,PetscInt glia,PetscReal cn,PetscReal cnp,PetscReal cg,PetscReal ce,PetscReal vm)
+void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,struct SimState *state_vars,struct SimState *state_vars_past,PetscInt Nx)
 {
-    PetscReal frac = 1.0/(cn+glut_eps);//1.0/(pow(cn,1.19)+glut_eps);//
-    PetscReal expo = exp(-0.0044*pow(vm*RTFC-8.66,2));
+    PetscReal Glu_n,Glu_g,Glu_np,Glu_gp,vn,vg,NaGlu,ce;
+
+    Glu_n = state_vars->c[c_index(x,y,0,3,Nx)];
+    Glu_g = state_vars->c[c_index(x,y,1,3,Nx)];
+    Glu_np = state_vars_past->c[c_index(x,y,0,3,Nx)];
+    Glu_gp= state_vars_past->c[c_index(x,y,1,3,Nx)];
+    ce= state_vars_past->c[c_index(x,y,Nc-1,3,Nx)];
+    vn = state_vars->phi[phi_index(x,y,0,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)];
+    vg = state_vars->phi[phi_index(x,y,1,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)];
+
+    PetscReal frac = 1.0/(Glu_n+glut_eps);//1.0/(pow(cn,1.19)+glut_eps);//
+    PetscReal expo = exp(-0.0044*pow(vn*RTFC-8.66,2));
 
     //Neuronal portion
-//    flux->mflux[neuron] = -(-glut_A*cn*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*cnp)+glut_Bg*(cg-glut_Rg*cnp));
-    flux->mflux[neuron] = -(-glut_A*cn*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*cnp)+glut_Bg*(cg/(cg+1e-6)-glut_Kg*cnp));
-    flux->dfdci[neuron] = -(-glut_A*expo*glut_eps*pow(frac,2));//-glut_gamma*glut_Bn*glut_Re);
-    flux->dfdce[neuron] = 0;//-(glut_gamma*glut_Bn);
-    flux->dfdphim[neuron] = -(RTFC*0.0088*(vm*RTFC-8.66)*expo*glut_A*cn*frac);
+//    flux->mflux[c_index(x,y,0,3,Nx)] = -(-glut_A*Glu_n*frac*expo+glut_Bg*(Glu_gp-glut_Rg*Glu_np));
+//    flux->mflux[c_index(x,y,0,3,Nx)] = -(-glut_A*Glu_n*frac*expo+glut_Bg*(Glu_gp/(Glu_gp+1e-6)-glut_Kg*Glu_np));
+    flux->mflux[c_index(x,y,0,3,Nx)] = -(-glut_A*Glu_n*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*Glu_np)+glut_Bg*(Glu_gp-glut_Rg*Glu_np));
+    flux->dfdci[c_index(x,y,0,3,Nx)] = -(-glut_A*expo*glut_eps*pow(frac,2));//-glut_gamma*glut_Bn*glut_Re);
+    flux->dfdce[c_index(x,y,0,3,Nx)] = 0;//-(glut_gamma*glut_Bn);
+    flux->dfdphim[c_index(x,y,0,3,Nx)] = -(RTFC*0.0088*(vn*RTFC-8.66)*expo*glut_A*Glu_n*frac);
 
-//    flux->mflux[neuron] = -(-glut_A*cn*expo+glut_gamma*glut_Bn*(ce-glut_Re*cnp)+glut_Bg*(cg/(cg+1e-6)-glut_Kg*cnp));
-//    flux->dfdci[neuron] = -(-glut_A*expo);//-glut_gamma*glut_Bn*glut_Re);
-//    flux->dfdce[neuron] = 0;//-(glut_gamma*glut_Bn);
-//    flux->dfdphim[neuron] = -(RTFC*0.0088*(vm*RTFC-8.66)*expo*glut_A*cn);
-
-//    flux->mflux[neuron] = -(-glut_A*pow(cn,1.19)*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*cnp)+glut_Bg*(cg-glut_Rg*cnp));
-//    flux->mflux[neuron] = -(-glut_A*cn*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*cnp)+glut_Bg*(cg/(cg+1e-6)-glut_Kg*cnp));
-//    flux->dfdci[neuron] = -(-glut_A*expo*glut_eps*1.9*pow(cn,0.9)*pow(frac,2));//-glut_gamma*glut_Bn*glut_Re);
-//    flux->dfdce[neuron] = 0;//-(glut_gamma*glut_Bn);
-//    flux->dfdphim[neuron] = -(RTFC*0.0088*(vm*RTFC-8.66)*expo*glut_A*pow(cn,1.19)*frac);
 
     //Glial Portion
-//    flux->mflux[glia] = -((1-glut_gamma)*glut_Bn*(ce-glut_Re*cn)-glut_Bg*(cg-glut_Rg*cn));
-    flux->mflux[glia] = -((1-glut_gamma)*glut_Bn*(ce-glut_Re*cn)-glut_Bg*(cg/(cg+1e-6)-glut_Kg*cnp));
-    flux->dfdci[glia] = 0;
-    flux->dfdce[glia] = 0;//-((1-glut_gamma)*glut_Bn);
-    flux->dfdphim[glia] = 0;
+//    flux->mflux[c_index(x,y,1,3,Nx)] = -(-glut_Bg*(Glu_gp-glut_Rg*Glu_gp));
+//    flux->mflux[c_index(x,y,1,3,Nx)] = -(-glut_Bg*(Glu_gp/(Glu_gp+1e-6)-glut_Kg*Glu_gp));
+    flux->mflux[c_index(x,y,1,3,Nx)] = -((1-glut_gamma)*glut_Bn*(ce-glut_Re*Glu_np)-glut_Bg*(Glu_gp-glut_Rg*Glu_np));
+    flux->dfdci[c_index(x,y,1,3,Nx)] = 0;
+    flux->dfdce[c_index(x,y,1,3,Nx)] = 0;//-((1-glut_gamma)*glut_Bn);
+    flux->dfdphim[c_index(x,y,1,3,Nx)] = 0;
 
     //Extracell portion is = -Neuron-Glia. Which is implemented in the solvers.
 
     // For uniformity scale these up by ell
     //Neuronal portion
-    flux->mflux[neuron] *= ell;
-    flux->dfdci[neuron] *= ell;
-    flux->dfdce[neuron] *= ell;
-    flux->dfdphim[neuron] *= ell;
+    flux->mflux[c_index(x,y,0,3,Nx)] *= ell;
+    flux->dfdci[c_index(x,y,0,3,Nx)] *= ell;
+    flux->dfdce[c_index(x,y,0,3,Nx)] *= ell;
+    flux->dfdphim[c_index(x,y,0,3,Nx)] *= ell;
 
     //Glial Portion
-    flux->mflux[glia] *= ell;
-    flux->dfdci[glia] *= ell;
-    flux->dfdce[glia] *= ell;
-    flux->dfdphim[glia] *= ell;
+    flux->mflux[c_index(x,y,1,3,Nx)] *= ell;
+    flux->dfdci[c_index(x,y,1,3,Nx)] *= ell;
+    flux->dfdce[c_index(x,y,1,3,Nx)] *= ell;
+    flux->dfdphim[c_index(x,y,1,3,Nx)] *= ell;
+
+/*
+    //Extracellular conc.
+    PetscReal Nae = state_vars_past->c[c_index(x,y,Nc-1,0,Nx)];
+    PetscReal Ke = state_vars_past->c[c_index(x,y,Nc-1,1,Nx)];
+    PetscReal Glu_e = state_vars->c[c_index(x,y,Nc-1,3,Nx)];
+
+    //Neuron part
+    PetscReal Na = state_vars_past->c[c_index(x,y,0,0,Nx)];
+    PetscReal K = state_vars_past->c[c_index(x,y,0,1,Nx)];
+    // Add the membrane currents
+//    NaGlu = pNaGl_n*(vn-0.5*log(pow(Nae/Na,3)*(K/Ke)*(Glu_e/Glu_n)*pHratio));
+    NaGlu = pNaGl_n*(0.5*log(pow(Na/Nae,3)*(Ke/K)*(Glu_n/Glu_e)*pHratio)-vn);
+    flux->mflux[c_index(x,y,0,0,Nx)]+=3*NaGlu; //Sodium
+    flux->mflux[c_index(x,y,0,1,Nx)]-=NaGlu; //Potassium
+    flux->mflux[c_index(x,y,0,3,Nx)]+=NaGlu; //Glu
+    //Derivs
+    flux->dfdci[c_index(x,y,0,3,Nx)]+=pNaGl_n/(2*Glu_n); //Just glutamate is implicit
+    flux->dfdce[c_index(x,y,0,3,Nx)]-=pNaGl_n/(2*Glu_e);
+    flux->dfdphim[c_index(x,y,0,3,Nx)]+=pNaGl_n;
+    flux->dfdphim[c_index(x,y,0,0,Nx)]+=3*pNaGl_n;
+    flux->dfdphim[c_index(x,y,0,1,Nx)]-=pNaGl_n;
+
+    //Glia part
+    Na = state_vars_past->c[c_index(x,y,1,0,Nx)];
+    K = state_vars_past->c[c_index(x,y,1,1,Nx)];
+    // Add the membrane currents
+//    NaGlu = pNaGl_g*(vg-0.5*log(pow(Nae/Na,3)*(K/Ke)*(Glu_e/Glu_g)*pHratio));
+    NaGlu = pNaGl_g*(0.5*log(pow(Na/Nae,3)*(Ke/K)*(Glu_g/Glu_e)*pHratio)-vg);
+    flux->mflux[c_index(x,y,1,0,Nx)]+=3*NaGlu; //Sodium
+    flux->mflux[c_index(x,y,1,1,Nx)]-=NaGlu; //Potassium
+    flux->mflux[c_index(x,y,1,3,Nx)]+=NaGlu; //Glu
+    //Derivs
+    flux->dfdci[c_index(x,y,1,3,Nx)]+=pNaGl_g/(2*Glu_g); //Just glutamate is implicit
+    flux->dfdce[c_index(x,y,1,3,Nx)]-=pNaGl_g/(2*Glu_e);
+    flux->dfdphim[c_index(x,y,1,3,Nx)]+=pNaGl_g;
+    flux->dfdphim[c_index(x,y,1,0,Nx)]+=3*pNaGl_n;
+    flux->dfdphim[c_index(x,y,1,1,Nx)]-=pNaGl_n;
+    */
 
 }
 PetscReal xoverexpminusone(PetscReal v,PetscReal aa,PetscReal bb,PetscReal cc,PetscInt dd)
@@ -560,13 +601,9 @@ void ionmflux(struct AppCtx* user)
             flux->mflux[c_index(x,y,1,1,Nx)]+=NaKCl; //K
             flux->mflux[c_index(x,y,1,2,Nx)]+=2*NaKCl; //Cl
 
-            //Glutamate transport
-            vm = state_vars->phi[phi_index(x,y,0,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)];
-            ci = state_vars->c[c_index(x,y,0,3,Nx)];
-            cnp = state_vars_past->c[c_index(x,y,0,3,Nx)];
-            cep = state_vars_past->c[c_index(x,y,Nc-1,3,Nx)];
-            cgp = state_vars_past->c[c_index(x,y,1,3,Nx)];
-            glutamate_flux(flux,c_index(x,y,0,3,Nx),c_index(x,y,1,3,Nx),ci,cnp,cgp,cep,vm);
+            //Glutamate transport(Sets glutamate flux and adds to Sodium+K fluxes in both Neurons and glia
+            glutamate_flux(flux,x,y,state_vars,state_vars_past,Nx);
+
 
             //Change units of flux from mmol/cm^2 to mmol/cm^3/s
             for(PetscInt ion=0;ion<Ni;ion++) {
@@ -582,9 +619,6 @@ void ionmflux(struct AppCtx* user)
                 }
             }
 
-            // Modify the Glial/Neuron glutamate exchanges
-//            flux->dfdci[c_index(x,y,0,3,Nx)]+=glut_Bg*glut_Rg;
-//            flux->dfdci[c_index(x,y,1,3,Nx)]+=glut_Bg;
         }
     }
     if(Profiling_on) {
@@ -796,12 +830,7 @@ void grid_ionmflux(struct AppCtx* user,PetscInt xi,PetscInt yi)
             flux->mflux[c_index(x, y, 1, 2, Nx)] += 2 * NaKCl; //Cl
 
             //Glutamate transport
-            vm = state_vars->phi[phi_index(x,y,0,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)];
-            ci = state_vars->c[c_index(x,y,0,3,Nx)];
-            cnp = state_vars_past->c[c_index(x,y,0,3,Nx)];
-            cep = state_vars_past->c[c_index(x,y,Nc-1,3,Nx)];
-            cgp = state_vars_past->c[c_index(x,y,1,3,Nx)];
-            glutamate_flux(flux,c_index(x,y,0,3,Nx),c_index(x,y,1,3,Nx),ci,cnp,cgp,cep,vm);
+            glutamate_flux(flux,x,y,state_vars,state_vars_past,Nx);
 
 
             //Change units of flux from mmol/cm^2 to mmol/cm^3/s
