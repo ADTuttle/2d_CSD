@@ -104,7 +104,8 @@ void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,struct SimState 
     //Glial Portion
 //    flux->mflux[c_index(x,y,1,3,Nx)] = -(-glut_Bg*(Glu_gp-glut_Rg*Glu_gp));
 //    flux->mflux[c_index(x,y,1,3,Nx)] = -(-glut_Bg*(Glu_gp/(Glu_gp+1e-6)-glut_Kg*Glu_gp));
-    flux->mflux[c_index(x,y,1,3,Nx)] = -((1-glut_gamma)*glut_Bn*(ce-glut_Re*Glu_np)-glut_Bg*(Glu_gp-glut_Rg*Glu_np));
+//    flux->mflux[c_index(x,y,1,3,Nx)] = -((1-glut_gamma)*glut_Bn*(ce-glut_Re*Glu_np)-glut_Bg*(Glu_gp-glut_Rg*Glu_np));
+    flux->mflux[c_index(x,y,1,3,Nx)] = -((1-glut_gamma)*glut_Bn*(ce-glut_Re*Glu_gp)-glut_Bg*(Glu_gp-glut_Rg*Glu_np));
     flux->dfdci[c_index(x,y,1,3,Nx)] = 0;
     flux->dfdce[c_index(x,y,1,3,Nx)] = 0;//-((1-glut_gamma)*glut_Bn);
     flux->dfdphim[c_index(x,y,1,3,Nx)] = 0;

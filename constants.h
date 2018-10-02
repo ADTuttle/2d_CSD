@@ -32,7 +32,7 @@
 static const   PetscInt z[4] = {1,1,-1,-1}; //valences of ion species
 static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,7.6e-6};      //diffusion coefficients in cm^2/sec
 
-#define Time 40.0   //total simulated time in seconds
+#define Time 20.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -131,7 +131,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 #define glut_gamma 0.2    //Reabsorbtion ratio (arbitrary)
 #define glut_Bn (1.0/42)//10e-2//e-2              //Decay rate(extracell->intracell) in 1/sec
-#define glut_Re 0.01        // Steady state extracell/neuron concentration ratio
+#define glut_Re 1e-3        // Steady state extracell/neuron concentration ratio
 
 
 
