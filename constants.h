@@ -118,13 +118,13 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define npump  1.0
 
 // Glutamate parameters
-#define glut_A 500e-5 //(500e-3) //500       //Release rate in mmol/cm^3/sec
+#define glut_A  100e-5//500e-5 //(500e-3) //500       //Release rate in mmol/cm^3/sec
 #define glut_eps 22.99e-6//5e-3//5e-6 //5e-3      //Small scaling factor muMol converted to millMol
 #define glut_Rg (1.0/6)       // Steady state glia/neuron concentration ratio
 #define glut_Bg (1.0/42)//8e-2             //Decay rate(glia->neurons) in 1/sec
-//#define pNaGl_n (3e-5*RTFC/FC)              //Na-Glu transporter permeability
-//#define pNaGl_g (3e-5*RTFC/FC)              //Na-Glu transporter permeability
-//#define pHratio 2.0//0.5             //Ratio of extracell to intracell pH(for transporter)
+#define pNaGl_n (3e-5*RTFC/FC)              //Na-Glu transporter permeability
+#define pNaGl_g (3e-3*RTFC/FC)              //Na-Glu transporter permeability
+#define pHratio 2.0//0.5             //Ratio of extracell to intracell pH(for transporter)
 
 //#define glut_Bg 1.0e-5 //19.2e-6             //Decay rate(glia->neurons) in 1/sec
 //#define glut_Kg 99.940035978412951            //Neuronal fraction for glial reaction

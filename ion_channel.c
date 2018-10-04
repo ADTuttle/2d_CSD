@@ -93,18 +93,13 @@ void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,struct SimState 
     PetscReal expo = exp(-0.0044*pow(vn*RTFC-8.66,2));
 
     //Neuronal portion
-//    flux->mflux[c_index(x,y,0,3,Nx)] = -(-glut_A*Glu_n*frac*expo+glut_Bg*(Glu_gp-glut_Rg*Glu_np));
-//    flux->mflux[c_index(x,y,0,3,Nx)] = -(-glut_A*Glu_n*frac*expo+glut_Bg*(Glu_gp/(Glu_gp+1e-6)-glut_Kg*Glu_np));
     flux->mflux[c_index(x,y,0,3,Nx)] = -(-glut_A*Glu_n*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*Glu_np)+glut_Bg*(Glu_gp-glut_Rg*Glu_np));
-    flux->dfdci[c_index(x,y,0,3,Nx)] = -(-glut_A*expo*glut_eps*pow(frac,2));//-glut_gamma*glut_Bn*glut_Re);
-    flux->dfdce[c_index(x,y,0,3,Nx)] = 0;//-(glut_gamma*glut_Bn);
+    flux->dfdci[c_index(x,y,0,3,Nx)] = -(-glut_A*expo*glut_eps*pow(frac,2));
+    flux->dfdce[c_index(x,y,0,3,Nx)] = 0;
     flux->dfdphim[c_index(x,y,0,3,Nx)] = -(RTFC*0.0088*(vn*RTFC-8.66)*expo*glut_A*Glu_n*frac);
 
 
     //Glial Portion
-//    flux->mflux[c_index(x,y,1,3,Nx)] = -(-glut_Bg*(Glu_gp-glut_Rg*Glu_gp));
-//    flux->mflux[c_index(x,y,1,3,Nx)] = -(-glut_Bg*(Glu_gp/(Glu_gp+1e-6)-glut_Kg*Glu_gp));
-//    flux->mflux[c_index(x,y,1,3,Nx)] = -((1-glut_gamma)*glut_Bn*(ce-glut_Re*Glu_np)-glut_Bg*(Glu_gp-glut_Rg*Glu_np));
     flux->mflux[c_index(x,y,1,3,Nx)] = -((1-glut_gamma)*glut_Bn*(ce-glut_Re*Glu_gp)-glut_Bg*(Glu_gp-glut_Rg*Glu_np));
     flux->dfdci[c_index(x,y,1,3,Nx)] = 0;
     flux->dfdce[c_index(x,y,1,3,Nx)] = 0;//-((1-glut_gamma)*glut_Bn);
