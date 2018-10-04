@@ -32,7 +32,7 @@
 static const   PetscInt z[4] = {1,1,-1,-1}; //valences of ion species
 static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,7.6e-6};      //diffusion coefficients in cm^2/sec
 
-#define Time 20.0   //total simulated time in seconds
+#define Time 30.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -123,7 +123,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define glut_Rg (1.0/6)       // Steady state glia/neuron concentration ratio
 #define glut_Bg (1.0/42)//8e-2             //Decay rate(glia->neurons) in 1/sec
 #define pNaGl_n (3e-5*RTFC/FC)              //Na-Glu transporter permeability
-#define pNaGl_g (3e-3*RTFC/FC)              //Na-Glu transporter permeability
+#define pNaGl_g (1e-3*RTFC/FC) //(3e-3*RTFC/FC)              //Na-Glu transporter permeability
 #define pHratio 2.0//0.5             //Ratio of extracell to intracell pH(for transporter)
 
 //#define glut_Bg 1.0e-5 //19.2e-6             //Decay rate(glia->neurons) in 1/sec

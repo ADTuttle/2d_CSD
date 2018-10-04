@@ -157,7 +157,7 @@ void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,struct SimState 
     flux->dfdphim[c_index(x,y,1,3,Nx)]+=pNaGl_g;
     flux->dfdphim[c_index(x,y,1,0,Nx)]+=3*pNaGl_n;
     flux->dfdphim[c_index(x,y,1,1,Nx)]-=pNaGl_n;
-    */
+//    */
 
 }
 PetscReal xoverexpminusone(PetscReal v,PetscReal aa,PetscReal bb,PetscReal cc,PetscInt dd)
@@ -312,15 +312,18 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
                 gate_vars->gKA[xy_index(x,y,Nx)] = pow(gate_vars->mKA[xy_index(x,y,Nx)], 2) * gate_vars->hKA[xy_index(x,y,Nx)];
 
                 //gating variable NMDA
-                alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05e-3); //72*Glu_e/(0.05+Glu_e)
+                if(Ni>3){
+                    alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/
+                            (state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05e-3); //72*Glu_e/(0.05+Glu_e)
 //                alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
 //                beta = 6.6; // 6.6 (sec)^-1->6.6e-3 msec^-1
 //                alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
-                beta = 6.6e-3; //just 6.6
-                gate_vars->yNMDA[xy_index(x,y,Nx)] = alpha / (alpha + beta);
+                    beta = 6.6e-3; //just 6.6
+                    gate_vars->yNMDA[xy_index(x,y,Nx)] = alpha/(alpha+beta);
 
-                Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
-                gate_vars->gNMDA[xy_index(x,y,Nx)] = gate_vars->yNMDA[xy_index(x,y,Nx)]* Gphi;
+                    Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
+                    gate_vars->gNMDA[xy_index(x,y,Nx)] = gate_vars->yNMDA[xy_index(x,y,Nx)]*Gphi;
+                }
             }
         }
     } else { //if it's not the firstpass, then we actually have values in v.
@@ -378,6 +381,7 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
 
                 //gating variable NMDA
                 //72 mM/sec->72 1e-3mM/l *1e-3 1/msec
+                if(Ni>3){
                 alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05); //72*Glu_e/(0.05+Glu_e)
 //                alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
 //                beta = 6.6; // 6.6 (sec)^-1->6.6e-3 msec^-1
@@ -387,6 +391,7 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
 
                 Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
                 gate_vars->gNMDA[xy_index(x,y,Nx)] = gate_vars->yNMDA[xy_index(x,y,Nx)]* Gphi;
+                }
             }
         }
     }
@@ -598,7 +603,9 @@ void ionmflux(struct AppCtx* user)
             flux->mflux[c_index(x,y,1,2,Nx)]+=2*NaKCl; //Cl
 
             //Glutamate transport(Sets glutamate flux and adds to Sodium+K fluxes in both Neurons and glia
-            glutamate_flux(flux,x,y,state_vars,state_vars_past,Nx);
+            if(Ni>3){
+                glutamate_flux(flux,x,y,state_vars,state_vars_past,Nx);
+            }
 
 
             //Change units of flux from mmol/cm^2 to mmol/cm^3/s
@@ -826,7 +833,9 @@ void grid_ionmflux(struct AppCtx* user,PetscInt xi,PetscInt yi)
             flux->mflux[c_index(x, y, 1, 2, Nx)] += 2 * NaKCl; //Cl
 
             //Glutamate transport
-            glutamate_flux(flux,x,y,state_vars,state_vars_past,Nx);
+            if(Ni>3){
+                glutamate_flux(flux,x,y,state_vars,state_vars_past,Nx);
+            }
 
 
             //Change units of flux from mmol/cm^2 to mmol/cm^3/s
@@ -923,13 +932,16 @@ void gatevars_update_grid(struct GateType *gate_vars,struct SimState *state_vars
                     pow(gate_vars->mKA[xy_index(x, y, Nx)], 2) * gate_vars->hKA[xy_index(x, y, Nx)];
 
             //gating variable NMDA
+            if(Ni>3){
 //            alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05); //72*Glu_e/(0.05+Glu_e)
-            alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
-            beta = 6.6e-3; //just 6.6
-            gate_vars->yNMDA[xy_index(x,y,Nx)] = (gate_vars->yNMDA[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
+                alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
+                beta = 6.6e-3; //just 6.6
+                gate_vars->yNMDA[xy_index(x,y,Nx)] =
+                        (gate_vars->yNMDA[xy_index(x,y,Nx)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
-            Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
-            gate_vars->gNMDA[xy_index(x,y,Nx)] = gate_vars->yNMDA[xy_index(x,y,Nx)]* Gphi;
+                Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
+                gate_vars->gNMDA[xy_index(x,y,Nx)] = gate_vars->yNMDA[xy_index(x,y,Nx)]*Gphi;
+            }
 
         }
     }
