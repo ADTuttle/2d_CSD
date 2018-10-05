@@ -39,6 +39,8 @@ void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
                     grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind,yind,zind,Nx,Ny)];
                     grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind,yind,zind,Nx,Ny)];
                     grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind,yind,zind,Nx,Ny)];
+                    grid_gate->yNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->yNMDA[xy_index(xind,yind,zind,Nx,Ny)];
+                    grid_gate->gNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->gNMDA[xy_index(xind,yind,zind,Nx,Ny)];
 
                     for(comp = 0; comp < Nc; comp++){
                         for(ion = 0; ion < Ni; ion++){
@@ -67,6 +69,8 @@ void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
                         grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind-1,yind,zind,Nx,Ny)];
                         grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind-1,yind,zind,Nx,Ny)];
                         grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind-1,yind,zind,Nx,Ny)];
+                        grid_gate->yNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->yNMDA[xy_index(xind-1,yind,zind,Nx,Ny)];
+                        grid_gate->gNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->gNMDA[xy_index(xind-1,yind,zind,Nx,Ny)];
 
                         for(comp = 0; comp < Nc; comp++){
                             for(ion = 0; ion < Ni; ion++){
@@ -94,6 +98,8 @@ void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
                         grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind,yind-1,z,Nx,Ny)];
                         grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind,yind-1,z,Nx,Ny)];
                         grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind,yind-1,z,Nx,Ny)];
+                        grid_gate->yNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->yNMDA[xy_index(xind,yind-1,z,Nx,Ny)];
+                        grid_gate->gNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->gNMDA[xy_index(xind,yind-1,z,Nx,Ny)];
 
                         for(comp = 0; comp < Nc; comp++){
                             for(ion = 0; ion < Ni; ion++){
@@ -121,6 +127,8 @@ void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
                         grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind+1,yind,zind,Nx,Ny)];
                         grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind+1,yind,zind,Nx,Ny)];
                         grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind+1,yind,zind,Nx,Ny)];
+                        grid_gate->yNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->yNMDA[xy_index(xind+1,yind,zind,Nx,Ny)];
+                        grid_gate->gNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->gNMDA[xy_index(xind+1,yind,zind,Nx,Ny)];
 
                         for(comp = 0; comp < Nc; comp++){
                             for(ion = 0; ion < Ni; ion++){
@@ -148,6 +156,8 @@ void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
                         grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind,yind+1,z,Nx,Ny)];
                         grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind,yind+1,z,Nx,Ny)];
                         grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind,yind+1,z,Nx,Ny)];
+                        grid_gate->yNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->yNMDA[xy_index(xind,yind+1,z,Nx,Ny)];
+                        grid_gate->gNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->gNMDA[xy_index(xind,yind+1,z,Nx,Ny)];
 
                         for(comp = 0; comp < Nc; comp++){
                             for(ion = 0; ion < Ni; ion++){
@@ -175,6 +185,8 @@ void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
                         grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind-1,yind-1,z,Nx,Ny)];
                         grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind-1,yind-1,z,Nx,Ny)];
                         grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind-1,yind-1,z,Nx,Ny)];
+                        grid_gate->yNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->yNMDA[xy_index(xind-1,yind-1,z,Nx,Ny)];
+                        grid_gate->gNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->gNMDA[xy_index(xind-1,yind-1,z,Nx,Ny)];
 
                         for(comp = 0; comp < Nc; comp++){
                             for(ion = 0; ion < Ni; ion++){
@@ -202,6 +214,8 @@ void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
                         grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind+1,yind-1,z,Nx,Ny)];
                         grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind+1,yind-1,z,Nx,Ny)];
                         grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind+1,yind-1,z,Nx,Ny)];
+                        grid_gate->yNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->yNMDA[xy_index(xind+1,yind-1,z,Nx,Ny)];
+                        grid_gate->gNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->gNMDA[xy_index(xind+1,yind-1,z,Nx,Ny)];
 
                         for(comp = 0; comp < Nc; comp++){
                             for(ion = 0; ion < Ni; ion++){
@@ -229,6 +243,8 @@ void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
                         grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind+1,yind+1,z,Nx,Ny)];
                         grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind+1,yind+1,z,Nx,Ny)];
                         grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind+1,yind+1,z,Nx,Ny)];
+                        grid_gate->yNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->yNMDA[xy_index(xind+1,yind+1,z,Nx,Ny)];
+                        grid_gate->gNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->gNMDA[xy_index(xind+1,yind+1,z,Nx,Ny)];
 
                         for(comp = 0; comp < Nc; comp++){
                             for(ion = 0; ion < Ni; ion++){
@@ -256,6 +272,8 @@ void Load_Grid(struct AppCtx *user,PetscInt xi,PetscInt yi){
                         grid_gate->mKA[xy_index(x,y,z,nx,ny)] = gate_vars->mKA[xy_index(xind-1,yind+1,z,Nx,Ny)];
                         grid_gate->hKA[xy_index(x,y,z,nx,ny)] = gate_vars->hKA[xy_index(xind-1,yind+1,z,Nx,Ny)];
                         grid_gate->gKA[xy_index(x,y,z,nx,ny)] = gate_vars->gKA[xy_index(xind-1,yind+1,z,Nx,Ny)];
+                        grid_gate->yNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->yNMDA[xy_index(xind-1,yind+1,z,Nx,Ny)];
+                        grid_gate->gNMDA[xy_index(x,y,z,nx,ny)] = gate_vars->gNMDA[xy_index(xind-1,yind+1,z,Nx,Ny)];
 
                         for(comp = 0; comp < Nc; comp++){
                             for(ion = 0; ion < Ni; ion++){
@@ -318,6 +336,8 @@ void Unload_Grid(struct AppCtx *user,PetscInt x,PetscInt y){
         user->gate_vars->mKA[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->mKA[xy_index(width_size,width_size,z,nx,ny)];
         user->gate_vars->hKA[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->hKA[xy_index(width_size,width_size,z,nx,ny)];
         user->gate_vars->gKA[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->gKA[xy_index(width_size,width_size,z,nx,ny)];
+        user->gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->yNMDA[xy_index(width_size,width_size,z,nx,ny)];
+        user->gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)] = user->grid_gate_vars->gNMDA[xy_index(width_size,width_size,z,nx,ny)];
 
     }
     if(Profiling_on) {
@@ -1290,7 +1310,6 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
 
     ierr = VecAssemblyBegin(Res);CHKERRQ(ierr);
     ierr = VecAssemblyEnd(Res);CHKERRQ(ierr);
-
     if(Profiling_on) {
         PetscLogEventEnd(event[10], 0, 0, 0, 0);
     }

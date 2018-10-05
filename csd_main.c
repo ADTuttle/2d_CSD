@@ -233,6 +233,8 @@ int main(int argc, char **argv)
         memcpy(user->gate_vars_past->mKA,user->gate_vars->mKA,sizeof(PetscReal)*Nx*Ny*Nz);
         memcpy(user->gate_vars_past->mKDR,user->gate_vars->mKDR,sizeof(PetscReal)*Nx*Ny*Nz);
         memcpy(user->gate_vars_past->gKDR,user->gate_vars->gKDR,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->yNMDA,user->gate_vars->yNMDA,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->gNMDA,user->gate_vars->gNMDA,sizeof(PetscReal)*Nx*Ny*Nz);
         //Update the past membrane voltage
         if(Predictor){
             for(z=0;z<Nz;z++){

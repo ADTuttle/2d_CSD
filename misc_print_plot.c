@@ -29,78 +29,62 @@ void print_all(struct AppCtx *user)
     //y at odd (1,3,5,...)
     //still use c_index(x,y,comp,ion,Nx), but with ind*2 or ind*2+1
 
-    for(PetscInt ion=0;ion<Ni;ion++)
-    {
-        for(PetscInt comp=0;comp<Nc;comp++)
-        {
+    for(PetscInt ion=0;ion<Ni;ion++){
+        for(PetscInt comp=0;comp<Nc;comp++){
             printf("Dcs: Ion %d, Comp %d ",ion,comp);
-            printf("Dcs x: %f, Dcs y: %f\n",1e6*Dcs[c_index(0, 0, 0, comp, ion, Nx, 0) * 2], 1e6 * Dcs[c_index(0, 4, 0,
-                                                                                                               comp,
-                                                                                                               ion, Nx,
-                                                                                                               0) * 2 + 1]);
+            printf("Dcs x: %.10e, Dcs y: %.10e,Dcs z: %.10e\n",Dcs[c_index(0,0,0,comp,ion,Nx,Ny)*3],
+                    Dcs[c_index(0,0,0,comp,ion,Nx,Ny)*3+1],Dcs[c_index(0,0,0,comp,ion,Nx,Ny)*3+2]);
         }
     }
     printf("\n");
 
     //Bath diffusion
 
-    for(PetscInt ion=0;ion<Ni;ion++)
-    {
-        for(PetscInt comp=0;comp<Nc;comp++)
-        {
+    for(PetscInt ion=0;ion<Ni;ion++){
+        for(PetscInt comp=0;comp<Nc;comp++){
             printf("Dcb: Ion %d, Comp %d ",ion,comp);
-            printf("Dcb x: %f, Dcb y: %f\n",1e6*Dcb[c_index(0, 0, 0, comp, ion, Nx, 0) * 2], 1e6 * Dcb[c_index(0, 4, 0,
-                                                                                                               comp,
-                                                                                                               ion, Nx,
-                                                                                                               0) * 2 + 1]);
+            printf("Dcb x: %.10e, Dcb y: %.10e,Dcb z: %.10e\n",Dcb[c_index(0,0,0,comp,ion,Nx,Ny)*3],
+                   Dcb[c_index(0,0,0,comp,ion,Nx,Ny)*3+1],Dcb[c_index(0,0,0,comp,ion,Nx,Ny)*3+2]);
         }
     }
 
     PetscInt x=0;PetscInt y=0;
     printf("\n");
-    for(PetscInt ion=0;ion<Ni;ion++)
-    {
-        for(PetscInt comp=0;comp<Nc;comp++)
-        {
-            printf("Ion: %d, Comp %d, C: %f\n",ion,comp,state_vars->c[c_index(0, 0, 0, comp, ion, Nx, 0)]);
+    for(PetscInt ion=0;ion<Ni;ion++){
+        for(PetscInt comp=0;comp<Nc;comp++){
+            printf("Ion: %d, Comp %d, C: %f\n",ion,comp,state_vars->c[c_index(0, 0, 0, comp, ion, Nx, Ny)]);
         }
     }
-    for(PetscInt comp=0;comp<Nc;comp++)
-    {
-        printf("Comp %d, Phi: %f\n",comp, state_vars->phi[phi_index(0, 0, 0, comp, Nx, 0)] * RTFC);
+    for(PetscInt comp=0;comp<Nc;comp++){
+        printf("Comp %d, Phi: %f\n",comp, state_vars->phi[phi_index(0, 0, 0, comp, Nx, Ny)] * RTFC);
     }
-    for(PetscInt comp=0;comp<Nc-1;comp++)
-    {
-        printf("Comp %d, alpha: %.10e\n",comp,state_vars->alpha[al_index(0, 0, 0, comp, Nx, 0)]);
+    for(PetscInt comp=0;comp<Nc-1;comp++){
+        printf("Comp %d, alpha: %.10e\n",comp,state_vars->alpha[al_index(0, 0, 0, comp, Nx, Ny)]);
     }
     printf("Gvars:\n");
-    printf("NaT :%f,%f,%f*1e-6\n",gvars->mNaT[0],gvars->hNaT[0],1e6*gvars->gNaT[0]);
-    printf("NaP :%f,%f,%f\n",gvars->mNaP[0],gvars->hNaP[0],gvars->gNaP[0]);
-    printf("KDR :%f,%f\n",gvars->mKDR[0],gvars->gKDR[0]);
-    printf("KA :%f,%f,%f\n",gvars->mKA[0],gvars->hKA[0],gvars->gKA[0]);
+    printf("NaT :%.10e,%.10e,%.10e\n",gvars->mNaT[0],gvars->hNaT[0],gvars->gNaT[0]);
+    printf("NaP :%.10e,%.10e,%.10e\n",gvars->mNaP[0],gvars->hNaP[0],gvars->gNaP[0]);
+    printf("KDR :%.10e,%.10e\n",gvars->mKDR[0],gvars->gKDR[0]);
+    printf("KA :%.10e,%.10e,%.10e\n",gvars->mKA[0],gvars->hKA[0],gvars->gKA[0]);
+    printf("NMDA :%.10e,%.10e\n",gvars->yNMDA[0],gvars->gNMDA[0]);
     printf("\n");
     //Compute membrane ionic flux relation quantitites
 
-    for(PetscInt ion=0;ion<Ni;ion++)
-    {
-        for(PetscInt comp=0;comp<Nc;comp++)
-        {
+    for(PetscInt ion=0;ion<Ni;ion++){
+        for(PetscInt comp=0;comp<Nc;comp++){
             printf("Ion: %d, Comp %d\n",ion,comp);
-            printf("Flux: %f*1e20, dfdci: %f, dfdce: %f, dfdphim: %f\n",1e20*flux->mflux[c_index(0, 0, 0, comp, ion, Nx,
-                                                                                                 0)], flux->dfdci[c_index(
-                    0, 0, 0, comp, ion, Nx, 0)], flux->dfdce[c_index(
-                    0, 0, 0, comp, ion, Nx, 0)], flux->dfdphim[c_index(
-                    0, 0, 0, comp, ion, Nx, 0)]);
+            printf("Flux: %.10e, dfdci: %.10e, dfdce: %.10e, dfdphim: %.10e\n",
+                   flux->mflux[c_index(0,0,0,comp,ion,Nx,Ny)],
+                   flux->dfdci[c_index(0,0,0,comp,ion,Nx,Ny)],
+                   flux->dfdce[c_index(0,0,0,comp,ion,Nx,Ny)],flux->dfdphim[c_index(0,0,0,comp,ion,Nx,Ny)]);
         }
     }
     printf("\n");
     //Compute membrane water flow related quantities
-    for(PetscInt comp=0;comp<Nc-1;comp++)
-    {
+    for(PetscInt comp=0;comp<Nc-1;comp++){
         printf("Comp: %d\n",comp);
-        printf("wFlux: %f,%f,%f\n", flux->wflow[al_index(x, y, 0, comp, Nx, 0)], flux->dwdpi[al_index(x, y, 0, comp, Nx,
-                                                                                                      0)], flux->dwdal[al_index(
-                x, y, 0, comp, Nx, 0)]);
+        printf("wFlux: %.10e,%.10e,%.10e\n",flux->wflow[al_index(x,y,0,comp,Nx,Ny)],
+                flux->dwdpi[al_index(x,y,0,comp,Nx,Ny)],flux->dwdal[al_index(x,y,0,comp,Nx,Ny)]);
     }
     printf("\n");
     // VecView(slvr->Res,PETSC_VIEWER_STDOUT_SELF);

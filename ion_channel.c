@@ -69,6 +69,91 @@ void mcGoldman(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,Pet
         flux->dfdphim[index] = dfdphim;
     }
 }
+
+void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,PetscInt z,struct SimState *state_vars,
+                    struct SimState *state_vars_past,PetscInt Nx,PetscInt Ny)
+{
+    PetscReal Glu_n,Glu_g,Glu_np,Glu_gp,vn,vg,NaGlu,ce;
+
+    Glu_n = state_vars->c[c_index(x,y,z,0,3,Nx,Ny)];
+    Glu_g = state_vars->c[c_index(x,y,z,1,3,Nx,Ny)];
+    Glu_np = state_vars_past->c[c_index(x,y,z,0,3,Nx,Ny)];
+    Glu_gp= state_vars_past->c[c_index(x,y,z,1,3,Nx,Ny)];
+    ce= state_vars_past->c[c_index(x,y,z,Nc-1,3,Nx,Ny)];
+    vn = state_vars->phi[phi_index(x,y,z,0,Nx,Ny)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)];
+    vg = state_vars->phi[phi_index(x,y,z,1,Nx,Ny)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)];
+
+    PetscReal frac = 1.0/(Glu_n+glut_eps);//1.0/(pow(cn,1.19)+glut_eps);//
+    PetscReal expo = exp(-0.0044*pow(vn*RTFC-8.66,2));
+
+    //Neuronal portion
+    flux->mflux[c_index(x,y,z,0,3,Nx,Ny)] = -(-glut_A*Glu_n*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*Glu_np)+glut_Bg*(Glu_gp-glut_Rg*Glu_np));
+    flux->dfdci[c_index(x,y,z,0,3,Nx,Ny)] = -(-glut_A*expo*glut_eps*pow(frac,2));
+    flux->dfdce[c_index(x,y,z,0,3,Nx,Ny)] = 0;
+    flux->dfdphim[c_index(x,y,z,0,3,Nx,Ny)] = -(RTFC*0.0088*(vn*RTFC-8.66)*expo*glut_A*Glu_n*frac);
+
+
+    //Glial Portion
+    flux->mflux[c_index(x,y,z,1,3,Nx,Ny)] = -((1-glut_gamma)*glut_Bn*(ce-glut_Re*Glu_gp)-glut_Bg*(Glu_gp-glut_Rg*Glu_np));
+    flux->dfdci[c_index(x,y,z,1,3,Nx,Ny)] = 0;
+    flux->dfdce[c_index(x,y,z,1,3,Nx,Ny)] = 0;//-((1-glut_gamma)*glut_Bn);
+    flux->dfdphim[c_index(x,y,z,1,3,Nx,Ny)] = 0;
+
+    //Extracell portion is = -Neuron-Glia. Which is implemented in the solvers.
+
+    // For uniformity scale these up by ell
+    //Neuronal portion
+    flux->mflux[c_index(x,y,z,0,3,Nx,Ny)] *= ell;
+    flux->dfdci[c_index(x,y,z,0,3,Nx,Ny)] *= ell;
+    flux->dfdce[c_index(x,y,z,0,3,Nx,Ny)] *= ell;
+    flux->dfdphim[c_index(x,y,z,0,3,Nx,Ny)] *= ell;
+
+    //Glial Portion
+    flux->mflux[c_index(x,y,z,1,3,Nx,Ny)] *= ell;
+    flux->dfdci[c_index(x,y,z,1,3,Nx,Ny)] *= ell;
+    flux->dfdce[c_index(x,y,z,1,3,Nx,Ny)] *= ell;
+    flux->dfdphim[c_index(x,y,z,1,3,Nx,Ny)] *= ell;
+
+/*
+    //Extracellular conc.
+    PetscReal Nae = state_vars_past->c[c_index(x,y,z,Nc-1,0,Nx,Ny)];
+    PetscReal Ke = state_vars_past->c[c_index(x,y,z,Nc-1,1,Nx,Ny)];
+    PetscReal Glu_e = state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)];
+
+    //Neuron part
+    PetscReal Na = state_vars_past->c[c_index(x,y,z,0,0,Nx,Ny)];
+    PetscReal K = state_vars_past->c[c_index(x,y,z,0,1,Nx,Ny)];
+    // Add the membrane currents
+//    NaGlu = pNaGl_n*(vn-0.5*log(pow(Nae/Na,3)*(K/Ke)*(Glu_e/Glu_n)*pHratio));
+    NaGlu = pNaGl_n*(0.5*log(pow(Na/Nae,3)*(Ke/K)*(Glu_n/Glu_e)*pHratio)-vn);
+    flux->mflux[c_index(x,y,z,0,0,Nx,Ny)]+=3*NaGlu; //Sodium
+    flux->mflux[c_index(x,y,z,0,1,Nx,Ny)]-=NaGlu; //Potassium
+    flux->mflux[c_index(x,y,z,0,3,Nx,Ny)]+=NaGlu; //Glu
+    //Derivs
+    flux->dfdci[c_index(x,y,z,0,3,Nx,Ny)]+=pNaGl_n/(2*Glu_n); //Just glutamate is implicit
+    flux->dfdce[c_index(x,y,z,0,3,Nx,Ny)]-=pNaGl_n/(2*Glu_e);
+    flux->dfdphim[c_index(x,y,z,0,3,Nx,Ny)]+=pNaGl_n;
+    flux->dfdphim[c_index(x,y,z,0,0,Nx,Ny)]+=3*pNaGl_n;
+    flux->dfdphim[c_index(x,y,z,0,1,Nx,Ny)]-=pNaGl_n;
+
+    //Glia part
+    Na = state_vars_past->c[c_index(x,y,z,1,0,Nx,Ny)];
+    K = state_vars_past->c[c_index(x,y,z,1,1,Nx,Ny)];
+    // Add the membrane currents
+//    NaGlu = pNaGl_g*(vg-0.5*log(pow(Nae/Na,3)*(K/Ke)*(Glu_e/Glu_g)*pHratio));
+    NaGlu = pNaGl_g*(0.5*log(pow(Na/Nae,3)*(Ke/K)*(Glu_g/Glu_e)*pHratio)-vg);
+    flux->mflux[c_index(x,y,z,1,0,Nx,Ny)]+=3*NaGlu; //Sodium
+    flux->mflux[c_index(x,y,z,1,1,Nx,Ny)]-=NaGlu; //Potassium
+    flux->mflux[c_index(x,y,z,1,3,Nx,Ny)]+=NaGlu; //Glu
+    //Derivs
+    flux->dfdci[c_index(x,y,z,1,3,Nx,Ny)]+=pNaGl_g/(2*Glu_g); //Just glutamate is implicit
+    flux->dfdce[c_index(x,y,z,1,3,Nx,Ny)]-=pNaGl_g/(2*Glu_e);
+    flux->dfdphim[c_index(x,y,z,1,3,Nx,Ny)]+=pNaGl_g;
+    flux->dfdphim[c_index(x,y,z,1,0,Nx,Ny)]+=3*pNaGl_n;
+    flux->dfdphim[c_index(x,y,z,1,1,Nx,Ny)]-=pNaGl_n;
+//    */
+
+}
 PetscReal xoverexpminusone(PetscReal v,PetscReal aa,PetscReal bb,PetscReal cc,PetscInt dd)
 {
     //computes aa*(v+bb)/(exp(cc*(v+bb))-1) if dd==0
@@ -204,9 +289,9 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
     PetscInt Ny = user->Ny;
     PetscInt Nz = user->Nz;
 
-    PetscReal v,alpha,beta;
-    if(firstpass) {
-        for (PetscInt z = 0; z < Nz; z++){
+    PetscReal v,alpha,beta,Gphi;
+    if(firstpass){
+        for(PetscInt z = 0; z < Nz; z++){
             for(PetscInt y = 0; y < Ny; y++){
                 for(PetscInt x = 0; x < Nx; x++){
 
@@ -263,10 +348,22 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
 
                     gate_vars->gKA[xy_index(x,y,z,Nx,Ny)] =
                             pow(gate_vars->mKA[xy_index(x,y,z,Nx,Ny)],2)*gate_vars->hKA[xy_index(x,y,z,Nx,Ny)];
+
+                    //gating variable NMDA
+                    if(Ni > 3){
+                        alpha = 72e-6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]/
+                                (state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]+0.05e-3); //72*Glu_e/(0.05+Glu_e)
+                        beta = 6.6e-3; //just 6.6
+                        gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] = alpha/(alpha+beta);
+
+                        Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
+                        gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)]*Gphi;
+                    }
+
                 }
             }
         }
-    } else { //if it's not the firstpass, then we actually have values in v.
+    }else { //if it's not the firstpass, then we actually have values in v.
         for(PetscInt z=0;z<Nz;z++){
             for(PetscInt y = 0; y < Ny; y++){
                 for(PetscInt x = 0; x < Nx; x++){
@@ -329,6 +426,18 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
 
                     gate_vars->gKA[xy_index(x,y,z,Nx,Ny)] =
                             pow(gate_vars->mKA[xy_index(x,y,z,Nx,Ny)],2)*gate_vars->hKA[xy_index(x,y,z,Nx,Ny)];
+                    //gating variable NMDA
+                    //72 mM/sec->72 1e-3mM/l *1e-3 1/msec
+                    if(Ni>3){
+                        alpha = 72e-6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]/
+                                (state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]+0.05); //72*Glu_e/(0.05+Glu_e)
+                        beta = 6.6e-3; // 6.6 (sec)^-1->6.6e-3 msec^-1
+                        gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] =
+                                (gate_vars_past->yNMDA[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+
+                        Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
+                        gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)]*Gphi;
+                    }
                 }
             }
         }
@@ -448,7 +557,7 @@ void ionmflux(struct AppCtx* user)
     struct ConstVars *con_vars = user->con_vars;
     //Variables to save to for ease of notation
     PetscReal vm,vmg,vmgp;
-    PetscReal ci,cg,ce,cgp,cep;
+    PetscReal ci,cg,ce,cgp,cep,cnp;
     PetscReal Na,K;//Variables for pump (so it's clear)
 
     //For calculationg permeabilities
@@ -469,7 +578,8 @@ void ionmflux(struct AppCtx* user)
 
                 //Neurons
                 pGHK = con_vars->pNaT[xy_index(x,y,z,Nx,Ny)]*gvars->gNaT[xy_index(x,y,z,Nx,Ny)]+
-                        con_vars->pNaP[xy_index(x,y,z,Nx,Ny)]*gvars->gNaP[xy_index(x,y,z,Nx,Ny)];
+                        con_vars->pNaP[xy_index(x,y,z,Nx,Ny)]*gvars->gNaP[xy_index(x,y,z,Nx,Ny)]+
+                        con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)]*gvars->gNMDA[xy_index(x,y,z,Nx,Ny)];
                 pLin = con_vars->pNaLeak[xy_index(x,y,z,Nx,Ny)]+gexct->pNa[xy_index(x,y,z,Nx,Ny)]; //Add excitation
                 //Initialize GHK Flux
                 mcGoldman(flux,c_index(x,y,z,0,0,Nx,Ny),pGHK,1,ci,ce,vm,0);
@@ -485,7 +595,8 @@ void ionmflux(struct AppCtx* user)
 
                 //Neurons
                 pGHK = con_vars->pKDR[xy_index(x,y,z,Nx,Ny)]*gvars->gKDR[xy_index(x,y,z,Nx,Ny)]+
-                        con_vars->pKA[xy_index(x,y,z,Nx,Ny)]*gvars->gKA[xy_index(x,y,z,Nx,Ny)];
+                        con_vars->pKA[xy_index(x,y,z,Nx,Ny)]*gvars->gKA[xy_index(x,y,z,Nx,Ny)]+
+                        con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)]*gvars->gNMDA[xy_index(x,y,z,Nx,Ny)];
                 pLin = pKLeak+gexct->pK[xy_index(x,y,z,Nx,Ny)]; //add excitation
                 mcGoldman(flux,c_index(x,y,z,0,1,Nx,Ny),pGHK,1,ci,ce,vm,0);
                 mclin(flux,c_index(x,y,z,0,1,Nx,Ny),pLin,1,ci,ce,vm,1);
@@ -545,6 +656,11 @@ void ionmflux(struct AppCtx* user)
                 flux->mflux[c_index(x,y,z,1,1,Nx,Ny)] += NaKCl; //K
                 flux->mflux[c_index(x,y,z,1,2,Nx,Ny)] += 2*NaKCl; //Cl
 
+                //Glutamate transport(Sets glutamate flux and adds to Sodium+K fluxes in both Neurons and glia
+                if(Ni>3){
+                    glutamate_flux(flux,x,y,z,state_vars,state_vars_past,Nx,Ny);
+                }
+
                 //Change units of flux from mmol/cm^2 to mmol/cm^3/s
                 for(PetscInt ion = 0; ion < Ni; ion++){
                     flux->mflux[c_index(x,y,z,Nc-1,ion,Nx,Ny)] = 0;
@@ -559,6 +675,7 @@ void ionmflux(struct AppCtx* user)
                     }
                 }
             }
+
         }
     }
     if(Profiling_on) {
@@ -681,7 +798,7 @@ void grid_ionmflux(struct AppCtx* user,PetscInt xi,PetscInt yi)
     struct ConstVars *con_vars = user->con_vars;
     //Variables to save to for ease of notation
     PetscReal vm,vmg,vmgp;
-    PetscReal ci,cg,ce,cgp,cep;
+    PetscReal ci,cg,ce,cgp,cep,cnp;
     PetscReal Na,K;//Variables for pump (so it's clear)
 
     //For calculationg permeabilities
@@ -701,7 +818,8 @@ void grid_ionmflux(struct AppCtx* user,PetscInt xi,PetscInt yi)
 
                 //Neurons
                 pGHK = con_vars->pNaT[xy_index(xi,yi,z,Nx,Ny)]*gvars->gNaT[xy_index(x,y,z,Nx,Ny)]+
-                        con_vars->pNaP[xy_index(xi,yi,z,Nx,Ny)]*gvars->gNaP[xy_index(x,y,z,Nx,Ny)];
+                        con_vars->pNaP[xy_index(xi,yi,z,Nx,Ny)]*gvars->gNaP[xy_index(x,y,z,Nx,Ny)]+
+                        con_vars->pNMDA[xy_index(xi,yi,z,Nx,Ny)] * gvars->gNMDA[xy_index(x,y,z,Nx,Ny)];
                 pLin = con_vars->pNaLeak[xy_index(xi,yi,z,Nx,Ny)]+gexct->pNa[xy_index(x,y,z,Nx,Ny)]; //Add excitation
                 //Initialize GHK Flux
                 mcGoldman(flux,c_index(x,y,z,0,0,Nx,Ny),pGHK,1,ci,ce,vm,0);
@@ -717,7 +835,8 @@ void grid_ionmflux(struct AppCtx* user,PetscInt xi,PetscInt yi)
 
                 //Neurons
                 pGHK = con_vars->pKDR[xy_index(xi,yi,z,Nx,Ny)]*gvars->gKDR[xy_index(x,y,z,Nx,Ny)]+
-                        con_vars->pKA[xy_index(xi,yi,z,Nx,Ny)]*gvars->gKA[xy_index(x,y,z,Nx,Ny)];
+                        con_vars->pKA[xy_index(xi,yi,z,Nx,Ny)]*gvars->gKA[xy_index(x,y,z,Nx,Ny)]+
+                        con_vars->pNMDA[xy_index(xi,yi,z,Nx,Ny)] * gvars->gNMDA[xy_index(x,y,z,Nx,Ny)];
                 pLin = pKLeak+gexct->pK[xy_index(x,y,z,Nx,Ny)]; //add excitation
                 mcGoldman(flux,c_index(x,y,z,0,1,Nx,Ny),pGHK,1,ci,ce,vm,0);
                 mclin(flux,c_index(x,y,z,0,1,Nx,Ny),pLin,1,ci,ce,vm,1);
@@ -777,6 +896,10 @@ void grid_ionmflux(struct AppCtx* user,PetscInt xi,PetscInt yi)
                 flux->mflux[c_index(x,y,z,1,1,Nx,Ny)] += NaKCl; //K
                 flux->mflux[c_index(x,y,z,1,2,Nx,Ny)] += 2*NaKCl; //Cl
 
+                //Glutamate transport
+                if(Ni>3){
+                    glutamate_flux(flux,x,y,z,state_vars,state_vars_past,Nx,Ny);
+                }
                 //Change units of flux from mmol/cm^2 to mmol/cm^3/s
                 for(PetscInt ion = 0; ion < Ni; ion++){
                     flux->mflux[c_index(x,y,z,Nc-1,ion,Nx,Ny)] = 0;
@@ -808,14 +931,13 @@ void gatevars_update_grid(struct GateType *gate_vars,struct SimState *state_vars
     PetscInt Ny = 2*width_size+1;
     PetscInt Nz = user->Nz;
 
-    PetscReal v, alpha,beta;
+    PetscReal v, alpha,beta,Gphi;
     for (PetscInt z = 0; z < Nz; z++){
         for(PetscInt y = 0; y < Ny; y++){
             for(PetscInt x = 0; x < Nx; x++){
 
                 //membrane potential in mV
                 v = (state_vars->phi[phi_index(x,y,z,0,Nx,Ny)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC;
-
                 //compute current NaT
                 //gating variables mNaT
                 alpha = xoverexpminusone(v,0.32,51.9,0.25,1); //0.32*(Vm+51.9)./(1-exp(-0.25*(Vm+51.9)))
@@ -872,7 +994,17 @@ void gatevars_update_grid(struct GateType *gate_vars,struct SimState *state_vars
 
                 gate_vars->gKA[xy_index(x,y,z,Nx,Ny)] =
                         pow(gate_vars->mKA[xy_index(x,y,z,Nx,Ny)],2)*gate_vars->hKA[xy_index(x,y,z,Nx,Ny)];
+                //gating variable NMDA
+                if(Ni > 3){
+                    alpha = 72e-6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]/
+                            (state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]+0.05);
+                    beta = 6.6e-3; //just 6.6
+                    gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] =
+                            (gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
+                    Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
+                    gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)]*Gphi;
+                }
             }
         }
     }

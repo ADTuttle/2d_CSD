@@ -30,7 +30,7 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
     restore_subarray(current_state,user->state_vars);
     rsd = tol+1;
 
-    for(PetscInt iter=0;iter<1;iter++)
+    for(PetscInt iter=0;iter<10;iter++)
     {
         if(separate_vol){
             if(use_en_deriv){
@@ -51,7 +51,6 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
         }
 
         ierr = VecNorm(slvr->Res,NORM_MAX,&rsd);CHKERRQ(ierr);
-//        printf("Iteration: %d, Residual: %.10e\n",iter,rsd);
         if(rsd<tol)
         {
             if(details)
@@ -123,13 +122,13 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
             printf("Iteration: %d, Residual: %.10e\n",iter,rsd);
         }
     }
-/*
+
     if(rsd>tol)
     {
-        fprintf(stderr, "Netwon Iteration did not converge! Stopping...\n");
+        fprintf(stderr, "Netwon Iteration did not converge! Findal residual: %.10e. Stopping...\n",rsd);
         exit(EXIT_FAILURE);
     }
-    */
+
     return ierr;
 }
 
@@ -1096,7 +1095,6 @@ void volume_update(struct SimState *state_vars,struct SimState *state_vars_past,
             for (z = 0; z < Nz; z++){
                 for(y = 0; y < Ny; y++){
                     for(x = 0; x < Nx; x++){
-
                         for(comp = 0; comp < Nc-1; comp++){
 
                             Func = state_vars->alpha[al_index(x,y,z,comp,Nx,Ny)]-
@@ -3243,7 +3241,6 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                             z_charge[ion]*(1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)]),INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
-
                 }
                 //electroneutrality-voltage entries
                 Aphi = 0;
@@ -3269,6 +3266,9 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                     ind++;
                 }
             }
+            // Neuron-Glia glutamate exchange
+//            ierr = MatSetValue(Jac,Ind_1(x,y,3,0,Nx),Ind_1(x,y,3,1,Nx),-glut_Bg*dt,INSERT_VALUES);CHKERRQ(ierr);
+//            ierr = MatSetValue(Jac,Ind_1(x,y,3,1,Nx),Ind_1(x,y,3,0,Nx),((1-glut_gamma)*glut_Bn*glut_Re-glut_Bg*glut_Rg)*dt,INSERT_VALUES);CHKERRQ(ierr);
         }
     }
 
