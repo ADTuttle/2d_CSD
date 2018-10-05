@@ -33,6 +33,12 @@ void init(Vec state,struct SimState *state_vars,struct AppCtx*user)
             state_vars->c[c_index(x,y,1,2,Nx)] = 10e-3; 		//glial Cl concentraion
             state_vars->c[c_index(x,y,2,2,Nx)] = 120e-3;       //143.5e-3%extracellular Cl
 
+            //glutamage taken from K. Moussawi, A. Riegel, et al
+            if(Ni>3){
+                state_vars->c[c_index(x,y,0,3,Nx)] = 10e-3;//10e-5; //10e-3;   //glutamate concentrations
+                state_vars->c[c_index(x,y,1,3,Nx)] = (10.0/6)*1e-3;//1e-10; //1e-5; //10e-3;  //glial glu
+                state_vars->c[c_index(x,y,Nc-1,3,Nx)] = 1e-6;//2.8089e-05;;//3.6227e-13;//2.2411e-10;//1e-10;//2e-8;    //.02 muM-> 2e-5mM or .1muM ->10e-5
+            }
         }
     }
     restore_subarray(state,state_vars);
@@ -83,7 +89,9 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
             NaKCl = -flux->mflux[c_index(x, y, 1, 2, Nx)] / 2;
 
             //compute K channel currents (neuron)
-            pKGHK = con_vars->pKDR[xy_index(x,y,Nx)] * gate_vars->gKDR[xy_index(x,y,Nx)] + con_vars->pKA[xy_index(x,y,Nx)] * gate_vars->gKA[xy_index(x,y,Nx)];
+            pKGHK = con_vars->pKDR[xy_index(x,y,Nx)] * gate_vars->gKDR[xy_index(x,y,Nx)] +
+                    con_vars->pKA[xy_index(x,y,Nx)] * gate_vars->gKA[xy_index(x,y,Nx)]+
+                    con_vars->pNMDA[xy_index(x,y,Nx)] * gate_vars->gNMDA[xy_index(x,y,Nx)];
             //Initialize the KGHK flux
             mcGoldman(flux, c_index(x, y, 0, 1, Nx), pKGHK, 1, c[c_index(x, y, 0, 1, Nx)],
                       c[c_index(x, y, Nc - 1, 1, Nx)], vm, 0);
@@ -97,7 +105,9 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 
 
             //compute neuronal sodium currents and leak permeability value
-            pNaGHK = con_vars->pNaT[xy_index(x,y,Nx)]*gate_vars->gNaT[xy_index(x,y,Nx)]+con_vars->pNaP[xy_index(x,y,Nx)]*gate_vars->gNaP[xy_index(x,y,Nx)];
+            pNaGHK = con_vars->pNaT[xy_index(x,y,Nx)]*gate_vars->gNaT[xy_index(x,y,Nx)] +
+                    con_vars->pNaP[xy_index(x,y,Nx)]*gate_vars->gNaP[xy_index(x,y,Nx)]+
+                    con_vars->pNMDA[xy_index(x,y,Nx)] * gate_vars->gNMDA[xy_index(x,y,Nx)];
             mcGoldman(flux, c_index(x, y, 0, 0, Nx), pNaGHK, 1, c[c_index(x, y, 0, 0, Nx)],
                       c[c_index(x, y, Nc - 1, 0, Nx)], vm, 0);
             Ipump = npump * con_vars->Imax[xy_index(x,y,Nx)] / (pow((1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)]), 2) *
@@ -325,6 +335,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     user->Nx = 32;
     user->Ny = 32;
     user->dt =0.01;
+//    user->dt =1e-4;
 
     PetscOptionsGetInt(NULL,NULL,"-Nx",&user->Nx,NULL);
     PetscOptionsGetInt(NULL,NULL,"-Ny",&user->Ny,NULL);
@@ -771,6 +782,12 @@ void Get_Nonzero_in_Rows(int *nnz,struct AppCtx *user,int grid)
             //extra-phi with extra-phi
             nnz[Ind(x,y,Ni,comp,Nx)]++;//Ind_1(x,y,Ni,comp,Nx)
             ind++;
+
+            // Neuron-Glia glutamate exchange
+//            nnz[Ind(x,y,3,0,Nx)]++;//Ind_1(x,y,3,1,Nx)
+//            ind++;
+//            nnz[Ind(x,y,3,1,Nx)]++;//Ind_1(x,y,3,0,Nx),
+//            ind++;
         }
     }
     if(!separate_vol||grid) {
@@ -1150,6 +1167,11 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                         ind++;
                     }
                 }
+                // Neuron-Glia glutamate exchange
+//                ierr = MatSetValue(Jac,Ind_1(x,y,3,0,Nx),Ind_1(x,y,3,1,Nx),-glut_Bg*user->dt,INSERT_VALUES);CHKERRQ(ierr); ind++;
+
+//                ierr = MatSetValue(Jac,Ind_1(x,y,3,1,Nx),Ind_1(x,y,3,0,Nx),((1-glut_gamma)*glut_Bn*glut_Re-glut_Bg*glut_Rg)*user->dt,INSERT_VALUES);CHKERRQ(ierr);
+//                ind++;
             }
         }
     }

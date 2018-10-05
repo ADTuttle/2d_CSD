@@ -220,6 +220,9 @@ void init_arrays(struct AppCtx*user)
     user->gate_vars->mKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars->hKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars->gKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->yNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->gNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+
     //Gating variables (past)
     user->gate_vars_past->mNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars_past->hNaT = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
@@ -232,6 +235,8 @@ void init_arrays(struct AppCtx*user)
     user->gate_vars_past->mKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars_past->hKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars_past->gKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->yNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->gNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
 
 
     //Excitation
@@ -265,6 +270,8 @@ void init_arrays(struct AppCtx*user)
     user->grid_gate_vars->mKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
     user->grid_gate_vars->hKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
     user->grid_gate_vars->gKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->yNMDA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->gNMDA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
 
     //Grid state_vars
     user->grid_vars->c = (PetscReal*) malloc(Nc*Ni*nx*ny*sizeof(PetscReal));
@@ -315,6 +322,7 @@ void parameter_dependence(struct AppCtx *user)
     con_vars->pNaP = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
     con_vars->pKDR = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
     con_vars->pKA = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
+    con_vars->pNMDA = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
 
     con_vars->pKIR = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny);
     //Glial diffusion scaling
@@ -327,6 +335,7 @@ void parameter_dependence(struct AppCtx *user)
             con_vars->pNaP[xy_index(x,y,Nx)]=basepNaP;
             con_vars->pKDR[xy_index(x,y,Nx)]=basepKDR;
             con_vars->pKA[xy_index(x,y,Nx)]=basepKA;
+            con_vars->pNMDA[xy_index(x,y,Nx)]=basepNMDA;
 
             con_vars->pKIR[xy_index(x,y,Nx)]=basepKIR;
 

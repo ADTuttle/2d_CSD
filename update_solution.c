@@ -28,7 +28,7 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
     restore_subarray(current_state,user->state_vars);
     rsd = tol+1;
 
-    for(PetscInt iter=0;iter<1;iter++)
+    for(PetscInt iter=0;iter<10;iter++)
     {
         if(separate_vol){
             if(use_en_deriv){
@@ -49,7 +49,6 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
         }
 
         ierr = VecNorm(slvr->Res,NORM_MAX,&rsd);CHKERRQ(ierr);
-//        printf("Iteration: %d, Residual: %.10e\n",iter,rsd);
         if(rsd<tol)
         {
             if(details)
@@ -95,6 +94,7 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
 //        PetscTime(&tic);
         ierr = VecGetArrayRead(slvr->Q,&temp); CHKERRQ(ierr);
         extract_subarray(current_state,user->state_vars);
+
         for(x=0;x<Nx;x++){
             for(y=0;y<Ny;y++){
                 for(comp=0;comp<Nc;comp++){
@@ -119,13 +119,13 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
             printf("Iteration: %d, Residual: %.10e\n",iter,rsd);
         }
     }
-/*
+
     if(rsd>tol)
     {
-        fprintf(stderr, "Netwon Iteration did not converge! Stopping...\n");
+        fprintf(stderr, "Netwon Iteration did not converge! Findal residual: %.10e. Stopping...\n",rsd);
         exit(EXIT_FAILURE);
     }
-    */
+
     return ierr;
 }
 
@@ -757,7 +757,6 @@ void volume_update(struct SimState *state_vars,struct SimState *state_vars_past,
             for (x = 0; x < Nx; x++) {
                 for (y = 0; y < Ny; y++) {
                     for (comp = 0; comp < Nc - 1; comp++) {
-
                         Func = state_vars->alpha[al_index(x, y, comp,Nx)] - state_vars_past->alpha[al_index(x, y, comp,Nx)] +
                                dt * user->flux->wflow[al_index(x, y, comp,Nx)];
 
@@ -909,6 +908,7 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
                 //Add bath variables
 
                 Resc -= sqrt(pow(Dcb[c_index(x,y,comp,ion,Nx)*2],2)+pow(Dcb[c_index(x,y,comp,ion,Nx)*2+1],2))*(cp[c_index(x,y,comp,ion,Nx)]+cbath[ion])/2.0*(log(c[c_index(x,y,comp,ion,Nx)])-log(cbath[ion])+z[ion]*phi[phi_index(x,y,comp,Nx)]-z[ion]*phibath)*dt;
+
                 ierr = VecSetValue(Res,Ind_1(x,y,ion,comp,Nx),Resc,INSERT_VALUES);CHKERRQ(ierr);
 
                 //Save values for voltage
@@ -2177,15 +2177,11 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
     }
 
     //Electroneutrality charge-capacitence condition
-    for(x=0;x<Nx;x++)
-    {
-        for(y=0;y<Ny;y++)
-        {
+    for(x=0;x<Nx;x++) {
+        for(y=0;y<Ny;y++) {
             //electroneutral-concentration entries
-            for(ion=0;ion<Ni;ion++)
-            {
-                for(comp=0;comp<Nc-1;comp++)
-                {
+            for(ion=0;ion<Ni;ion++) {
+                for(comp=0;comp<Nc-1;comp++) {
                     //Phi with C entries
                     ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,ion,comp,Nx),z[ion]*al[al_index(x,y,comp,Nx)],INSERT_VALUES); CHKERRQ(ierr);
                     ind++;
@@ -2205,8 +2201,7 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
             //extraphi with extra phi
             ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni,Nc-1,Nx),Aphi,INSERT_VALUES);CHKERRQ(ierr);
             ind++;
-            for(comp=0;comp<Nc-1;comp++)
-            {
+            for(comp=0;comp<Nc-1;comp++) {
                 //Extra phi with intra phi
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,Nc-1,Nx),Ind_1(x,y,Ni,comp,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
@@ -2216,7 +2211,12 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                 //Intra phi with Intra phi
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni,comp,Nx),Ind_1(x,y,Ni,comp,Nx),-cm[comp],INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
+
+
             }
+            // Neuron-Glia glutamate exchange
+//            ierr = MatSetValue(Jac,Ind_1(x,y,3,0,Nx),Ind_1(x,y,3,1,Nx),-glut_Bg*dt,INSERT_VALUES);CHKERRQ(ierr);
+//            ierr = MatSetValue(Jac,Ind_1(x,y,3,1,Nx),Ind_1(x,y,3,0,Nx),((1-glut_gamma)*glut_Bn*glut_Re-glut_Bg*glut_Rg)*dt,INSERT_VALUES);CHKERRQ(ierr);
         }
     }
 
