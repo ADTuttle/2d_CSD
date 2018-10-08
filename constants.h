@@ -94,7 +94,7 @@ static const PetscReal alpha0[2]={alphaon,alphaog};
 #define sa  1.586e-5          //membrane area in cm^2
 #define voli  2.16e-9         //intracellular volume in cm^3
 #define vole (0.15*voli)
-#define ell (voli+vole/sa)    //average membrane separation in cm
+#define ell ((voli+vole)/sa)    //average membrane separation in cm
 static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
 
 
