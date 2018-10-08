@@ -43,7 +43,7 @@ static const PetscReal DExtraMult[3] = {1.0,1.0,1.0};
 //#define Ly 0.32         //length of domain in cm (y)
 #define Lx 0.5        //width of domain in cm (x)
 #define Ly 0.5         //length of domain in cm (y)
-#define Lz 0.1       //height of domain in cm (z)
+#define Lz 0.05       //height of domain in cm (z) (1e4*Lz=um,want ~500microns)
 
 
 //number of variables to be solved for at each grid point
@@ -95,7 +95,7 @@ static const PetscReal alpha0[2]={alphaon,alphaog};
 #define sa  1.586e-5          //membrane area in cm^2
 #define voli  2.16e-9         //intracellular volume in cm^3
 #define vole (0.15*voli)
-#define ell (voli+vole/sa)    //average membrane separation in cm
+#define ell ((voli+vole)/sa)   //average membrane separation in cm
 static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
 
 
