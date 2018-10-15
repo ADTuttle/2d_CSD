@@ -27,7 +27,7 @@
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define Predictor 1  // Turns on predictor. Adaptive single point estimated update
+#define Predictor 0  // Turns on predictor. Adaptive single point estimated update
 #define width_size  1 //Number of up,down,left,right neighbors to pair in the predictor.
 #define Max_Grid_Refine 256 // Max number of time steps to refine in grid predictor
 
@@ -39,7 +39,7 @@ static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,7.6e-6};      //diffu
 static const PetscReal DNeuronMult[2] = {0,0};
 static const PetscReal DGliaMult[2] = {0.25,0.25};
 static const PetscReal DExtraMult[2] = {1.0,1.0};
-#define Time 30.0   //total simulated time in seconds
+#define Time 10.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)

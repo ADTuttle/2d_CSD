@@ -410,85 +410,112 @@ void excitation(struct AppCtx* user,PetscReal t)
     PetscReal dx = user->dx;
     PetscReal dy = user->dy;
     PetscInt num_points = 0;
+    if(t<texct){
+        for(PetscInt i = 0; i < Nx; i++){
+            for(PetscInt j = 0; j < Ny; j++){
+                if(one_point_exct){
+                    if(i == 0 && j == 0){
+                        num_points++;
+                        pany = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
+                        exct->pNa[xy_index(i,j,Nx)] = pany;
+                        exct->pK[xy_index(i,j,Nx)] = pany;
+                        exct->pCl[xy_index(i,j,Nx)] = pany;
+                    }else{
+                        //pexct=0*RTFC/FC
+                        exct->pNa[xy_index(i,j,Nx)] = 0;
+                        exct->pK[xy_index(i,j,Nx)] = 0;
+                        exct->pCl[xy_index(i,j,Nx)] = 0;
 
-    for (PetscInt i = 0; i < Nx; i++) {
-        for (PetscInt j = 0; j < Ny; j++) {
-            if (one_point_exct) {
-                if (t < texct && i == 0 && j == 0) {
-                    num_points++;
-                    pany = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
-                    exct->pNa[xy_index(i, j, Nx)] = pany;
-                    exct->pK[xy_index(i, j, Nx)] = pany;
-                    exct->pCl[xy_index(i, j, Nx)] = pany;
-                } else {
-                    //pexct=0*RTFC/FC
-                    exct->pNa[xy_index(i, j, Nx)] = 0;
-                    exct->pK[xy_index(i, j, Nx)] = 0;
-                    exct->pCl[xy_index(i, j, Nx)] = 0;
-
-                }
-
-            }
-            if (mid_points_exct) {
-                radius = sqrt(pow((i + 0.5) * dx - Lx / 2, 2) + pow((j + 0.5) * dy - Lx / 2, 2));
-                if (t < texct && radius < Lexct) {
-                    num_points++;
-                    pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
-                    xexct = pow(cos(pi / 2 * (radius / Lexct)), 2);
-                    pany = pexct * xexct;
-                    exct->pNa[xy_index(i, j, Nx)] = pany;
-                    exct->pK[xy_index(i, j, Nx)] = pany;
-                    exct->pCl[xy_index(i, j, Nx)] = pany;
-                } else {
-                    //pexct=0*RTFC/FC
-                    exct->pNa[xy_index(i, j, Nx)] = 0;
-                    exct->pK[xy_index(i, j, Nx)] = 0;
-                    exct->pCl[xy_index(i, j, Nx)] = 0;
-                }
-            }
-            if (plane_wave_exct) {
-                //plane wave at left side
-                int region=0;
-                if(Spiral){
-                    if(Spiral_type==1){
-                        region = (j==0 && i<Nx/2);
-                    } else{
-                        region = ((j==0 && i<Nx/2)|| (j==(Ny-1) && i>Nx/2));
                     }
-                } else{
-                    region = (j==0);
+
                 }
-                if (t < texct && region) {
-                    num_points++;
-                    pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
-                    pany = pexct;
-                    exct->pNa[xy_index(i, j, Nx)] = pany;
-                    exct->pK[xy_index(i, j, Nx)] = pany;
-                    exct->pCl[xy_index(i, j, Nx)] = pany;
-                } else {
-                    //pexct=0*RTFC/FC
-                    exct->pNa[xy_index(i, j, Nx)] = 0;
-                    exct->pK[xy_index(i, j, Nx)] = 0;
-                    exct->pCl[xy_index(i, j, Nx)] = 0;
+                if(mid_points_exct){
+                    radius = sqrt(pow((i+0.5)*dx-Lx/2,2)+pow((j+0.5)*dy-Lx/2,2));
+                    if(radius < Lexct){
+                        num_points++;
+                        pexct = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
+                        xexct = pow(cos(pi/2*(radius/Lexct)),2);
+                        pany = pexct*xexct;
+                        exct->pNa[xy_index(i,j,Nx)] = pany;
+                        exct->pK[xy_index(i,j,Nx)] = pany;
+                        exct->pCl[xy_index(i,j,Nx)] = pany;
+                    }else{
+                        //pexct=0*RTFC/FC
+                        exct->pNa[xy_index(i,j,Nx)] = 0;
+                        exct->pK[xy_index(i,j,Nx)] = 0;
+                        exct->pCl[xy_index(i,j,Nx)] = 0;
+                    }
+                }
+                if(plane_wave_exct){
+                    //plane wave at left side
+                    int region = 0;
+                    if(Spiral){
+                        if(Spiral_type == 1){
+                            region = (j == 0 && i < Nx/2);
+                        }else{
+                            region = ((j == 0 && i < Nx/2) || (j == (Ny-1) && i > Nx/2));
+                        }
+                    }else{
+                        region = (j == 0);
+                    }
+                    if(region){
+                        num_points++;
+                        pexct = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
+                        pany = pexct;
+                        exct->pNa[xy_index(i,j,Nx)] = pany;
+                        exct->pK[xy_index(i,j,Nx)] = pany;
+                        exct->pCl[xy_index(i,j,Nx)] = pany;
+                    }else{
+                        //pexct=0*RTFC/FC
+                        exct->pNa[xy_index(i,j,Nx)] = 0;
+                        exct->pK[xy_index(i,j,Nx)] = 0;
+                        exct->pCl[xy_index(i,j,Nx)] = 0;
+                    }
+                }
+                if(!one_point_exct && !mid_points_exct && !plane_wave_exct){
+                    radius = sqrt(pow((i+0.5)*dx,2)+pow((j+0.5)*dy,2));
+                    if(radius < Lexct){
+                        num_points++;
+                        pexct = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
+//	    		xexct=pow((cos(pi/2*(i+.5)/Nexct))*(cos(pi/2*(j+.5)/Nexct)),2);
+                        xexct = pow(cos(pi/2*(radius/Lexct)),2);
+//				xexct=pow((cos(pi/2*((i+.5)*dx)/Lexct))*(cos(pi/2*((j+.5)*dy)/Lexct)),2);
+                        pany = pexct*xexct;
+                        exct->pNa[xy_index(i,j,Nx)] = pany;
+                        exct->pK[xy_index(i,j,Nx)] = pany;
+                        exct->pCl[xy_index(i,j,Nx)] = pany;
+                    }else{
+                        //pexct=0*RTFC/FC
+                        exct->pNa[xy_index(i,j,Nx)] = 0;
+                        exct->pK[xy_index(i,j,Nx)] = 0;
+                        exct->pCl[xy_index(i,j,Nx)] = 0;
+                    }
                 }
             }
-            if (!one_point_exct&&!mid_points_exct&&!plane_wave_exct){
-                radius = sqrt(pow((i + 0.5) * dx, 2) + pow((j + 0.5) * dy, 2));
-                if (t < texct && radius < Lexct) {
-                    num_points++;
-                    pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
-//	    		xexct=pow((cos(pi/2*(i+.5)/Nexct))*(cos(pi/2*(j+.5)/Nexct)),2);
-                    xexct = pow(cos(pi / 2 * (radius / Lexct)), 2);
-//				xexct=pow((cos(pi/2*((i+.5)*dx)/Lexct))*(cos(pi/2*((j+.5)*dy)/Lexct)),2);
-                    pany = pexct * xexct;
-                    exct->pNa[xy_index(i, j, Nx)] = pany;
-                    exct->pK[xy_index(i, j, Nx)] = pany;
-                    exct->pCl[xy_index(i, j, Nx)] = pany;
-                } else {
-                    //pexct=0*RTFC/FC
-                    exct->pNa[xy_index(i, j, Nx)] = 0;
-                    exct->pK[xy_index(i, j, Nx)] = 0;
-                    exct->pCl[xy_index(i, j, Nx)] = 0;
+        }
+    }
+    //This makes a spiral
+    if(Spiral && Spiral_type==1) {
+        if (t > 100.00 && t < 101.00) {
+            for (PetscInt x = 0; x < Nx; x++) {
+                for (PetscInt y = 0; y < Ny; y++) {
+                    radius = sqrt(pow((x + 0.5) * dx - Lx / 2, 2) + pow((y + 0.5) * dy - Ly / 2, 2));
+                    if (radius < Lx / 4 || (x > 3 * Nx / 8 && x < 5 * Nx / 8 && y < Nx / 4)) {
+                        user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
+                        user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
+                        user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
+                    }
+                }
+            }
+        }
+    }
+    if(Spiral && (Spiral_type==2 || Spiral_type==3)) {
+        if (t > 55.00 && t < 56.00) {
+            for (PetscInt x = 0; x < Nx; x++) {
+                for (PetscInt y = 0; y < Ny; y++) {
+                    user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
+                    user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
+                    user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
                 }
             }
         }

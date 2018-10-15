@@ -223,32 +223,6 @@ int main(int argc, char **argv)
     SNESConvergedReason reason;
     PetscTime(&full_tic);
     for(PetscReal t=dt;t<=Time;t+=dt) {
-        //This makes a spiral
-        if(Spiral && Spiral_type==1) {
-            if (t > 100.00 && t < 101.00) {
-                for (x = 0; x < Nx; x++) {
-                    for (y = 0; y < Ny; y++) {
-                        rad1 = sqrt(pow((x + 0.5) * dx - Lx / 2, 2) + pow((y + 0.5) * dy - Ly / 2, 2));
-                        if (rad1 < Lx / 4 || (x > 3 * Nx / 8 && x < 5 * Nx / 8 && y < Nx / 4)) {
-                            user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
-                            user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
-                            user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
-                        }
-                    }
-                }
-            }
-        }
-        if(Spiral && (Spiral_type==2 || Spiral_type==3)) {
-            if (t > 55.00 && t < 56.00) {
-                for (x = 0; x < Nx; x++) {
-                    for (y = 0; y < Ny; y++) {
-                        user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
-                        user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
-                        user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
-                    }
-                }
-            }
-        }
         count++;
         //Save the "current" aka past state
         ierr = restore_subarray(user->state_vars_past->v, user->state_vars_past);CHKERRQ(ierr);
