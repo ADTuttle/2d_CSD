@@ -34,7 +34,7 @@ void print_all(struct AppCtx *user)
         for(PetscInt comp=0;comp<Nc;comp++)
         {
             printf("Dcs: Ion %d, Comp %d ",ion,comp);
-            printf("Dcs x: %f, Dcs y: %f\n",1e6*Dcs[c_index(0,0,comp,ion,Nx)*2],1e6*Dcs[c_index(0,4,comp,ion,Nx)*2+1]);
+            printf("Dcs x: %.10e, Dcs y: %.10e\n",Dcs[c_index(0,0,comp,ion,Nx)*2],Dcs[c_index(0,0,comp,ion,Nx)*2+1]);
         }
     }
     printf("\n");
@@ -46,7 +46,7 @@ void print_all(struct AppCtx *user)
         for(PetscInt comp=0;comp<Nc;comp++)
         {
             printf("Dcb: Ion %d, Comp %d ",ion,comp);
-            printf("Dcb x: %f, Dcb y: %f\n",1e6*Dcb[c_index(0,0,comp,ion,Nx)*2],1e6*Dcb[c_index(0,4,comp,ion,Nx)*2+1]);
+            printf("Dcb x: %.10e, Dcb y: %.10e\n",Dcb[c_index(0,0,comp,ion,Nx)*2],Dcb[c_index(0,0,comp,ion,Nx)*2+1]);
         }
     }
 
@@ -56,7 +56,7 @@ void print_all(struct AppCtx *user)
     {
         for(PetscInt comp=0;comp<Nc;comp++)
         {
-            printf("Ion: %d, Comp %d, C: %f\n",ion,comp,state_vars->c[c_index(0,0,comp,ion,Nx)]);
+            printf("Ion: %d, Comp %d, C: %10e\n",ion,comp,state_vars->c[c_index(0,0,comp,ion,Nx)]);
         }
     }
     for(PetscInt comp=0;comp<Nc;comp++)
@@ -68,10 +68,11 @@ void print_all(struct AppCtx *user)
         printf("Comp %d, alpha: %.10e\n",comp,state_vars->alpha[al_index(0,0,comp,Nx)]);
     }
     printf("Gvars:\n");
-    printf("NaT :%f,%f,%f*1e-6\n",gvars->mNaT[0],gvars->hNaT[0],1e6*gvars->gNaT[0]);
-    printf("NaP :%f,%f,%f\n",gvars->mNaP[0],gvars->hNaP[0],gvars->gNaP[0]);
-    printf("KDR :%f,%f\n",gvars->mKDR[0],gvars->gKDR[0]);
-    printf("KA :%f,%f,%f\n",gvars->mKA[0],gvars->hKA[0],gvars->gKA[0]);
+    printf("NaT :%.10e,%.10e,%.10e\n",gvars->mNaT[0],gvars->hNaT[0],gvars->gNaT[0]);
+    printf("NaP :%.10e,%.10e,%.10e\n",gvars->mNaP[0],gvars->hNaP[0],gvars->gNaP[0]);
+    printf("KDR :%.10e,%.10e\n",gvars->mKDR[0],gvars->gKDR[0]);
+    printf("KA :%.10e,%.10e,%.10e\n",gvars->mKA[0],gvars->hKA[0],gvars->gKA[0]);
+    printf("NMDA :%.10e,%.10e\n",gvars->yNMDA[0],gvars->gNMDA[0]);
     printf("\n");
     //Compute membrane ionic flux relation quantitites
 
@@ -80,7 +81,7 @@ void print_all(struct AppCtx *user)
         for(PetscInt comp=0;comp<Nc;comp++)
         {
             printf("Ion: %d, Comp %d\n",ion,comp);
-            printf("Flux: %f*1e20, dfdci: %f, dfdce: %f, dfdphim: %f\n",1e20*flux->mflux[c_index(0,0,comp,ion,Nx)],flux->dfdci[c_index(0,0,comp,ion,Nx)],flux->dfdce[c_index(0,0,comp,ion,Nx)],flux->dfdphim[c_index(0,0,comp,ion,Nx)]);
+            printf("Flux: %.10e, dfdci: %.10e, dfdce: %.10e, dfdphim: %.10e\n",flux->mflux[c_index(0,0,comp,ion,Nx)],flux->dfdci[c_index(0,0,comp,ion,Nx)],flux->dfdce[c_index(0,0,comp,ion,Nx)],flux->dfdphim[c_index(0,0,comp,ion,Nx)]);
         }
     }
     printf("\n");
@@ -88,7 +89,7 @@ void print_all(struct AppCtx *user)
     for(PetscInt comp=0;comp<Nc-1;comp++)
     {
         printf("Comp: %d\n",comp);
-        printf("wFlux: %f,%f,%f\n",flux->wflow[al_index(x,y,comp,Nx)],flux->dwdpi[al_index(x,y,comp,Nx)],flux->dwdal[al_index(x,y,comp,Nx)]);
+        printf("wFlux: %.10e,%.10e,%.10e\n",flux->wflow[al_index(x,y,comp,Nx)],flux->dwdpi[al_index(x,y,comp,Nx)],flux->dwdal[al_index(x,y,comp,Nx)]);
     }
     printf("\n");
     // VecView(slvr->Res,PETSC_VIEWER_STDOUT_SELF);
