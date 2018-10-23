@@ -332,10 +332,10 @@ void parameter_dependence(struct AppCtx *user)
     for(x=0;x<Nx;x++){
         for(y=0;y<Ny;y++){
             con_vars->pNaT[xy_index(x,y,Nx)]=basepNaT;
-            con_vars->pNaP[xy_index(x,y,Nx)]=basepNaP;
+            con_vars->pNaP[xy_index(x,y,Nx)]=basepNaP*pow(1-((double)x)/((double)Nx),1);
             con_vars->pKDR[xy_index(x,y,Nx)]=basepKDR;
             con_vars->pKA[xy_index(x,y,Nx)]=basepKA;
-            con_vars->pNMDA[xy_index(x,y,Nx)]=basepNMDA;
+            con_vars->pNMDA[xy_index(x,y,Nx)]=basepNMDA*pow(((double)x)/((double)Nx),1);
 
             con_vars->pKIR[xy_index(x,y,Nx)]=basepKIR;
 

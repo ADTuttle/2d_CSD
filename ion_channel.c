@@ -409,81 +409,37 @@ void excitation(struct AppCtx* user,PetscReal t)
     PetscInt Ny = user->Ny;
     PetscReal dx = user->dx;
     PetscReal dy = user->dy;
-    PetscInt num_points = 0;
 
-    for (PetscInt i = 0; i < Nx; i++) {
-        for (PetscInt j = 0; j < Ny; j++) {
-            if (one_point_exct) {
-                if (t < texct && i == 0 && j == 0) {
-                    num_points++;
-                    pany = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
-                    exct->pNa[xy_index(i, j, Nx)] = pany;
-                    exct->pK[xy_index(i, j, Nx)] = pany;
-                    exct->pCl[xy_index(i, j, Nx)] = pany;
-                } else {
-                    //pexct=0*RTFC/FC
-                    exct->pNa[xy_index(i, j, Nx)] = 0;
-                    exct->pK[xy_index(i, j, Nx)] = 0;
-                    exct->pCl[xy_index(i, j, Nx)] = 0;
+    // t<0 happens during initialization
+    if(t<0){
+        for(PetscInt i=0;i<Nx*Ny;i++){
+            exct->pNa[i]=0;
+            exct->pK[i]=0;
+            exct->pCl[i]=0;
+        }
+        return;
+    }
 
-                }
+    PetscInt y_exct = 0;
+    if((fmod(t,Period_exct)<=texct)){
+        for(PetscInt x = 0; x < Ny; x++){
+            //periodic plane wave at left side
+            pexct = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
+            pany = pexct;
+            exct->pNa[xy_index(x,y_exct,Nx)] = pany;
+            exct->pK[xy_index(x,y_exct,Nx)] = pany;
+            exct->pCl[xy_index(x,y_exct,Nx)] = pany;
 
-            }
-            if (mid_points_exct) {
-                    radius = sqrt(pow((i + 0.5) * dx - Lx / 2, 2) + pow((j + 0.5) * dy - Lx / 2, 2));
-                    if (t < texct && radius < Lexct) {
-                        num_points++;
-                        pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
-                        xexct = pow(cos(pi / 2 * (radius / Lexct)), 2);
-                        pany = pexct * xexct;
-                        exct->pNa[xy_index(i, j, Nx)] = pany;
-                        exct->pK[xy_index(i, j, Nx)] = pany;
-                        exct->pCl[xy_index(i, j, Nx)] = pany;
-                    } else {
-                        //pexct=0*RTFC/FC
-                        exct->pNa[xy_index(i, j, Nx)] = 0;
-                        exct->pK[xy_index(i, j, Nx)] = 0;
-                        exct->pCl[xy_index(i, j, Nx)] = 0;
-                    }
-                }
-            if (plane_wave_exct) {
-                //plane wave at left side
-                if (t < texct && j==0) {
-                    num_points++;
-                    pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
-                    pany = pexct;
-                    exct->pNa[xy_index(i, j, Nx)] = pany;
-                    exct->pK[xy_index(i, j, Nx)] = pany;
-                    exct->pCl[xy_index(i, j, Nx)] = pany;
-                } else {
-                    //pexct=0*RTFC/FC
-                    exct->pNa[xy_index(i, j, Nx)] = 0;
-                    exct->pK[xy_index(i, j, Nx)] = 0;
-                    exct->pCl[xy_index(i, j, Nx)] = 0;
-                }
-            }
-            if (!one_point_exct&&!mid_points_exct&&!plane_wave_exct){
-                    radius = sqrt(pow((i + 0.5) * dx, 2) + pow((j + 0.5) * dy, 2));
-                    if (t < texct && radius < Lexct) {
-                        num_points++;
-                        pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
-//	    		xexct=pow((cos(pi/2*(i+.5)/Nexct))*(cos(pi/2*(j+.5)/Nexct)),2);
-                        xexct = pow(cos(pi / 2 * (radius / Lexct)), 2);
-//				xexct=pow((cos(pi/2*((i+.5)*dx)/Lexct))*(cos(pi/2*((j+.5)*dy)/Lexct)),2);
-                        pany = pexct * xexct;
-                        exct->pNa[xy_index(i, j, Nx)] = pany;
-                        exct->pK[xy_index(i, j, Nx)] = pany;
-                        exct->pCl[xy_index(i, j, Nx)] = pany;
-                    } else {
-                        //pexct=0*RTFC/FC
-                        exct->pNa[xy_index(i, j, Nx)] = 0;
-                        exct->pK[xy_index(i, j, Nx)] = 0;
-                        exct->pCl[xy_index(i, j, Nx)] = 0;
-                    }
-                }
+        }
+    } else{
+        for(PetscInt i=0;i<Nx*Ny;i++){
+            exct->pNa[i]=0;
+            exct->pK[i]=0;
+            exct->pCl[i]=0;
         }
     }
-//    printf("Number of excited points: %d\n",num_points);
+
+
 }
 
 void ionmflux(struct AppCtx* user)
@@ -957,72 +913,17 @@ void excitation_grid(struct AppCtx* user,PetscReal t,PetscInt xi,PetscInt yi)
     PetscInt Ny = 2*width_size+1;
     PetscReal dx = user->dx;
     PetscReal dy = user->dy;
-    for (PetscInt i = 0; i < Nx; i++) {
-        for (PetscInt j = 0; j < Ny; j++) {
-            if (one_point_exct) {
-                if (t < texct && i+xi == 0 && j+yi == 0) {
-                    pany = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
-                    exct->pNa[xy_index(i, j, Nx)] = pany;
-                    exct->pK[xy_index(i, j, Nx)] = pany;
-                    exct->pCl[xy_index(i, j, Nx)] = pany;
-                } else {
-                    //pexct=0*RTFC/FC
-                    exct->pNa[xy_index(i, j, Nx)] = 0;
-                    exct->pK[xy_index(i, j, Nx)] = 0;
-                    exct->pCl[xy_index(i, j, Nx)] = 0;
 
-                }
 
+    for (PetscInt i = 0; i < Nx; i++){
+        for(PetscInt j = 0; j < Ny; j++){
+            if(i+xi == 0 && j+yi == 0){
+                pany = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
+                exct->pNa[xy_index(i,j,Nx)] = pany;
+                exct->pK[xy_index(i,j,Nx)] = pany;
+                exct->pCl[xy_index(i,j,Nx)] = pany;
             }
-            if (mid_points_exct) {
-                radius = sqrt(pow((i+xi + 0.5) * dx - Lx / 2, 2) + pow((j+yi + 0.5) * dy - Lx / 2, 2));
-                if (t < texct && radius < Lexct) {
-                    pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
-                    xexct = pow(cos(pi / 2 * (radius / Lexct)), 2);
-                    pany = pexct * xexct;
-                    exct->pNa[xy_index(i, j, Nx)] = pany;
-                    exct->pK[xy_index(i, j, Nx)] = pany;
-                    exct->pCl[xy_index(i, j, Nx)] = pany;
-                } else {
-                    //pexct=0*RTFC/FC
-                    exct->pNa[xy_index(i, j, Nx)] = 0;
-                    exct->pK[xy_index(i, j, Nx)] = 0;
-                    exct->pCl[xy_index(i, j, Nx)] = 0;
-                }
-            }
-            if (plane_wave_exct) {
-                //plane wave at left side
-                if (t < texct && j+yi==0) {
-                    pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
-                    pany = pexct;
-                    exct->pNa[xy_index(i, j, Nx)] = pany;
-                    exct->pK[xy_index(i, j, Nx)] = pany;
-                    exct->pCl[xy_index(i, j, Nx)] = pany;
-                } else {
-                    //pexct=0*RTFC/FC
-                    exct->pNa[xy_index(i, j, Nx)] = 0;
-                    exct->pK[xy_index(i, j, Nx)] = 0;
-                    exct->pCl[xy_index(i, j, Nx)] = 0;
-                }
-            }
-            if (!one_point_exct&&!mid_points_exct&&!plane_wave_exct){
-                radius = sqrt(pow((i+xi + 0.5) * dx, 2) + pow((j+yi + 0.5) * dy, 2));
-                if (t < texct && radius < Lexct) {
-                    pexct = pmax * pow(sin(pi * t / texct), 2) * RTFC / FC;
-//	    		xexct=pow((cos(pi/2*(i+xi+.5)/Nexct))*(cos(pi/2*(j+yi+.5)/Nexct)),2);
-                    xexct = pow(cos(pi / 2 * (radius / Lexct)), 2);
-//				xexct=pow((cos(pi/2*((i+xi+.5)*dx)/Lexct))*(cos(pi/2*((j+yi+.5)*dy)/Lexct)),2);
-                    pany = pexct * xexct;
-                    exct->pNa[xy_index(i, j, Nx)] = pany;
-                    exct->pK[xy_index(i, j, Nx)] = pany;
-                    exct->pCl[xy_index(i, j, Nx)] = pany;
-                } else {
-                    //pexct=0*RTFC/FC
-                    exct->pNa[xy_index(i, j, Nx)] = 0;
-                    exct->pK[xy_index(i, j, Nx)] = 0;
-                    exct->pCl[xy_index(i, j, Nx)] = 0;
-                }
-            }
+
         }
     }
 

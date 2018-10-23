@@ -11,11 +11,8 @@
 // General options
 
 #define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
-#define mid_points_exct 0
-#define one_point_exct 0 //if true, triggers SD at origin
-#define plane_wave_exct 1 //if true, initiates a uniform plane wave
 #define Profiling_on 1 //Turns timing of functions on/off.
-#define trecordstep 0.1 //0.5 //determines how often to record
+#define trecordstep 0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 #define start_at_steady 1 //Start at steady state?
 
@@ -24,7 +21,7 @@
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define Predictor 1  // Turns on predictor. Adaptive single point estimated update
+#define Predictor 0  // Turns on predictor. Adaptive single point estimated update
 #define width_size  1 //Number of up,down,left,right neighbors to pair in the predictor.
 #define Max_Grid_Refine 256 // Max number of time steps to refine in grid predictor
 
@@ -34,10 +31,10 @@ static const   PetscInt z[4] = {1,1,-1,-1}; //valences of ion species
 static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,7.6e-6};      //diffusion coefficients in cm^2/sec
 //Diffusion multipliers {x-dir,y-dir}
 static const PetscReal DNeuronMult[2] = {0,0};
-static const PetscReal DGliaMult[2] = {0.25,0.25};
-static const PetscReal DExtraMult[2] = {1.0,1.0};
-#define Time 30.0   //total simulated time in seconds
-//#define  Time  60.0//2e-2
+static const PetscReal DGliaMult[2] = {0,0.25};//{0.25,0.25};
+static const PetscReal DExtraMult[2] = {0,1.0};//{1.0,1.0};
+//#define Time 30.0   //total simulated time in seconds
+#define  Time  180.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
 //#define Ly 0.32         //length of domain in cm (y)
@@ -70,12 +67,13 @@ static const PetscReal cbath[4]={140*1e-3,3.4*1e-3,120*1e-3,2e-6}; //Na, K, Cl, 
 #define phibath (-0/RTFC) //Voltage of outside bath
 
 //excitation parameters
-#define pmax  (1e-1/3)          //max value for excitation
-//#define pmax  (1e1)          //max value for excitation
+//#define pmax  (1e-1/3)          //max value for excitation
+#define pmax  (1e1)          //max value for excitation
 //#define pmax  50          //max value for excitation
 //#define texct 2         //time for excitation
 //#define texct 0.5
-#define texct 0.05         //time for excitation
+#define Period_exct 5.0 // Periodic excitation
+#define texct 0.05         //Time for excitation
 #define Lexct 0.05          //Length of region for excitation in each direction
 //#define Lexct 0.025          //Length of region for excitation in each direction
 

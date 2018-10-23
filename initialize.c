@@ -226,7 +226,7 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     restore_subarray(current_state,user->state_vars);
 
     //Initialize and compute the excitation (it's zeros here)
-    excitation(user,texct+1);
+    excitation(user,-1.0);
     PetscReal dt_temp = user->dt;
     PetscInt k = 0;
     user->dt = 0.01;
@@ -332,8 +332,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
     //    Get Nx, Ny, and dt from options if possible
 
-    user->Nx = 32;
-    user->Ny = 32;
+    user->Nx = 16;
+    user->Ny = 16;
     user->dt =0.01;
 //    user->dt =1e-4;
 
