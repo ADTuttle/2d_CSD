@@ -396,8 +396,7 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
     }
 }
 
-void excitation(struct AppCtx* user,PetscReal t)
-{
+void excitation(struct AppCtx* user,PetscReal t){
     //compute excitation conductance to trigger csd
     //Leak conductances in mS/cm^2
     //all units converted to mmol/cm^2/sec
@@ -410,7 +409,8 @@ void excitation(struct AppCtx* user,PetscReal t)
     PetscReal dx = user->dx;
     PetscReal dy = user->dy;
     PetscInt num_points = 0;
-    if(t<texct){
+    int region = 0;
+    if(t < texct+1){
         for(PetscInt i = 0; i < Nx; i++){
             for(PetscInt j = 0; j < Ny; j++){
                 if(one_point_exct){
@@ -448,7 +448,7 @@ void excitation(struct AppCtx* user,PetscReal t)
                 }
                 if(plane_wave_exct){
                     //plane wave at left side
-                    int region = 0;
+
                     if(Spiral){
                         if(Spiral_type == 1){
                             region = (j == 0 && i < Nx/2);
@@ -456,9 +456,9 @@ void excitation(struct AppCtx* user,PetscReal t)
                             region = ((j == 0 && i < Nx/2) || (j == (Ny-1) && i > Nx/2));
                         }
                     }else{
-                        region = (j == 0);
+                        region = (j == 0 && i<Nx/2);
                     }
-                    if(region){
+                    if(region && t < texct){
                         num_points++;
                         pexct = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
                         pany = pexct;
@@ -494,6 +494,80 @@ void excitation(struct AppCtx* user,PetscReal t)
             }
         }
     }
+//    /*
+    PetscInt x,y;
+    PetscScalar rad1,alpha,beta,v;
+    PetscScalar Tcrit,Tcrit2;
+    PetscScalar theta,theta_ref;
+//    Tcrit = 140.00;
+//    Tcrit2 = 360.00;
+    Tcrit = 0;
+    Tcrit2 = 140.0;
+    if(t < Tcrit){
+        for(x = 0; x < Nx; x++){
+            for(y = 0; y < Ny; y++){
+                rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy-Ly/2,2));
+//            region = rad1<Lx/2; //rad1<Lx/4|| (x<5*Nx/8 && x>3*Nx/8);
+                region = rad1 < Lx/4 || (x < 5*Nx/8 && x > 3*Nx/8 && y < Nx/4);
+                if(region){
+                    user->gate_vars_past->hNaP[xy_index(x,y,Nx)] = 0;
+                    user->con_vars->DExtracellScale[2*xy_index(x,y,Nx)] = 0.01;
+                    user->con_vars->DExtracellScale[2*xy_index(x,y,Nx)+1] = 0.01;
+                    user->con_vars->DGliaScale[2*xy_index(x,y,Nx)] = 0.01;
+                    user->con_vars->DGliaScale[2*xy_index(x,y,Nx)+1] = 0.01;
+
+                    user->gate_vars->hNaP[xy_index(x,y,Nx)] = 0;
+                }
+            }
+        }
+    }else if(t > Tcrit && t < Tcrit+1){
+        for(x = 0; x < Nx; x++){
+            for(y = 0; y < Ny; y++){
+                rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy-Ly/2,2));
+//            region = rad1<Lx/2; //rad1<Lx/4|| (x<5*Nx/8 && x>3*Nx/8);
+                region = rad1 < Lx/4;
+                if(region){
+                    v = (user->state_vars_past->phi[phi_index(x,y,0,Nx)]-
+                         user->state_vars_past->phi[phi_index(x,y,Nc-1,Nx)])*RTFC;
+                    alpha = 5.12e-6*exp(-(0.056*v+2.94));
+                    beta = 1.6e-4/(1+exp(-(0.2*v+8)));
+                    user->gate_vars_past->hNaP[xy_index(x,y,Nx)] = alpha/(alpha+beta);
+                    user->con_vars->DExtracellScale[2*xy_index(x,y,Nx)] = DExtraMult[0];
+                    user->con_vars->DExtracellScale[2*xy_index(x,y,Nx)+1] = DExtraMult[1];
+                    user->con_vars->DGliaScale[2*xy_index(x,y,Nx)] = DGliaMult[0];
+                    user->con_vars->DGliaScale[2*xy_index(x,y,Nx)+1] = DGliaMult[1];
+
+                    user->gate_vars->hNaP[xy_index(x,y,Nx)] = alpha/(alpha+beta);
+                }
+            }
+        }
+    }else if(t > Tcrit+1 && t < Tcrit2){
+        for(x = 0; x < Nx; x++){
+            for(y = 0; y < Ny; y++){
+                rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy-Ly/2,2));
+                theta = (2*pi)/(Tcrit2-Tcrit)*(t-Tcrit);
+                theta_ref = atan2((y+0.5)*dy-Ly/2,(x+0.5)*dx-Lx/2);
+                theta_ref -=pi;
+                if(theta_ref<0){theta_ref+=2*pi;}
+                region = rad1 < Lx/4 && (theta_ref<theta);
+//                region = rad1 < Lx/4 && rad1 > Lx/4*(Tcrit-Tcrit2)*(t-Tcrit2);
+                if(region){
+                    v = (user->state_vars_past->phi[phi_index(x,y,0,Nx)]-
+                         user->state_vars_past->phi[phi_index(x,y,Nc-1,Nx)])*RTFC;
+                    alpha = 5.12e-6*exp(-(0.056*v+2.94));
+                    beta = 1.6e-4/(1+exp(-(0.2*v+8)));
+                    user->gate_vars_past->hNaP[xy_index(x,y,Nx)] = alpha/(alpha+beta);
+                    user->con_vars->DExtracellScale[2*xy_index(x,y,Nx)] = DExtraMult[0];
+                    user->con_vars->DExtracellScale[2*xy_index(x,y,Nx)+1] = DExtraMult[1];
+                    user->con_vars->DGliaScale[2*xy_index(x,y,Nx)] = DGliaMult[0];
+                    user->con_vars->DGliaScale[2*xy_index(x,y,Nx)+1] = DGliaMult[1];
+
+                    user->gate_vars->hNaP[xy_index(x,y,Nx)] = alpha/(alpha+beta);
+                }
+            }
+        }
+    }
+//     */
     //This makes a spiral
     if(Spiral && Spiral_type==1) {
         if (t > 100.00 && t < 101.00) {

@@ -15,12 +15,12 @@
 #define one_point_exct 0 //if true, triggers SD at origin and (Nx/2,1) (halfway along x-axis)
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
 #define Profiling_on 0 //Turns timing of functions on/off.
-#define trecordstep 0.1//0.5 //determines how often to record
+#define trecordstep 0.5 //determines how often to record
 #define save_one_var 1 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 #define start_at_steady 1 //Start at steady state?
 
 // Behaviour
-#define Spiral 1 // If true will setup spiral
+#define Spiral 0 // If true will setup spiral
 #define Spiral_type 3 //1:1 spiral from circle. 2: 2 spiral from circle. 3: 2 spirals from line, different speeds
 
 //Solver Type Options
@@ -39,7 +39,7 @@ static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,7.6e-6};      //diffu
 static const PetscReal DNeuronMult[2] = {0,0};
 static const PetscReal DGliaMult[2] = {0.25,0.25};
 static const PetscReal DExtraMult[2] = {1.0,1.0};
-#define Time 10.0   //total simulated time in seconds
+#define Time 360.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -73,8 +73,8 @@ static const PetscReal cbath[4]={140*1e-3,3.4*1e-3,120*1e-3,2e-6}; //Na, K, Cl, 
 #define phibath (-0/RTFC) //Voltage of outside bath
 
 //excitation parameters
-#define pmax  (1e-1/3)          //max value for excitation
-//#define pmax  (1e1)          //max value for excitation
+//#define pmax  (1e-1/3)          //max value for excitation
+#define pmax  (1e1)          //max value for excitation
 //#define pmax  50          //max value for excitation
 //#define texct 2         //time for excitation
 //#define texct 0.5
@@ -104,10 +104,10 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
 #define basepNaT  0                 //1e-4%0%1e-3%if set to 0, recovery possible
-#define basepNaP  2e-5
+#define basepNaP  2e-5 //2e-5
 #define basepKDR  1e-3
 #define basepKA  1e-4
-#define basepNMDA 3e-6//1e-7//5e-5           //NMDA permeability (cm/sec)
+#define basepNMDA 5e-5//3e-6//1e-7//5e-5           //NMDA permeability (cm/sec)
 
 //Leak conductances in mS/cm^2 from Kager, 2000 or Yao, Huang, Miura, 2011.
 #define pKLeak  (7e-2*RTFC/FC)     //Kager:10e-2,Miura:7e-2%K Leak conductance in mS/cm^2 converted to mmol/cm^2/s

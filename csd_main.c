@@ -145,11 +145,12 @@ int main(int argc, char **argv)
     /*
     for(x=0;x<Nx;x++){
         for(y=0;y<Ny;y++){
-            rnd = (double) rand()/((double)RAND_MAX);
+            rnd = (double) 2*rand()/((double)RAND_MAX);
 //            rnd = 2*cos(pi*(x*dx-0.25))*cos(pi*(y*dy-0.25))-0.5;
             user->con_vars->pNaP[xy_index(x,y,user->Nx)]=basepNaP*rnd;
             user->con_vars->pKDR[xy_index(x,y,user->Nx)]=basepKDR*rnd;
             user->con_vars->pKA[xy_index(x,y,user->Nx)]=basepKA*rnd;
+            user->con_vars->pNMDA[xy_index(x,y,user->Nx)]=basepNMDA*rnd;
 //            user->con_vars->DGliaScale[xy_index(x, y, Nx)] = rnd;
         }
     }
@@ -191,17 +192,16 @@ int main(int argc, char **argv)
     if(Spiral && Spiral_type==3) {
         for (x = 0; x < Nx; x++) {
             for (y = 0; y < Ny; y++) {
-                if (x > 3 * Nx / 8 && x < 5 * Nx / 8) {
+                if(x>Nx/2){
+//                if (x > 3 * Nx / 8 && x < 5 * Nx / 8) {
                     user->con_vars->pNaP[xy_index(x, y, user->Nx)] = 0;
                     user->con_vars->pKDR[xy_index(x, y, user->Nx)] = 0;
                     user->con_vars->pKA[xy_index(x, y, user->Nx)] = 0;
                 }
-                if (x > Nx / 2) {
-                    user->con_vars->DGliaScale[xy_index(x, y, Nx)] = 0.1;
-                }
             }
         }
     }
+
     if(Profiling_on) {
         PetscLogStage stage2;
         PetscLogStageRegister("Main Loop", &stage2);
