@@ -499,10 +499,10 @@ void excitation(struct AppCtx* user,PetscReal t){
     PetscScalar rad1,alpha,beta,v;
     PetscScalar Tcrit,Tcrit2;
     PetscScalar theta,theta_ref;
-//    Tcrit = 140.00;
-//    Tcrit2 = 360.00;
-    Tcrit = 0;
-    Tcrit2 = 140.0;
+    Tcrit = 140.00;
+    Tcrit2 = 720.00;
+//    Tcrit = 0;
+//    Tcrit2 = 140.0;
     if(t < Tcrit){
         for(x = 0; x < Nx; x++){
             for(y = 0; y < Ny; y++){
@@ -511,10 +511,10 @@ void excitation(struct AppCtx* user,PetscReal t){
                 region = rad1 < Lx/4 || (x < 5*Nx/8 && x > 3*Nx/8 && y < Nx/4);
                 if(region){
                     user->gate_vars_past->hNaP[xy_index(x,y,Nx)] = 0;
-                    user->con_vars->DExtracellScale[2*xy_index(x,y,Nx)] = 0.01;
+                    user->con_vars->DExtracellScale[2*xy_index(x,y,Nx)] = 0.001;
                     user->con_vars->DExtracellScale[2*xy_index(x,y,Nx)+1] = 0.01;
-                    user->con_vars->DGliaScale[2*xy_index(x,y,Nx)] = 0.01;
-                    user->con_vars->DGliaScale[2*xy_index(x,y,Nx)+1] = 0.01;
+                    user->con_vars->DGliaScale[2*xy_index(x,y,Nx)] = 0.001;
+                    user->con_vars->DGliaScale[2*xy_index(x,y,Nx)+1] = 0.001;
 
                     user->gate_vars->hNaP[xy_index(x,y,Nx)] = 0;
                 }
@@ -549,8 +549,8 @@ void excitation(struct AppCtx* user,PetscReal t){
                 theta_ref = atan2((y+0.5)*dy-Ly/2,(x+0.5)*dx-Lx/2);
                 theta_ref -=pi;
                 if(theta_ref<0){theta_ref+=2*pi;}
-                region = rad1 < Lx/4 && (theta_ref<theta);
-//                region = rad1 < Lx/4 && rad1 > Lx/4*(Tcrit-Tcrit2)*(t-Tcrit2);
+//                region = rad1 < Lx/4 && (theta_ref<theta);
+                region = rad1 < Lx/4 && rad1 > Lx/4*(Tcrit-Tcrit2)*(t-Tcrit2);
                 if(region){
                     v = (user->state_vars_past->phi[phi_index(x,y,0,Nx)]-
                          user->state_vars_past->phi[phi_index(x,y,Nc-1,Nx)])*RTFC;

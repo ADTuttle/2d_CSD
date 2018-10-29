@@ -107,7 +107,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define basepNaP  2e-5 //2e-5
 #define basepKDR  1e-3
 #define basepKA  1e-4
-#define basepNMDA 5e-5//3e-6//1e-7//5e-5           //NMDA permeability (cm/sec)
+#define basepNMDA 1e-6 //3e-6//1e-7//5e-5           //NMDA permeability (cm/sec)
 
 //Leak conductances in mS/cm^2 from Kager, 2000 or Yao, Huang, Miura, 2011.
 #define pKLeak  (7e-2*RTFC/FC)     //Kager:10e-2,Miura:7e-2%K Leak conductance in mS/cm^2 converted to mmol/cm^2/s
@@ -116,7 +116,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 //Glial KIR from Steinberg et al 2005
 #define basepKIR  (.13*RTFC/FC)        //conductance in mS/cm^2 converted to mmol/cm^2/s
-#define pKLeakadjust  1.0       //parameter for varying glial permeability
+#define pKLeakadjust  2.0       //parameter for varying glial permeability
 
 //pump current, parameters from Yao, Huang, Miura, 2011
 #define mK  2e-3                 //pump current constant in mmol/cm^3=mol/l
