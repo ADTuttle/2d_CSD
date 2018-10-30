@@ -125,6 +125,9 @@ PetscReal array_diff_max(PetscReal *,PetscReal *,size_t);
 //Calc l2_norm of one array
 PetscReal l2_norm(PetscReal *,size_t);
 
+int Check_Neighbors(struct AppCtx *,PetscInt , PetscInt ,PetscInt , PetscReal );
+
+
 void print_all(struct AppCtx*);
 const char* getfield(char* , int );
 void find_print(int, int, double, int iter);

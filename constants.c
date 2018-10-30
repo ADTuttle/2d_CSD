@@ -366,3 +366,17 @@ void parameter_dependence(struct AppCtx *user)
 
 }
 
+int Check_Neighbors(struct AppCtx *user,PetscInt x, PetscInt y,PetscInt Nx, PetscReal Vcrit)
+{
+    // Check Neighbors
+    for(PetscInt yd=-1;yd<=1;yd++){
+        for(PetscInt xd=-1;xd<=1;xd++){
+            if(!(xd==0 && yd==0) && ((user->state_vars_past->phi[phi_index(x+xd,y+yd,0,Nx)]-
+                user->state_vars_past->phi[phi_index(x+xd,y+yd,Nc-1,Nx)])*RTFC > Vcrit)){
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}

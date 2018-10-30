@@ -499,7 +499,8 @@ void excitation(struct AppCtx* user,PetscReal t){
     PetscScalar rad1,alpha,beta,v;
     PetscScalar Tcrit,Tcrit2;
     PetscScalar theta,theta_ref;
-    Tcrit = 140.00;
+    PetscReal Vm;
+    Tcrit = 180.00;
     Tcrit2 = 720.00;
 //    Tcrit = 0;
 //    Tcrit2 = 140.0;
@@ -524,9 +525,9 @@ void excitation(struct AppCtx* user,PetscReal t){
         for(x = 0; x < Nx; x++){
             for(y = 0; y < Ny; y++){
                 rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy-Ly/2,2));
-//            region = rad1<Lx/2; //rad1<Lx/4|| (x<5*Nx/8 && x>3*Nx/8);
                 region = rad1 < Lx/4;
                 if(region){
+
                     v = (user->state_vars_past->phi[phi_index(x,y,0,Nx)]-
                          user->state_vars_past->phi[phi_index(x,y,Nc-1,Nx)])*RTFC;
                     alpha = 5.12e-6*exp(-(0.056*v+2.94));
@@ -550,19 +551,22 @@ void excitation(struct AppCtx* user,PetscReal t){
                 theta_ref -=pi;
                 if(theta_ref<0){theta_ref+=2*pi;}
 //                region = rad1 < Lx/4 && (theta_ref<theta);
-                region = rad1 < Lx/4 && rad1 > Lx/4*(Tcrit-Tcrit2)*(t-Tcrit2);
+                region = rad1 < Lx/4 && rad1 > Lx/4/(Tcrit-Tcrit2)*(t-Tcrit2);
                 if(region){
-                    v = (user->state_vars_past->phi[phi_index(x,y,0,Nx)]-
-                         user->state_vars_past->phi[phi_index(x,y,Nc-1,Nx)])*RTFC;
-                    alpha = 5.12e-6*exp(-(0.056*v+2.94));
-                    beta = 1.6e-4/(1+exp(-(0.2*v+8)));
-                    user->gate_vars_past->hNaP[xy_index(x,y,Nx)] = alpha/(alpha+beta);
-                    user->con_vars->DExtracellScale[2*xy_index(x,y,Nx)] = DExtraMult[0];
-                    user->con_vars->DExtracellScale[2*xy_index(x,y,Nx)+1] = DExtraMult[1];
-                    user->con_vars->DGliaScale[2*xy_index(x,y,Nx)] = DGliaMult[0];
-                    user->con_vars->DGliaScale[2*xy_index(x,y,Nx)+1] = DGliaMult[1];
+                    if (Check_Neighbors(user,x, y,Nx,-10.0)){
 
-                    user->gate_vars->hNaP[xy_index(x,y,Nx)] = alpha/(alpha+beta);
+                        v = (user->state_vars_past->phi[phi_index(x,y,0,Nx)]-
+                             user->state_vars_past->phi[phi_index(x,y,Nc-1,Nx)])*RTFC;
+                        alpha = 5.12e-6*exp(-(0.056*v+2.94));
+                        beta = 1.6e-4/(1+exp(-(0.2*v+8)));
+                        user->gate_vars_past->hNaP[xy_index(x,y,Nx)] = alpha/(alpha+beta);
+                        user->con_vars->DExtracellScale[2*xy_index(x,y,Nx)] = DExtraMult[0];
+                        user->con_vars->DExtracellScale[2*xy_index(x,y,Nx)+1] = DExtraMult[1];
+                        user->con_vars->DGliaScale[2*xy_index(x,y,Nx)] = DGliaMult[0];
+                        user->con_vars->DGliaScale[2*xy_index(x,y,Nx)+1] = DGliaMult[1];
+
+                        user->gate_vars->hNaP[xy_index(x,y,Nx)] = alpha/(alpha+beta);
+                    }
                 }
             }
         }
