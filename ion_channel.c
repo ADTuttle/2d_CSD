@@ -501,7 +501,7 @@ void excitation(struct AppCtx* user,PetscReal t){
     PetscScalar theta,theta_ref;
     PetscReal Vm;
     Tcrit = 180.00;
-    Tcrit2 = 720.00;
+    Tcrit2 = 360.00;
 //    Tcrit = 0;
 //    Tcrit2 = 140.0;
     if(t < Tcrit){
@@ -525,7 +525,7 @@ void excitation(struct AppCtx* user,PetscReal t){
         for(x = 0; x < Nx; x++){
             for(y = 0; y < Ny; y++){
                 rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy-Ly/2,2));
-                region = rad1 < Lx/4;
+                region = rad1 > Lx/4 && (x < 5*Nx/8 && x > 3*Nx/8 && y < Nx/4);
                 if(region){
 
                     v = (user->state_vars_past->phi[phi_index(x,y,0,Nx)]-
@@ -547,13 +547,12 @@ void excitation(struct AppCtx* user,PetscReal t){
             for(y = 0; y < Ny; y++){
                 rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy-Ly/2,2));
                 theta = (2*pi)/(Tcrit2-Tcrit)*(t-Tcrit);
-                theta_ref = atan2((y+0.5)*dy-Ly/2,(x+0.5)*dx-Lx/2);
-                theta_ref -=pi;
+                theta_ref = atan2(-((x+0.5)*dx-Lx/2),-((y+0.5)*dy-Ly/2));
                 if(theta_ref<0){theta_ref+=2*pi;}
-//                region = rad1 < Lx/4 && (theta_ref<theta);
-                region = rad1 < Lx/4 && rad1 > Lx/4/(Tcrit-Tcrit2)*(t-Tcrit2);
+                region = rad1 < Lx/4 && (theta<theta_ref);
+//                region = rad1 < Lx/4 && rad1 > Lx/4/(Tcrit-Tcrit2)*(t-Tcrit2);
                 if(region){
-                    if (Check_Neighbors(user,x, y,Nx,-10.0)){
+//                    if (Check_Neighbors(user,x, y,Nx,-10.0)){
 
                         v = (user->state_vars_past->phi[phi_index(x,y,0,Nx)]-
                              user->state_vars_past->phi[phi_index(x,y,Nc-1,Nx)])*RTFC;
@@ -566,7 +565,7 @@ void excitation(struct AppCtx* user,PetscReal t){
                         user->con_vars->DGliaScale[2*xy_index(x,y,Nx)+1] = DGliaMult[1];
 
                         user->gate_vars->hNaP[xy_index(x,y,Nx)] = alpha/(alpha+beta);
-                    }
+//                    }
                 }
             }
         }
