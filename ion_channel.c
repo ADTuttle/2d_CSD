@@ -73,7 +73,8 @@ void mcGoldman(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,Pet
     }
 }
 
-void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,struct SimState *state_vars,struct SimState *state_vars_past,PetscInt Nx)
+void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,struct SimState *state_vars,struct SimState *state_vars_past,
+                    PetscInt Nx,PetscReal Glut_Excite)
 {
     PetscReal Glu_n,Glu_g,Glu_np,Glu_gp,vn,vg,NaGlu,ce;
 
@@ -89,7 +90,8 @@ void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,struct SimState 
     PetscReal expo = exp(-0.0044*pow(vn*RTFC-8.66,2));
 
     //Neuronal portion
-    flux->mflux[c_index(x,y,0,3,Nx)] = -(-glut_A*Glu_n*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*Glu_np)+glut_Bg*(Glu_gp-glut_Rg*Glu_np));
+    flux->mflux[c_index(x,y,0,3,Nx)] = -(-glut_A*Glu_n*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*Glu_np)+
+                                            glut_Bg*(Glu_gp-glut_Rg*Glu_np)-Glut_Excite);
     flux->dfdci[c_index(x,y,0,3,Nx)] = -(-glut_A*expo*glut_eps*pow(frac,2));
     flux->dfdce[c_index(x,y,0,3,Nx)] = 0;
     flux->dfdphim[c_index(x,y,0,3,Nx)] = -(RTFC*0.0088*(vn*RTFC-8.66)*expo*glut_A*Glu_n*frac);
@@ -416,6 +418,7 @@ void excitation(struct AppCtx* user,PetscReal t)
             exct->pNa[i]=0;
             exct->pK[i]=0;
             exct->pCl[i]=0;
+            exct->pGlu[i]=0;
         }
         return;
     }
@@ -429,6 +432,7 @@ void excitation(struct AppCtx* user,PetscReal t)
             exct->pNa[xy_index(x,y_exct,Nx)] = pany;
             exct->pK[xy_index(x,y_exct,Nx)] = pany;
             exct->pCl[xy_index(x,y_exct,Nx)] = pany;
+            exct->pGlu[xy_index(x,y_exct,Nx)] = pany/ell;
 
         }
     } else{
@@ -436,6 +440,7 @@ void excitation(struct AppCtx* user,PetscReal t)
             exct->pNa[i]=0;
             exct->pK[i]=0;
             exct->pCl[i]=0;
+            exct->pGlu[i]=0;
         }
     }
 
@@ -556,7 +561,7 @@ void ionmflux(struct AppCtx* user)
 
             //Glutamate transport(Sets glutamate flux and adds to Sodium+K fluxes in both Neurons and glia
             if(Ni>3){
-                glutamate_flux(flux,x,y,state_vars,state_vars_past,Nx);
+                glutamate_flux(flux,x,y,state_vars,state_vars_past,Nx,gexct->pGlu[xy_index(x,y,Nx)]);
             }
 
 
@@ -785,7 +790,7 @@ void grid_ionmflux(struct AppCtx* user,PetscInt xi,PetscInt yi)
 
             //Glutamate transport
             if(Ni>3){
-                glutamate_flux(flux,x,y,state_vars,state_vars_past,Nx);
+                glutamate_flux(flux,x,y,state_vars,state_vars_past,Nx,0);
             }
 
 
