@@ -497,13 +497,14 @@ void excitation(struct AppCtx* user,PetscReal t){
 //    /*
     PetscInt x,y;
     PetscScalar rad1,alpha,beta,v;
-    PetscScalar Tcrit,Tcrit2;
+    PetscScalar Tcrit,Tcrit2,Tdelay;
     PetscScalar theta,theta_ref;
     PetscReal Vm;
-    Tcrit = 180.00;
-    Tcrit2 = 360.00;
-//    Tcrit = 0;
-//    Tcrit2 = 140.0;
+//    Tcrit = 180.00; //for Nx=16
+//    Tcrit2 = 360.00;
+    Tcrit = 130.00;
+    Tcrit2 = 260.0;
+    Tdelay = 10.0
     if(t < Tcrit){
         for(x = 0; x < Nx; x++){
             for(y = 0; y < Ny; y++){
@@ -542,11 +543,11 @@ void excitation(struct AppCtx* user,PetscReal t){
                 }
             }
         }
-    }else if(t > Tcrit+1 && t < Tcrit2){
+    }else if(t > Tcrit+Tdelay && t < Tcrit2){
         for(x = 0; x < Nx; x++){
             for(y = 0; y < Ny; y++){
                 rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy-Ly/2,2));
-                theta = (2*pi)/(Tcrit2-Tcrit)*(t-Tcrit);
+                theta = (2*pi)/(Tcrit2-(Tcrit+Tdelay))*(t-(Tcrit+Tdelay));
                 theta_ref = atan2(-((x+0.5)*dx-Lx/2),-((y+0.5)*dy-Ly/2));
                 if(theta_ref<0){theta_ref+=2*pi;}
                 region = rad1 < Lx/4 && (theta<theta_ref);
