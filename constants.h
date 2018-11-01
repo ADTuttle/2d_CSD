@@ -13,7 +13,7 @@
 #define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
 #define Profiling_on 1 //Turns timing of functions on/off.
 #define trecordstep 0.5 //determines how often to record
-#define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
+#define save_one_var 1 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 #define start_at_steady 1 //Start at steady state?
 
 
@@ -21,7 +21,7 @@
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define Predictor 0  // Turns on predictor. Adaptive single point estimated update
+#define Predictor 1  // Turns on predictor. Adaptive single point estimated update
 #define width_size  1 //Number of up,down,left,right neighbors to pair in the predictor.
 #define Max_Grid_Refine 256 // Max number of time steps to refine in grid predictor
 
