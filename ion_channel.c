@@ -311,9 +311,9 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
 
                 //gating variable NMDA
                 if(Ni>3){
-                    alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/
-                            (state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05e-3); //72*Glu_e/(0.05+Glu_e)
-//                alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
+//                    alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/
+//                            (state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05e-3); //72*Glu_e/(0.05+Glu_e)
+                alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
 //                beta = 6.6; // 6.6 (sec)^-1->6.6e-3 msec^-1
 //                alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
                     beta = 6.6e-3; //just 6.6
@@ -380,8 +380,8 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
                 //gating variable NMDA
                 //72 mM/sec->72 1e-3mM/l *1e-3 1/msec
                 if(Ni>3){
-                alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05); //72*Glu_e/(0.05+Glu_e)
-//                alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
+//                alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05); //72*Glu_e/(0.05+Glu_e)
+                alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
 //                beta = 6.6; // 6.6 (sec)^-1->6.6e-3 msec^-1
 //                alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
                 beta = 6.6e-3; // 6.6 (sec)^-1->6.6e-3 msec^-1
