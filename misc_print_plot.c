@@ -652,6 +652,15 @@ void save_file(struct AppCtx *user){
             }
         }
     }
+    for(y=0;y<Ny;y++){
+        for(x=0;x<Nx;x++){
+            if (x == Nx - 1 && y == Ny - 1) {
+                fprintf(fp, "%.20e\n", gate_vars->yNMDA[xy_index(x,y,Nx)]);
+            } else {
+                fprintf(fp, "%.20e,", gate_vars->yNMDA[xy_index(x,y,Nx)]);
+            }
+        }
+    }
 
 
     fclose(fp);
@@ -866,14 +875,26 @@ void read_file(struct AppCtx *user)
                 gate_vars->hKA[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
             }
         }
+        fgets(line, 1024 * 1024, fp);
+        for (y=0;y<Ny;y++){
+            for(x=0;x<Nx;x++){
+                tmp = strdup(line);
+                gate_vars->yNMDA[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+            }
+        }
 
         //Copy over past vars and calculate g.
+        PetscReal Gphi,v;
         for(y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
                 gate_vars->gNaT[xy_index(x,y,Nx)] = pow(gate_vars->mNaT[xy_index(x,y,Nx)],3)*gate_vars->hNaT[xy_index(x,y,Nx)];
                 gate_vars->gNaP[xy_index(x,y,Nx)] = pow(gate_vars->mNaP[xy_index(x,y,Nx)],2)*gate_vars->hNaP[xy_index(x,y,Nx)];
                 gate_vars->gKDR[xy_index(x,y,Nx)] = pow(gate_vars->mKDR[xy_index(x,y,Nx)],2);
                 gate_vars->gKA[xy_index(x,y,Nx)] = pow(gate_vars->mKA[xy_index(x,y,Nx)],2)*gate_vars->hKA[xy_index(x,y,Nx)];
+
+                v = (state_vars->phi[phi_index(x,y,0,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)])*RTFC;
+                Gphi = 1/(1+0.28*exp(-0.062*v));
+                gate_vars->gNMDA[xy_index(x,y,Nx)] = gate_vars->yNMDA[xy_index(x,y,Nx)]* Gphi;
 
             }
         }
@@ -890,6 +911,7 @@ void read_file(struct AppCtx *user)
         memcpy(user->gate_vars_past->mKA,user->gate_vars->mKA,sizeof(PetscReal)*user->Nx*user->Ny);
         memcpy(user->gate_vars_past->mKDR,user->gate_vars->mKDR,sizeof(PetscReal)*user->Nx*user->Ny);
         memcpy(user->gate_vars_past->gKDR,user->gate_vars->gKDR,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->yNMDA,user->gate_vars->yNMDA,sizeof(PetscReal)*user->Nx*user->Ny);
     }
 
 
@@ -1110,7 +1132,7 @@ void draw_csd(struct AppCtx *user)
 {
 
     PetscReal vm,threshhold;
-    threshhold = -10;
+    threshhold = -20;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
 
