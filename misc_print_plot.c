@@ -919,7 +919,7 @@ void read_file(struct AppCtx *user)
     free(tmp);
     free(line);
     fclose(fp);
-
+return;
     //Modify beginning of file
     fp = fopen("data_csd.txt", "r");
     if (fp == NULL) {

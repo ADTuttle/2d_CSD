@@ -329,15 +329,23 @@ void parameter_dependence(struct AppCtx *user)
     con_vars->DNeuronScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
     con_vars->DGliaScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
     con_vars->DExtracellScale = (PetscReal*)malloc(sizeof(PetscReal)*2*Nx*Ny);
+
+    PetscReal KIR_Mult,NMDA_Mult,NaP_Mult;
+    KIR_Mult = 1;
+    NMDA_Mult = 1;
+    NaP_Mult = 1;
+    PetscOptionsGetReal(NULL,NULL,"-kir",&KIR_Mult,NULL);
+    PetscOptionsGetReal(NULL,NULL,"-nmda",&NMDA_Mult,NULL);
+    PetscOptionsGetReal(NULL,NULL,"-nap",&NaP_Mult,NULL);
     for(x=0;x<Nx;x++){
         for(y=0;y<Ny;y++){
             con_vars->pNaT[xy_index(x,y,Nx)]=basepNaT;
-            con_vars->pNaP[xy_index(x,y,Nx)]=basepNaP;
+            con_vars->pNaP[xy_index(x,y,Nx)]=basepNaP*NaP_Mult;
             con_vars->pKDR[xy_index(x,y,Nx)]=basepKDR;
             con_vars->pKA[xy_index(x,y,Nx)]=basepKA;
-            con_vars->pNMDA[xy_index(x,y,Nx)]=basepNMDA;
+            con_vars->pNMDA[xy_index(x,y,Nx)]=basepNMDA*NMDA_Mult;
 
-            con_vars->pKIR[xy_index(x,y,Nx)]=basepKIR;
+            con_vars->pKIR[xy_index(x,y,Nx)]=basepKIR*KIR_Mult;
 
             con_vars->DNeuronScale[xy_index(x,y,Nx)*2]=DNeuronMult[0]; //x-direction Neurons
             con_vars->DNeuronScale[xy_index(x,y,Nx)*2+1]=DNeuronMult[1]; //y-direction Neurons

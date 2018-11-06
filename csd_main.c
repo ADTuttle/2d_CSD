@@ -133,10 +133,12 @@ int main(int argc, char **argv)
         restore_subarray(current_state,state_vars);
         extract_subarray(current_state,state_vars);
         //Open files to write to
-        fp = fopen("data_csd.txt","a");
-        user->fp = fopen("point_csd.txt","a");
+        fp = fopen("data_csd.txt","w");
+        write_data(fp,user,numrecords,1);
+//        fp = fopen("data_csd.txt","a");
+        user->fp = fopen("point_csd.txt","w");
         if(Predictor) {
-            fdt = fopen("csd_dt.txt", "a");
+            fdt = fopen("csd_dt.txt", "w");
         }
         record_measurements(fp_measures,user,1,numrecords,1);
     }
