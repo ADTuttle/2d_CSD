@@ -351,8 +351,8 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
 
                     //gating variable NMDA
                     if(Ni > 3){
-                        alpha = 72e-6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]/
-                                (state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]+0.05e-3); //72*Glu_e/(0.05+Glu_e)
+                        alpha = 72*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]; // /
+                                //(state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]+0.05e-3); //72*Glu_e/(0.05+Glu_e)
                         beta = 6.6e-3; //just 6.6
                         gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] = alpha/(alpha+beta);
 
@@ -429,8 +429,8 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
                     //gating variable NMDA
                     //72 mM/sec->72 1e-3mM/l *1e-3 1/msec
                     if(Ni>3){
-                        alpha = 72e-6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]/
-                                (state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]+0.05); //72*Glu_e/(0.05+Glu_e)
+                        alpha = 72*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]; // /
+                                //(state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]+0.05); //72*Glu_e/(0.05+Glu_e)
                         beta = 6.6e-3; // 6.6 (sec)^-1->6.6e-3 msec^-1
                         gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] =
                                 (gate_vars_past->yNMDA[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
@@ -502,18 +502,21 @@ void excitation(struct AppCtx* user,PetscReal t)
                 }
                 if(plane_wave_exct){
                     //plane wave at left side
-                    if(z == 0 && t < texct && j == 0){
+                    if(t < texct && j == 0){
+//                        if(z == 0 && t < texct && j == 0){
                         num_points++;
                         pexct = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
                         pany = pexct;
                         exct->pNa[xy_index(i,j,z,Nx,Ny)] = pany;
                         exct->pK[xy_index(i,j,z,Nx,Ny)] = pany;
                         exct->pCl[xy_index(i,j,z,Nx,Ny)] = pany;
+                        exct->pGlu[xy_index(i,j,z,Nx,Ny)] = pany/ell;
                     }else{
                         //pexct=0*RTFC/FC
                         exct->pNa[xy_index(i,j,z,Nx,Ny)] = 0;
                         exct->pK[xy_index(i,j,z,Nx,Ny)] = 0;
                         exct->pCl[xy_index(i,j,z,Nx,Ny)] = 0;
+                        exct->pGlu[xy_index(i,j,z,Nx,Ny)] = 0;
                     }
                 }
                 if(!one_point_exct && !mid_points_exct && !plane_wave_exct){

@@ -1175,7 +1175,7 @@ void draw_csd(struct AppCtx *user)
 {
 
     PetscReal vm,threshhold;
-    threshhold = -10;
+    threshhold = -20;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
     PetscInt z = 0;

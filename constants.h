@@ -15,7 +15,7 @@
 #define one_point_exct 0 //if true, triggers SD at origin
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
 #define Profiling_on 1 //Turns timing of functions on/off.
-#define trecordstep 0.1 //0.5 //determines how often to record
+#define trecordstep 0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 #define start_at_steady 1 //Start at steady state?
 
@@ -101,7 +101,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
-#define basepNaT  1e-4//0                //1e-4%0%1e-3%if set to 0, recovery possible
+#define basepNaT  0                //1e-4%0%1e-3%if set to 0, recovery possible
 #define basepNaP  2e-5
 #define basepKDR  1e-3
 #define basepKA  1e-4
@@ -186,6 +186,7 @@ struct ExctType{
     PetscReal *pNa;
     PetscReal *pK;
     PetscReal *pCl;
+    PetscReal *pGlu;
 };
 // Constant params (vary in space set in constants.c)
 struct ConstVars{
