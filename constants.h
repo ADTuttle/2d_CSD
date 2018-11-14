@@ -34,9 +34,9 @@ static const   PetscInt z_charge[4] = {1,1,-1,-1}; //valences of ion species
 static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,7.6e-6};      //diffusion coefficients in cm^2/sec
 //Diffusion multipliers {x-dir,y-dir,z-dir}
 static const PetscReal DNeuronMult[3] = {0,0,.5};
-static const PetscReal DGliaMult[3] = {0.25,0.25,0.25};
-static const PetscReal DExtraMult[3] = {1.0,1.0,1.0};
-#define Time 10.0   //total simulated time in seconds
+static const PetscReal DGliaMult[3] = {0,0.25,0};
+static const PetscReal DExtraMult[3] = {0,1.0,0};
+#define Time 30.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -71,12 +71,12 @@ static const PetscReal cbath[4]={140*1e-3,3.4*1e-3,120*1e-3,2e-6}; //Na, K, Cl, 
 #define phibath (-0/RTFC) //Voltage of outside bath
 
 //excitation parameters
-#define pmax  (1e-1)          //max value for excitation
-//#define pmax  (1e1)          //max value for excitation
+//#define pmax  (1e-1)          //max value for excitation
+#define pmax  (1e1)          //max value for excitation
 //#define pmax  50          //max value for excitation
-//#define texct 2         //time for excitation
+#define texct 2         //time for excitation
 //#define texct 0.5
-#define texct 0.05         //time for excitation
+//#define texct 0.05         //time for excitation
 #define Lexct 0.05          //Length of region for excitation in each direction
 //#define Lexct 0.025          //Length of region for excitation in each direction
 
@@ -105,7 +105,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define basepNaP  2e-5
 #define basepKDR  1e-3
 #define basepKA  1e-4
-#define basepNMDA 3e-6//1e-7//5e-5           //NMDA permeability (cm/sec)
+#define basepNMDA 5e-5 //3e-6//1e-7//5e-5           //NMDA permeability (cm/sec)
 
 //Leak conductances in mS/cm^2 from Kager, 2000 or Yao, Huang, Miura, 2011.
 #define pKLeak  (7e-2*RTFC/FC)     //Kager:10e-2,Miura:7e-2%K Leak conductance in mS/cm^2 converted to mmol/cm^2/s
