@@ -309,9 +309,9 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
 
                 //gating variable NMDA
                 if(Ni>3){
-                    alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/
+//                    alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/
                             (state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05e-3); //72*Glu_e/(0.05+Glu_e)
-//                alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
+                alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
 //                beta = 6.6; // 6.6 (sec)^-1->6.6e-3 msec^-1
 //                alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
                     beta = 6.6e-3; //just 6.6
@@ -337,7 +337,6 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
                 //gating variable hNaT
                 alpha = 0.128*exp(-(0.056*v+2.94));
                 beta = 4/(exp(-(0.2*v+6))+1);
-                gate_vars->hNaT[xy_index(x,y,Nx)] = alpha/(alpha+beta);
                 gate_vars->hNaT[xy_index(x,y,Nx)] = (gate_vars_past->hNaT[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
                 gate_vars->gNaT[xy_index(x,y,Nx)] = pow(gate_vars->mNaT[xy_index(x,y,Nx)],3)*gate_vars->hNaT[xy_index(x,y,Nx)];
@@ -378,8 +377,8 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
                 //gating variable NMDA
                 //72 mM/sec->72 1e-3mM/l *1e-3 1/msec
                 if(Ni>3){
-                alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05); //72*Glu_e/(0.05+Glu_e)
-//                alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
+//                alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05); //72*Glu_e/(0.05+Glu_e)
+                alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
 //                beta = 6.6; // 6.6 (sec)^-1->6.6e-3 msec^-1
 //                alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
                 beta = 6.6e-3; // 6.6 (sec)^-1->6.6e-3 msec^-1
@@ -420,12 +419,13 @@ void excitation(struct AppCtx* user,PetscReal t)
                     exct->pNa[xy_index(i, j, Nx)] = pany;
                     exct->pK[xy_index(i, j, Nx)] = pany;
                     exct->pCl[xy_index(i, j, Nx)] = pany;
+                    exct->pGlu[xy_index(i,j,Nx)] = pany/ell;
                 } else {
                     //pexct=0*RTFC/FC
                     exct->pNa[xy_index(i, j, Nx)] = 0;
                     exct->pK[xy_index(i, j, Nx)] = 0;
                     exct->pCl[xy_index(i, j, Nx)] = 0;
-
+                    exct->pGlu[xy_index(i,j,Nx)] = 0;
                 }
 
             }
@@ -439,11 +439,13 @@ void excitation(struct AppCtx* user,PetscReal t)
                         exct->pNa[xy_index(i, j, Nx)] = pany;
                         exct->pK[xy_index(i, j, Nx)] = pany;
                         exct->pCl[xy_index(i, j, Nx)] = pany;
+                        exct->pGlu[xy_index(i,j,Nx)] = pany/ell;
                     } else {
                         //pexct=0*RTFC/FC
                         exct->pNa[xy_index(i, j, Nx)] = 0;
                         exct->pK[xy_index(i, j, Nx)] = 0;
                         exct->pCl[xy_index(i, j, Nx)] = 0;
+                        exct->pGlu[xy_index(i,j,Nx)] = 0;
                     }
                 }
             if (plane_wave_exct) {
@@ -455,11 +457,13 @@ void excitation(struct AppCtx* user,PetscReal t)
                     exct->pNa[xy_index(i, j, Nx)] = pany;
                     exct->pK[xy_index(i, j, Nx)] = pany;
                     exct->pCl[xy_index(i, j, Nx)] = pany;
+                    exct->pGlu[xy_index(i,j,Nx)] = pany/ell;
                 } else {
                     //pexct=0*RTFC/FC
                     exct->pNa[xy_index(i, j, Nx)] = 0;
                     exct->pK[xy_index(i, j, Nx)] = 0;
                     exct->pCl[xy_index(i, j, Nx)] = 0;
+                    exct->pGlu[xy_index(i,j,Nx)] = 0;
                 }
             }
             if (!one_point_exct&&!mid_points_exct&&!plane_wave_exct){
@@ -474,11 +478,13 @@ void excitation(struct AppCtx* user,PetscReal t)
                         exct->pNa[xy_index(i, j, Nx)] = pany;
                         exct->pK[xy_index(i, j, Nx)] = pany;
                         exct->pCl[xy_index(i, j, Nx)] = pany;
+                        exct->pGlu[xy_index(i,j,Nx)] = pany/ell;
                     } else {
                         //pexct=0*RTFC/FC
                         exct->pNa[xy_index(i, j, Nx)] = 0;
                         exct->pK[xy_index(i, j, Nx)] = 0;
                         exct->pCl[xy_index(i, j, Nx)] = 0;
+                        exct->pGlu[xy_index(i,j,Nx)] = 0;
                     }
                 }
         }
