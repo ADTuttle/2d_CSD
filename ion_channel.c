@@ -84,7 +84,7 @@ void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,struct SimState 
     ce= state_vars_past->c[c_index(x,y,Nc-1,3,Nx)];
     vn = state_vars->phi[phi_index(x,y,0,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)];
     vg = state_vars->phi[phi_index(x,y,1,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)];
-
+// /*
     PetscReal frac = 1.0/(Glu_n+glut_eps);//1.0/(pow(cn,1.19)+glut_eps);//
     PetscReal expo = exp(-0.0044*pow(vn*RTFC-8.66,2));
 
@@ -115,7 +115,7 @@ void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,struct SimState 
     flux->dfdci[c_index(x,y,1,3,Nx)] *= ell;
     flux->dfdce[c_index(x,y,1,3,Nx)] *= ell;
     flux->dfdphim[c_index(x,y,1,3,Nx)] *= ell;
-
+//*/
 /*
     //Extracellular conc.
     PetscReal Nae = state_vars_past->c[c_index(x,y,Nc-1,0,Nx)];
@@ -153,7 +153,7 @@ void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,struct SimState 
     flux->dfdphim[c_index(x,y,1,3,Nx)]+=pNaGl_g;
     flux->dfdphim[c_index(x,y,1,0,Nx)]+=3*pNaGl_n;
     flux->dfdphim[c_index(x,y,1,1,Nx)]-=pNaGl_n;
-//    */
+    */
 
 }
 PetscReal xoverexpminusone(PetscReal v,PetscReal aa,PetscReal bb,PetscReal cc,PetscInt dd)
@@ -309,15 +309,23 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
 
                 //gating variable NMDA
                 if(Ni>3){
-//                    alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/
-                            (state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05e-3); //72*Glu_e/(0.05+Glu_e)
+//                    alpha = 72e-3*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/
+//                            (state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05e-3); //72*Glu_e/(0.05+Glu_e)
                 alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
+//                    Gphi = 1/(1+exp(-(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.01e-3)/0.001e-3));
+//                    alpha=0.5e-3*Gphi;//*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
 //                beta = 6.6; // 6.6 (sec)^-1->6.6e-3 msec^-1
 //                alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
-                    beta = 6.6e-3; //just 6.6
+                    beta = 6.6e-3; //6.6e-3; //just 6.6
+//                    Gphi = 1/(1+exp(-(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.01e-3)/0.001e-3));// From Terman Paper
+//                    alpha = 0.5e-3*Gphi; // From Terman Paper
+//                    beta = 1.0e-3; // From Terman
+
                     gate_vars->yNMDA[xy_index(x,y,Nx)] = alpha/(alpha+beta);
 
-                    Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
+//                    Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
+                    Gphi = 1/(1+0.56*exp(-0.062*v)); //From Rossi paper
+//                    Gphi = 1/(1+exp(-(v+10)/16.13)); //From Terman paper
                     gate_vars->gNMDA[xy_index(x,y,Nx)] = gate_vars->yNMDA[xy_index(x,y,Nx)]*Gphi;
                 }
             }
@@ -377,14 +385,21 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
                 //gating variable NMDA
                 //72 mM/sec->72 1e-3mM/l *1e-3 1/msec
                 if(Ni>3){
-//                alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05); //72*Glu_e/(0.05+Glu_e)
+//                alpha = 72e-2*state_vars->c[c_index(x,y,Nc-1,3,Nx)]/(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.05); //72*Glu_e/(0.05+Glu_e)
                 alpha = 72*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
-//                beta = 6.6; // 6.6 (sec)^-1->6.6e-3 msec^-1
+//                    Gphi = 1/(1+exp(-(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.01e-3)/0.001e-3));
+//                    alpha=0.5e-3*Gphi;//*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
+//                beta = 4.4e-2; //6.6e-3; // 6.6 (sec)^-1->6.6e-3 msec^-1
 //                alpha = 72e-6*state_vars->c[c_index(x,y,Nc-1,3,Nx)];
                 beta = 6.6e-3; // 6.6 (sec)^-1->6.6e-3 msec^-1
+//                    Gphi = 1/(1+exp(-(state_vars->c[c_index(x,y,Nc-1,3,Nx)]+0.01e-3)/0.001e-3)); //From Terman Paper
+//                    alpha = 0.5e-3*Gphi; // From Terman Paper
+//                    beta = 1.0e-3; // From Terman
                 gate_vars->yNMDA[xy_index(x,y,Nx)] = (gate_vars_past->yNMDA[xy_index(x,y,Nx)] + alpha*dtms)/(1+(alpha+beta)*dtms);
 
-                Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
+//                Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
+                Gphi = 1/(1+0.56*exp(-0.062*v)); //From Rossi paper
+//                    Gphi = 1/(1+exp(-(v+10)/16.13)); //From Terman paper
                 gate_vars->gNMDA[xy_index(x,y,Nx)] = gate_vars->yNMDA[xy_index(x,y,Nx)]* Gphi;
                 }
             }

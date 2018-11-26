@@ -15,7 +15,7 @@
 #define one_point_exct 0 //if true, triggers SD at origin
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
 #define Profiling_on 1 //Turns timing of functions on/off.
-#define trecordstep 0.1 //0.5 //determines how often to record
+#define trecordstep 0.5 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 #define start_at_steady 1 //Start at steady state?
 
@@ -24,7 +24,7 @@
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations
 #define separate_vol 1 //if true, will solve c,phi separate from alpha.
 #define Linear_Diffusion 0 //Changes to a linear discretization of electrodiffusion.
-#define Predictor 1  // Turns on predictor. Adaptive single point estimated update
+#define Predictor 0  // Turns on predictor. Adaptive single point estimated update
 #define width_size  1 //Number of up,down,left,right neighbors to pair in the predictor.
 #define Max_Grid_Refine 256 // Max number of time steps to refine in grid predictor
 
@@ -36,7 +36,7 @@ static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,7.6e-6};      //diffu
 static const PetscReal DNeuronMult[2] = {0,0};
 static const PetscReal DGliaMult[2] = {0.25,0.25};
 static const PetscReal DExtraMult[2] = {1.0,1.0};
-#define Time 30.0   //total simulated time in seconds
+#define Time 180.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
@@ -71,8 +71,8 @@ static const PetscReal cbath[4]={140*1e-3,3.4*1e-3,120*1e-3,2e-6}; //Na, K, Cl, 
 
 //excitation parameters
 //#define pmax  (1e-1/3)          //max value for excitation
-#define pmax  (1e1)          //max value for excitation
-//#define pmax  50          //max value for excitation
+//#define pmax  (1e1)          //max value for excitation
+#define pmax  50          //max value for excitation
 //#define texct 2         //time for excitation
 #define texct 0.5
 //#define texct 0.05         //time for excitation
@@ -100,11 +100,11 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
-#define basepNaT  0                //1e-4%0%1e-3%if set to 0, recovery possible
-#define basepNaP  2e-5
+#define basepNaT  0//1e-4               //1e-4%0%1e-3%if set to 0, recovery possible
+#define basepNaP  2e-5 //8e-6 //2e-5
 #define basepKDR  1e-3
 #define basepKA  1e-4
-#define basepNMDA 1e-6//1e-7//5e-5           //NMDA permeability (cm/sec)
+#define basepNMDA  3e-6 //1e-6//1e-7//5e-5           //NMDA permeability (cm/sec)
 
 //Leak conductances in mS/cm^2 from Kager, 2000 or Yao, Huang, Miura, 2011.
 #define pKLeak  (7e-2*RTFC/FC)     //Kager:10e-2,Miura:7e-2%K Leak conductance in mS/cm^2 converted to mmol/cm^2/s
@@ -118,23 +118,23 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 //pump current, parameters from Yao, Huang, Miura, 2011
 #define mK  2e-3                 //pump current constant in mmol/cm^3=mol/l
 #define mNa  7.7e-3              //pump current constant in mmol/cm^3=mol/l
-#define glpump  1.0             //multiplier to change glial pump rate
+#define glpump  1.0            //multiplier to change glial pump rate
 #define npump  1.0
 
 // Glutamate parameters
-#define glut_A  100e-5//500e-5 //(500e-3) //500       //Release rate in mmol/cm^3/sec
+#define glut_A  100e-5 //100e-5//500e-5 //(500e-3) //500       //Release rate in mmol/cm^3/sec
 #define glut_eps 22.99e-6//5e-3//5e-6 //5e-3      //Small scaling factor muMol converted to millMol
 #define glut_Rg (1.0/6)       // Steady state glia/neuron concentration ratio
-#define glut_Bg (1.0/42)//8e-2             //Decay rate(glia->neurons) in 1/sec
-#define pNaGl_n (3e-5*RTFC/FC)              //Na-Glu transporter permeability
-#define pNaGl_g (1e-3*RTFC/FC) //(3e-3*RTFC/FC)              //Na-Glu transporter permeability
+#define glut_Bg (1.0/42) //(1.0/84) //8e-2             //Decay rate(glia->neurons) in 1/sec
+#define pNaGl_n 0 //(5e-3*RTFC/FC)              //Na-Glu transporter permeability
+#define pNaGl_g (3e-3*RTFC/FC) //(3e-3*RTFC/FC)              //Na-Glu transporter permeability
 #define pHratio 2.0//0.5             //Ratio of extracell to intracell pH(for transporter)
 
 //#define glut_Bg 1.0e-5 //19.2e-6             //Decay rate(glia->neurons) in 1/sec
 //#define glut_Kg 99.940035978412951            //Neuronal fraction for glial reaction
 
-#define glut_gamma 0.2    //Reabsorbtion ratio (arbitrary)
-#define glut_Bn (1.0/42)//10e-2//e-2              //Decay rate(extracell->intracell) in 1/sec
+#define glut_gamma 0.2 //0.2    //Reabsorbtion ratio (arbitrary)
+#define glut_Bn (1.0/42) //10e-2//e-2              //Decay rate(extracell->intracell) in 1/sec
 #define glut_Re 1e-3        // Steady state extracell/neuron concentration ratio
 
 
