@@ -36,8 +36,8 @@ void init(Vec state,struct SimState *state_vars,struct AppCtx*user)
             //glutamage taken from K. Moussawi, A. Riegel, et al
             if(Ni>3){
                 state_vars->c[c_index(x,y,0,3,Nx)] = 10e-3;//10e-5; //10e-3;   //glutamate concentrations
-                state_vars->c[c_index(x,y,1,3,Nx)] = (10.0/6)*1e-3;//1e-10; //1e-5; //10e-3;  //glial glu
-                state_vars->c[c_index(x,y,Nc-1,3,Nx)] = 1e-6;//2.8089e-05;;//3.6227e-13;//2.2411e-10;//1e-10;//2e-8;    //.02 muM-> 2e-5mM or .1muM ->10e-5
+                state_vars->c[c_index(x,y,1,3,Nx)] = (10e-3*1e-3); //(10.0/6)*1e-3; //1e-10; //1e-5; //10e-3;  //glial glu
+                state_vars->c[c_index(x,y,Nc-1,3,Nx)] = 1e-8;//2.8089e-05;;//3.6227e-13;//2.2411e-10;//1e-10;//2e-8;    //.02 muM-> 2e-5mM or .1muM ->10e-5
             }
         }
     }
@@ -91,7 +91,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
             //compute K channel currents (neuron)
             pKGHK = con_vars->pKDR[xy_index(x,y,Nx)] * gate_vars->gKDR[xy_index(x,y,Nx)] +
                     con_vars->pKA[xy_index(x,y,Nx)] * gate_vars->gKA[xy_index(x,y,Nx)]+
-                    con_vars->pNMDA[xy_index(x,y,Nx)] * gate_vars->gNMDA[xy_index(x,y,Nx)];
+                    con_vars->pNMDA[xy_index(x,y,Nx)] * gate_vars->gNMDA[xy_index(x,y,Nx)]*(1.0/3);
             //Initialize the KGHK flux
             mcGoldman(flux, c_index(x, y, 0, 1, Nx), pKGHK, 1, c[c_index(x, y, 0, 1, Nx)],
                       c[c_index(x, y, Nc - 1, 1, Nx)], vm, 0);
@@ -107,7 +107,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
             //compute neuronal sodium currents and leak permeability value
             pNaGHK = con_vars->pNaT[xy_index(x,y,Nx)]*gate_vars->gNaT[xy_index(x,y,Nx)] +
                     con_vars->pNaP[xy_index(x,y,Nx)]*gate_vars->gNaP[xy_index(x,y,Nx)]+
-                    con_vars->pNMDA[xy_index(x,y,Nx)] * gate_vars->gNMDA[xy_index(x,y,Nx)];
+                    con_vars->pNMDA[xy_index(x,y,Nx)] * gate_vars->gNMDA[xy_index(x,y,Nx)]*(2.0/3);
             mcGoldman(flux, c_index(x, y, 0, 0, Nx), pNaGHK, 1, c[c_index(x, y, 0, 0, Nx)],
                       c[c_index(x, y, Nc - 1, 0, Nx)], vm, 0);
             Ipump = npump * con_vars->Imax[xy_index(x,y,Nx)] / (pow((1 + mK / c[c_index(x, y, Nc - 1, 1, Nx)]), 2) *
@@ -333,7 +333,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     //    Get Nx, Ny, and dt from options if possible
 
     user->Nx = 16;
-    user->Ny = 16;
+    user->Ny = 32;
     user->dt =0.01;
 //    user->dt =1e-4;
 

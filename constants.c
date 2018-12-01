@@ -221,6 +221,8 @@ void init_arrays(struct AppCtx*user)
     user->gate_vars->hKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars->gKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars->yNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->zNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->dNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars->gNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
 
     //Gating variables (past)
@@ -236,6 +238,8 @@ void init_arrays(struct AppCtx*user)
     user->gate_vars_past->hKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars_past->gKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars_past->yNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->zNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->dNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars_past->gNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
 
 
@@ -272,6 +276,8 @@ void init_arrays(struct AppCtx*user)
     user->grid_gate_vars->hKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
     user->grid_gate_vars->gKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
     user->grid_gate_vars->yNMDA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->zNMDA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->dNMDA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
     user->grid_gate_vars->gNMDA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
 
     //Grid state_vars
@@ -333,10 +339,10 @@ void parameter_dependence(struct AppCtx *user)
     for(x=0;x<Nx;x++){
         for(y=0;y<Ny;y++){
             con_vars->pNaT[xy_index(x,y,Nx)]=basepNaT;
-            con_vars->pNaP[xy_index(x,y,Nx)]=basepNaP*pow(((double)x)/((double)Nx),1);
+            con_vars->pNaP[xy_index(x,y,Nx)]=basepNaP;//*((double)x)/((double)Nx-1);
             con_vars->pKDR[xy_index(x,y,Nx)]=basepKDR;
             con_vars->pKA[xy_index(x,y,Nx)]=basepKA;
-            con_vars->pNMDA[xy_index(x,y,Nx)]=basepNMDA;//*pow(((double)x)/((double)Nx),1);
+            con_vars->pNMDA[xy_index(x,y,Nx)]=basepNMDA*((double)x)/((double)Nx-1);
 
             con_vars->pKIR[xy_index(x,y,Nx)]=basepKIR;
 
