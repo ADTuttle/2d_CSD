@@ -281,12 +281,13 @@ void write_data(FILE **fp,struct AppCtx*user,PetscInt numrecords,int start)
     } else{
         if (start) {
             for(int z=0;z<Nz;z++){
-                char name[14];
+                char name[16];
                 if(z < 10){
                     sprintf(name,"data_csd_0%d.txt",z);
                 }else{
                     sprintf(name,"data_csd_%d.txt",z);
                 }
+                fp[z] = fopen(name,"w");
                 fprintf(fp[z],"%d,%d,%d,%d,%d\n",Nx,Ny,(int) floor(numrecords),0,0);
             }
             write_data(fp, user,numrecords, 0);

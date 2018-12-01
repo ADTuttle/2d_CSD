@@ -16,7 +16,7 @@
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
 #define Profiling_on 1 //Turns timing of functions on/off.
 #define trecordstep 0.5 //determines how often to record
-#define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
+#define save_one_var 1 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 #define start_at_steady 1 //Start at steady state?
 
 
@@ -34,8 +34,8 @@ static const   PetscInt z_charge[4] = {1,1,-1,-1}; //valences of ion species
 static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,7.6e-6};      //diffusion coefficients in cm^2/sec
 //Diffusion multipliers {x-dir,y-dir,z-dir}
 static const PetscReal DNeuronMult[3] = {0,0,.5};
-static const PetscReal DGliaMult[3] = {0,0.25,0};
-static const PetscReal DExtraMult[3] = {0,1.0,0};
+static const PetscReal DGliaMult[3] = {0.25,0.25,0.25};
+static const PetscReal DExtraMult[3] = {1.0,1.0,1.0};
 #define Time 30.0   //total simulated time in seconds
 //#define  Time  60.0//2e-2
 #define   Nc 3           //number of compartments
@@ -105,7 +105,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define basepNaP  2e-5
 #define basepKDR  1e-3
 #define basepKA  1e-4
-#define basepNMDA 5e-5 //3e-6//1e-7//5e-5           //NMDA permeability (cm/sec)
+#define basepNMDA 1e-5 //3e-6//1e-7//5e-5           //NMDA permeability (cm/sec)
 
 //Leak conductances in mS/cm^2 from Kager, 2000 or Yao, Huang, Miura, 2011.
 #define pKLeak  (7e-2*RTFC/FC)     //Kager:10e-2,Miura:7e-2%K Leak conductance in mS/cm^2 converted to mmol/cm^2/s
@@ -123,7 +123,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define npump  1.0
 
 // Glutamate parameters
-#define glut_A  100e-5//500e-5 //(500e-3) //500       //Release rate in mmol/cm^3/sec
+#define glut_A  500e-6 //100e-5//500e-5 //(500e-3) //500       //Release rate in mmol/cm^3/sec
 #define glut_eps 22.99e-6//5e-3//5e-6 //5e-3      //Small scaling factor muMol converted to millMol
 #define glut_Rg (1.0/6)       // Steady state glia/neuron concentration ratio
 #define glut_Bg (1.0/42)//8e-2             //Decay rate(glia->neurons) in 1/sec

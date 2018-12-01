@@ -340,20 +340,20 @@ void parameter_dependence(struct AppCtx *user)
         for (y = 0; y < Ny; y++) {
             for (x = 0; x < Nx; x++){
 
-//                con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT*(z==3);
-//                con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA*(z==3);
-//                con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*(z<2);
-//                con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP*(z<4);
-//                con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR*(z<4);
+                con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT*(z==3);
+                con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA*(z==3);
+                con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*(z<2);
+                con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP*(z<4);
+                con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR*(z<4);
 
-                con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT;
-                con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA;
-                con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*((double)x)/Nx;;
-                con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP*((double)z)/Nz;
-                con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
+//                con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT;
+//                con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA;
+//                con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*((double)x)/Nx;;
+//                con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP*((double)z)/Nz;
+//                con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
 
 
-                con_vars->pKIR[xy_index(x,y,z,Nx,Ny)] = basepKIR;
+                con_vars->pKIR[xy_index(x,y,z,Nx,Ny)] = basepKIR*(z<2);
 
                 con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3] = DNeuronMult[0]; //x-direction Neurons
                 con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3+1] = DNeuronMult[1]; //y-direction Neurons

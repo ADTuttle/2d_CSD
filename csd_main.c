@@ -113,7 +113,7 @@ int main(int argc, char **argv)
         printf("Steady State Routine\n");
 
         //Run Initialization routine to get to steady state
-        initialize_data(current_state, user);
+//        initialize_data(current_state, user);
 
         //Open files to write to
         extract_subarray(current_state,state_vars);
