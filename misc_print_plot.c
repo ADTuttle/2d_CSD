@@ -250,7 +250,7 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
             }
             for (comp = 0; comp < Nc; comp++) {
                 for (y = 0; y < Ny; y++) {
-                    for (x = 0; x < Nx; x++) {
+                    for (x = 0; x < Nx; x++){
                         if (x == Nx - 1 & y == Ny - 1) {
                             fprintf(fp, "%.10e\n", state_vars->phi[phi_index(x, y, comp,Nx)] * RTFC);
                         } else {

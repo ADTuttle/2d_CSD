@@ -12,7 +12,7 @@
 
 #define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
 #define Profiling_on 1 //Turns timing of functions on/off.
-#define trecordstep 0.5 //determines how often to record
+#define trecordstep 0.1 //determines how often to record
 #define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 #define start_at_steady 1 //Start at steady state?
 
@@ -67,8 +67,8 @@ static const PetscReal cbath[4]={140*1e-3,3.4*1e-3,120*1e-3,1e-8}; //Na, K, Cl, 
 #define phibath (-0/RTFC) //Voltage of outside bath
 
 //excitation parameters
-#define pmax  (1e-1/3)          //max value for excitation
-//#define pmax  (1e1)          //max value for excitation
+//#define pmax  (1e-1/3)          //max value for excitation
+#define pmax  (1e1)          //max value for excitation
 //#define pmax  50          //max value for excitation
 //#define texct 2         //time for excitation
 #define texct 0.5
@@ -136,7 +136,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define glut_Re (1e-3) //(1e-4/6)         // Steady state extracell/neuron concentration ratio
 
 // NMDA glutamate interaction
-static const PetscReal Desensitize[3] = {.10,0.1};//{.33,.16}; //{0.2,0.02};//{0.33,0.01}; // In the NMDA receptor it becomes desensitized over time
+static const PetscReal Desensitize[3] = {0.1,0.01};//{.30,0.1};//{.33,.16}; //{0.2,0.02};//{0.33,0.01}; // In the NMDA receptor it becomes desensitized over time
 
 
 // Data Structures
