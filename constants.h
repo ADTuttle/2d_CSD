@@ -16,7 +16,7 @@
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
 #define Profiling_on 1 //Turns timing of functions on/off.
 #define trecordstep 0.5 //determines how often to record
-#define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
+#define save_one_var 1 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 #define start_at_steady 1 //Start at steady state?
 
 
@@ -65,14 +65,14 @@ static const PetscReal DExtraMult[2] = {1.0,1.0};
 
 //Bath variables
 //extern PetscReal cbath[3]; //Na, K, and Cl
-static const PetscReal cbath[4]={140*1e-3,3.4*1e-3,120*1e-3,2e-6}; //Na, K, Cl, and Glutamate
+static const PetscReal cbath[4]={140*1e-3,3.4*1e-3,120*1e-3,1e-8}; //Na, K, Cl, and Glutamate
 #define Batheps 1.0 //Bath diffusion multiplier
 #define phibath (-0/RTFC) //Voltage of outside bath
 
 //excitation parameters
 //#define pmax  (1e-1/3)          //max value for excitation
-//#define pmax  (1e1)          //max value for excitation
-#define pmax  50          //max value for excitation
+#define pmax  (1e1)          //max value for excitation
+//#define pmax  50          //max value for excitation
 //#define texct 2         //time for excitation
 #define texct 0.5
 //#define texct 0.05         //time for excitation
@@ -113,7 +113,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 //Glial KIR from Steinberg et al 2005
 #define basepKIR  (.13*RTFC/FC)        //conductance in mS/cm^2 converted to mmol/cm^2/s
-#define pKLeakadjust  1.0       //parameter for varying glial permeability
+#define pKLeakadjust  2.0       //parameter for varying glial permeability
 
 //pump current, parameters from Yao, Huang, Miura, 2011
 #define mK  2e-3                 //pump current constant in mmol/cm^3=mol/l
@@ -122,21 +122,24 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define npump  1.0
 
 // Glutamate parameters
-#define glut_A  100e-5 //100e-5//500e-5 //(500e-3) //500       //Release rate in mmol/cm^3/sec
+#define glut_A  500e-3 //500e-5 //100e-5//500e-5 //(500e-3) //500       //Release rate in mmol/cm^3/sec
 #define glut_eps 22.99e-6//5e-3//5e-6 //5e-3      //Small scaling factor muMol converted to millMol
-#define glut_Rg (1.0/6)       // Steady state glia/neuron concentration ratio
-#define glut_Bg (1.0/42) //(1.0/84) //8e-2             //Decay rate(glia->neurons) in 1/sec
-#define pNaGl_n 0 //(5e-3*RTFC/FC)              //Na-Glu transporter permeability
-#define pNaGl_g (3e-3*RTFC/FC) //(3e-3*RTFC/FC)              //Na-Glu transporter permeability
+#define glut_Rg (1e-3)//(1.0/6)      // Steady state glia/neuron concentration ratio
+#define glut_Bg (1.0/42)//(1.0/20)//(1.0/42)//8e-2             //Decay rate(glia->neurons) in 1/sec
+#define pNaGl_n 0 //(3e-5*RTFC/FC)              //Na-Glu transporter permeability
+#define pNaGl_g (3e-5*RTFC/FC)              //Na-Glu transporter permeability
 #define pHratio 2.0//0.5             //Ratio of extracell to intracell pH(for transporter)
 
 //#define glut_Bg 1.0e-5 //19.2e-6             //Decay rate(glia->neurons) in 1/sec
 //#define glut_Kg 99.940035978412951            //Neuronal fraction for glial reaction
 
-#define glut_gamma 0.2 //0.2    //Reabsorbtion ratio (arbitrary)
-#define glut_Bn (1.0/42) //10e-2//e-2              //Decay rate(extracell->intracell) in 1/sec
-#define glut_Re 1e-3        // Steady state extracell/neuron concentration ratio
 
+#define glut_gamma 0.2    //Reabsorbtion ratio (arbitrary)
+#define glut_Bn (1.0/21) //(1.0/10)//(1.0/42)//10e-2//e-2              //Decay rate(extracell->intracell) in 1/sec
+#define glut_Re (1e-3) //(1e-4/6)         // Steady state extracell/neuron concentration ratio
+
+// NMDA glutamate interaction
+static const PetscReal Desensitize[3] = {0.1,0.01};//{.30,0.1};//{.33,.16}; //{0.2,0.02};//{0.33,0.01}; // In the NMDA receptor it becomes desensitized over time
 
 
 // Data Structures
@@ -178,6 +181,8 @@ struct GateType{
     PetscReal *hKA;
     PetscReal *gKA;
     PetscReal *yNMDA;
+    PetscReal *zNMDA;
+    PetscReal *dNMDA;
     PetscReal *gNMDA;
 };
 // Excitation permeabilities
