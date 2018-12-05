@@ -20,8 +20,7 @@
 #define start_at_steady 0 //Start at steady state?
 
 // Behaviour
-#define Spiral 0 // If true will setup spiral
-#define Spiral_type 3 //1:1 spiral from circle. 2: 2 spiral from circle. 3: 2 spirals from line, different speeds
+#define Spiral 1 // If true will setup spiral
 
 //Solver Type Options
 #define use_en_deriv 1 //if true, will use the derivative of the electroneutrality condition for the system of equations

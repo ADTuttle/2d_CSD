@@ -158,51 +158,6 @@ int main(int argc, char **argv)
     }
      */
 
-    PetscReal rad1;
-    if(Spiral && (Spiral_type==1 || Spiral_type==2)){
-        int region = 0;
-        for(x=0;x<Nx;x++){
-            for(y=0;y<Ny;y++){
-                rad1 = sqrt(pow((x+0.5)*dx-Lx/2,2)+pow((y+0.5)*dy-Ly/2,2));
-                if(Spiral && Spiral_type==1){
-                    region = (x>3*Nx/8 && x<5*Nx/8 && y<Nx/4);
-                } else{
-                    region = (x>3*Nx/8 && x<5*Nx/8);
-                }
-                if(rad1<Lx/4 || region) {
-                    user->con_vars->pNaP[xy_index(x, y, user->Nx)] = 0;
-                    user->con_vars->pKDR[xy_index(x, y, user->Nx)] = 0;
-                    user->con_vars->pKA[xy_index(x, y, user->Nx)] = 0;
-                    if(y==Ny-1){
-                        printf("x\n");
-                    }else{
-                        printf("x");
-                    }
-                } else {
-                    user->con_vars->pNaP[xy_index(x, y, user->Nx)] = basepNaP;
-                    user->con_vars->pKDR[xy_index(x, y, user->Nx)] = basepKDR;
-                    user->con_vars->pKA[xy_index(x, y, user->Nx)] = basepKA;
-                    if(y==Ny-1){
-                        printf(".\n");
-                    }else{
-                        printf(".");
-                    }
-                }
-            }
-        }
-    }
-    if(Spiral && Spiral_type==3) {
-        for (x = 0; x < Nx; x++) {
-            for (y = 0; y < Ny; y++) {
-                if(x>Nx/2){
-//                if (x > 3 * Nx / 8 && x < 5 * Nx / 8) {
-                    user->con_vars->pNaP[xy_index(x, y, user->Nx)] = 0;
-                    user->con_vars->pKDR[xy_index(x, y, user->Nx)] = 0;
-                    user->con_vars->pKA[xy_index(x, y, user->Nx)] = 0;
-                }
-            }
-        }
-    }
 
     if(Profiling_on) {
         PetscLogStage stage2;
@@ -213,6 +168,19 @@ int main(int argc, char **argv)
     }
     printf("Beginning Main Routine \n");
     printf("\n\n\n");
+
+    // Set up Multi Steps if wanted
+    PetscReal KIR_Mult,NMDA_Mult,NaP_Mult;
+    KIR_Mult = 1.0;
+    NMDA_Mult = 1.0;
+    NaP_Mult = 1.0;
+    PetscOptionsGetReal(NULL,NULL,"-kir",&KIR_Mult,NULL);
+    PetscOptionsGetReal(NULL,NULL,"-nmda",&NMDA_Mult,NULL);
+    PetscOptionsGetReal(NULL,NULL,"-nap",&NaP_Mult,NULL);
+
+    PetscInt Steps = 0;
+    PetscOptionsGetInt(NULL,NULL,"-mult_step",&Steps,NULL);
+    printf("NaP: %f, NMDA: %f, Steps: %d\n",NaP_Mult,NMDA_Mult,Steps);
 
     FILE *fptime;
     fptime = fopen("timing.txt","a");
@@ -225,6 +193,16 @@ int main(int argc, char **argv)
     SNESConvergedReason reason;
     PetscTime(&full_tic);
     for(PetscReal t=dt;t<=Time;t+=dt) {
+
+        if(!start_at_steady && count<=Steps){
+//              printf("NaP: %f, NMDA: %f, count: %d\n",(((NaP_Mult-1.0)/Steps)*(count)+1),(((NMDA_Mult-1.0)/Steps)*(count)+1),count);
+                for(y=0;y<Ny;y++){
+                        for(x=0;x<Nx;x++){
+                                user->con_vars->pNaP[xy_index(x,y,Nx)] = ((NaP_Mult-1.0)/Steps * count +1)*basepNaP;
+                                user->con_vars->pNMDA[xy_index(x,y,Nx)] = ((NMDA_Mult-1.0)/Steps *count+1)*basepNMDA;
+                        }
+                }
+        }
         count++;
         //Save the "current" aka past state
         ierr = restore_subarray(user->state_vars_past->v, user->state_vars_past);CHKERRQ(ierr);
