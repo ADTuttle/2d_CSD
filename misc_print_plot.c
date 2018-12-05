@@ -298,12 +298,12 @@ void write_data(FILE **fp,struct AppCtx*user,PetscInt numrecords,int start)
                 for(y = 0; y < Ny; y++){
                     for(x = 0; x < Nx; x++){
                         if(x == Nx-1 & y == Ny-1){
-//                        fprintf(fp[z], "%f\n", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
-                        fprintf(fp[z],"%f\n",(state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)]-
+//                        fprintf(fp[z], "%.10e\n", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
+                        fprintf(fp[z],"%.10e\n",(state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)]-
                         state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC);
                         }else{
-//                        fprintf(fp[z], "%f,", state_vars->phi[phi_index(x, y,z, Nc-1,Nx,Ny)] * RTFC);
-                            fprintf(fp[z],"%f,",(state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)]-
+//                        fprintf(fp[z], "%.10e,", state_vars->phi[phi_index(x, y,z, Nc-1,Nx,Ny)] * RTFC);
+                            fprintf(fp[z],"%.10e,",(state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)]-
                             state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC);
                         }
                     }
@@ -1181,21 +1181,25 @@ void draw_csd(struct AppCtx *user)
     PetscInt Ny = user->Ny;
     PetscInt z = 0;
     printf("Layer: %d\n",z);
+    for(PetscInt y=0;y<Ny;y++){
+        printf("_");
+    }
+    printf("\n");
     for(PetscInt x=0;x<Nx;x++){
         printf("|");
         for(PetscInt y=0;y<Ny;y++){
             vm = user->state_vars->phi[phi_index(x,y,z,0,Nx,Ny)]-user->state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)];
             vm = vm*RTFC;
-            if(x == 0 || x == (Nx-1)){
-                printf("_");
-            }else{
-                if(vm > threshhold){
-                    printf("x");
-                }else{
-                    printf(" ");
-                }
+            if (vm > threshhold) {
+                printf("x");
+            } else {
+                printf(" ");
             }
         }
         printf("|\n");
     }
+    for(PetscInt y=0;y<Ny;y++){
+        printf("_");
+    }
+    printf("\n");
 }

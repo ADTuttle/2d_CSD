@@ -39,8 +39,9 @@ void init(Vec state,struct SimState *state_vars,struct AppCtx*user)
                 //glutamage taken from K. Moussawi, A. Riegel, et al
                 if(Ni > 3){
                     state_vars->c[c_index(x,y,z,0,3,Nx,Ny)] = 10e-3;//10e-5; //10e-3;   //glutamate concentrations
-                    state_vars->c[c_index(x,y,z,1,3,Nx,Ny)] = (10.0/6)*1e-3;//1e-10; //1e-5; //10e-3;  //glial glu
-                    state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)] = 1e-6;
+                    state_vars->c[c_index(x,y,z,1,3,Nx,Ny)] = (10e-3*1e-3); //(10.0/6)*1e-3; //1e-10; //1e-5; //10e-3;  //glial glu
+                    state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)] = 1e-8;//2.8089e-05;;//3.6227e-13;//2.2411e-10;//1e-10;//2e-8;    //.02 muM-> 2e-5mM or .1muM ->10e-5
+
                 }
             }
         }
@@ -80,7 +81,6 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 
     //compute gating variables
     gatevars_update(gate_vars, gate_vars, state_vars, 0, user, 1);
-
     for (PetscInt z = 0; z < Nz; z++){
         for(PetscInt y = 0; y < Ny; y++){
             for(PetscInt x = 0; x < Nx; x++){
@@ -103,7 +103,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
                 //compute K channel currents (neuron)
                 pKGHK = con_vars->pKDR[xy_index(x,y,z,Nx,Ny)]*gate_vars->gKDR[xy_index(x,y,z,Nx,Ny)]+
                         con_vars->pKA[xy_index(x,y,z,Nx,Ny)]*gate_vars->gKA[xy_index(x,y,z,Nx,Ny)]+
-                        con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] * gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)];
+                        con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] * gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)]*(1.0/3);
                 //Initialize the KGHK flux
                 mcGoldman(flux,c_index(x,y,z,0,1,Nx,Ny),pKGHK,1,c[c_index(x,y,z,0,1,Nx,Ny)],
                           c[c_index(x,y,z,Nc-1,1,Nx,Ny)],vm,0);
@@ -119,7 +119,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
                 //compute neuronal sodium currents and leak permeability value
                 pNaGHK = con_vars->pNaT[xy_index(x,y,z,Nx,Ny)]*gate_vars->gNaT[xy_index(x,y,z,Nx,Ny)]+
                          con_vars->pNaP[xy_index(x,y,z,Nx,Ny)]*gate_vars->gNaP[xy_index(x,y,z,Nx,Ny)]+
-                        con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] * gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)];
+                        con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] * gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)]*(2.0/3);
                 mcGoldman(flux,c_index(x,y,z,0,0,Nx,Ny),pNaGHK,1,c[c_index(x,y,z,0,0,Nx,Ny)],
                           c[c_index(x,y,z,Nc-1,0,Nx,Ny)],vm,0);
                 Ipump = npump*con_vars->Imax[xy_index(x,y,z,Nx,Ny)]/(pow((1+mK/c[c_index(x,y,z,Nc-1,1,Nx,Ny)]),2)*
@@ -245,7 +245,7 @@ void initialize_data(Vec current_state,struct AppCtx *user)
     restore_subarray(current_state,user->state_vars);
 
     //Initialize and compute the excitation (it's zeros here)
-    excitation(user,texct+1);
+    excitation(user,-1.0);
     PetscReal dt_temp = user->dt;
     PetscInt k = 0;
     user->dt = 0.01;

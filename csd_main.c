@@ -113,7 +113,7 @@ int main(int argc, char **argv)
         printf("Steady State Routine\n");
 
         //Run Initialization routine to get to steady state
-//        initialize_data(current_state, user);
+        initialize_data(current_state, user);
 
         //Open files to write to
         extract_subarray(current_state,state_vars);
@@ -234,6 +234,8 @@ int main(int argc, char **argv)
         memcpy(user->gate_vars_past->mKDR,user->gate_vars->mKDR,sizeof(PetscReal)*Nx*Ny*Nz);
         memcpy(user->gate_vars_past->gKDR,user->gate_vars->gKDR,sizeof(PetscReal)*Nx*Ny*Nz);
         memcpy(user->gate_vars_past->yNMDA,user->gate_vars->yNMDA,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->zNMDA,user->gate_vars->zNMDA,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->dNMDA,user->gate_vars->dNMDA,sizeof(PetscReal)*Nx*Ny*Nz);
         memcpy(user->gate_vars_past->gNMDA,user->gate_vars->gNMDA,sizeof(PetscReal)*Nx*Ny*Nz);
         //Update the past membrane voltage
         if(Predictor){
