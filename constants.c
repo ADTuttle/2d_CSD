@@ -221,6 +221,8 @@ void init_arrays(struct AppCtx*user)
     user->gate_vars->hKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars->gKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars->yNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->zNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars->dNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars->gNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
 
     //Gating variables (past)
@@ -236,6 +238,8 @@ void init_arrays(struct AppCtx*user)
     user->gate_vars_past->hKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars_past->gKA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars_past->yNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->zNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gate_vars_past->dNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gate_vars_past->gNMDA = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
 
 
@@ -243,6 +247,7 @@ void init_arrays(struct AppCtx*user)
     user->gexct->pNa = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gexct->pK = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
     user->gexct->pCl = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
+    user->gexct->pGlu = (PetscReal*) malloc(Nx*Ny*sizeof(PetscReal));
 
     //Constant params
     user->con_vars->ao = (PetscReal*) malloc(Nc*sizeof(PetscReal));
@@ -271,6 +276,8 @@ void init_arrays(struct AppCtx*user)
     user->grid_gate_vars->hKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
     user->grid_gate_vars->gKA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
     user->grid_gate_vars->yNMDA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->zNMDA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
+    user->grid_gate_vars->dNMDA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
     user->grid_gate_vars->gNMDA = (PetscReal*) malloc(nx*ny*sizeof(PetscReal));
 
     //Grid state_vars

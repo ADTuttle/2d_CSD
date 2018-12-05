@@ -240,21 +240,26 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
                     for (y = 0; y < Ny; y++) {
                         for (x = 0; x < Nx; x++) {
                             if (x == Nx - 1 & y == Ny - 1) {
-                                fprintf(fp, "%f\n", state_vars->c[c_index(x, y, comp, ion,Nx)]);
+                                fprintf(fp, "%.10e\n", state_vars->c[c_index(x, y, comp, ion,Nx)]);
                             } else {
-                                fprintf(fp, "%f,", state_vars->c[c_index(x, y, comp, ion,Nx)]);
+                                fprintf(fp, "%.10e,", state_vars->c[c_index(x, y, comp, ion,Nx)]);
                             }
+//                            if (x == Nx - 1 & y == Ny - 1) {
+//                                fprintf(fp, "%.10e\n", user->flux->mflux[c_index(x, y, comp, ion,Nx)]);
+//                            } else {
+//                                fprintf(fp, "%.10e,", user->flux->mflux[c_index(x, y, comp, ion,Nx)]);
+//                            }
                         }
                     }
                 }
             }
             for (comp = 0; comp < Nc; comp++) {
                 for (y = 0; y < Ny; y++) {
-                    for (x = 0; x < Nx; x++) {
+                    for (x = 0; x < Nx; x++){
                         if (x == Nx - 1 & y == Ny - 1) {
-                            fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, comp,Nx)] * RTFC);
+                            fprintf(fp, "%.10e\n", state_vars->phi[phi_index(x, y, comp,Nx)] * RTFC);
                         } else {
-                            fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, comp,Nx)] * RTFC);
+                            fprintf(fp, "%.10e,", state_vars->phi[phi_index(x, y, comp,Nx)] * RTFC);
                         }
                     }
                 }
@@ -263,9 +268,9 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
                 for (y = 0; y < Ny; y++) {
                     for (x = 0; x < Nx; x++) {
                         if (x == Nx - 1 & y == Ny - 1) {
-                            fprintf(fp, "%f\n", state_vars->alpha[al_index(x, y, comp,Nx)]);
+                            fprintf(fp, "%.10e\n", state_vars->alpha[al_index(x, y, comp,Nx)]);
                         } else {
-                            fprintf(fp, "%f,", state_vars->alpha[al_index(x, y, comp,Nx)]);
+                            fprintf(fp, "%.10e,", state_vars->alpha[al_index(x, y, comp,Nx)]);
                         }
                     }
                 }
@@ -281,11 +286,11 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
             for (y = 0; y < Ny; y++) {
                 for (x = 0; x < Nx; x++) {
                     if (x == Nx - 1 & y == Ny - 1) {
-//                        fprintf(fp, "%f\n", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
-                        fprintf(fp, "%f\n", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
+                        fprintf(fp, "%.10e\n", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
+//                            fprintf(fp, "%.10e\n", user->gate_vars->gNMDA[xy_index(x,y,Nx)]);
                     } else {
-//                        fprintf(fp, "%f,", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
-                        fprintf(fp, "%f,", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
+                        fprintf(fp, "%.10e,", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
+//                        fprintf(fp, "%.10e,", user->gate_vars->gNMDA[xy_index(x,y,Nx)]);
                     }
                 }
             }
@@ -1136,21 +1141,27 @@ void draw_csd(struct AppCtx *user)
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
 
+    for(PetscInt y=0;y<Ny;y++){
+            printf("_");
+    }
+    printf("\n");
+
     for(PetscInt x=0;x<Nx;x++){
         printf("|");
         for(PetscInt y=0;y<Ny;y++){
             vm = user->state_vars->phi[phi_index(x,y,0,Nx)]-user->state_vars->phi[phi_index(x,y,Nc-1,Nx)];
             vm = vm * RTFC;
-            if(x==0|| x==(Nx-1)){
-                printf("_");
+            if (vm > threshhold) {
+                printf("x");
             } else {
-                if (vm > threshhold) {
-                    printf("x");
-                } else {
-                    printf(" ");
-                }
+                printf(" ");
             }
+
         }
         printf("|\n");
     }
+    for(PetscInt y=0;y<Ny;y++){
+        printf("_");
+    }
+    printf("\n");
 }
