@@ -16,7 +16,7 @@
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
 #define Profiling_on 1 //Turns timing of functions on/off.
 #define trecordstep 0.5 //determines how often to record
-#define save_one_var 1 //Instead of saving all 14 vars, save just 1 (specified in write_data)
+#define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 #define start_at_steady 1 //Start at steady state?
 
 
@@ -30,14 +30,14 @@
 
 //basic ion extern constants
 #define   Ni  4           //number of ion species (Na, K, Cl)
-static const   PetscInt z[4] = {1,1,-1,-1}; //valences of ion species
+static const   PetscInt z[4] = {1,1,-1,0}; //valences of ion species
 static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,7.6e-6};      //diffusion coefficients in cm^2/sec
 //Diffusion multipliers {x-dir,y-dir}
 static const PetscReal DNeuronMult[2] = {0,0};
 static const PetscReal DGliaMult[2] = {0.25,0.25};
 static const PetscReal DExtraMult[2] = {1.0,1.0};
-#define Time 180.0   //total simulated time in seconds
-//#define  Time  60.0//2e-2
+#define Time 30.0   //total simulated time in seconds
+//#define  Time  180.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
 //#define Ly 0.32         //length of domain in cm (y)
@@ -113,7 +113,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 
 //Glial KIR from Steinberg et al 2005
 #define basepKIR  (.13*RTFC/FC)        //conductance in mS/cm^2 converted to mmol/cm^2/s
-#define pKLeakadjust  2.0       //parameter for varying glial permeability
+#define pKLeakadjust  1.0       //parameter for varying glial permeability
 
 //pump current, parameters from Yao, Huang, Miura, 2011
 #define mK  2e-3                 //pump current constant in mmol/cm^3=mol/l

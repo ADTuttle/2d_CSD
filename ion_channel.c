@@ -560,7 +560,7 @@ void excitation(struct AppCtx* user,PetscReal t)
                     exct->pNa[xy_index(i,j,Nx)] = pany;
                     exct->pK[xy_index(i,j,Nx)] = pany;
                     exct->pCl[xy_index(i,j,Nx)] = pany;
-                    exct->pGlu[xy_index(i,j,Nx)] = pany/ell;
+                    exct->pGlu[xy_index(i,j,Nx)] = pany;
                 }else{
                     //pexct=0*RTFC/FC
                     exct->pNa[xy_index(i,j,Nx)] = 0;
@@ -580,7 +580,7 @@ void excitation(struct AppCtx* user,PetscReal t)
                     exct->pNa[xy_index(i,j,Nx)] = pany;
                     exct->pK[xy_index(i,j,Nx)] = pany;
                     exct->pCl[xy_index(i,j,Nx)] = pany;
-                    exct->pGlu[xy_index(i,j,Nx)] = pany/ell;
+                    exct->pGlu[xy_index(i,j,Nx)] = pany;
                 }else{
                     //pexct=0*RTFC/FC
                     exct->pNa[xy_index(i,j,Nx)] = 0;
@@ -598,7 +598,7 @@ void excitation(struct AppCtx* user,PetscReal t)
                     exct->pNa[xy_index(i,j,Nx)] = pany;
                     exct->pK[xy_index(i,j,Nx)] = pany;
                     exct->pCl[xy_index(i,j,Nx)] = pany;
-                    exct->pGlu[xy_index(i,j,Nx)] = pany/ell;
+                    exct->pGlu[xy_index(i,j,Nx)] = pany;
                 }else{
                     //pexct=0*RTFC/FC
                     exct->pNa[xy_index(i,j,Nx)] = 0;
@@ -619,7 +619,7 @@ void excitation(struct AppCtx* user,PetscReal t)
                     exct->pNa[xy_index(i,j,Nx)] = pany;
                     exct->pK[xy_index(i,j,Nx)] = pany;
                     exct->pCl[xy_index(i,j,Nx)] = pany;
-                    exct->pGlu[xy_index(i,j,Nx)] = pany/ell;
+                    exct->pGlu[xy_index(i,j,Nx)] = pany;
                 }else{
                     //pexct=0*RTFC/FC
                     exct->pNa[xy_index(i,j,Nx)] = 0;

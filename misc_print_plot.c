@@ -286,12 +286,10 @@ void write_data(FILE *fp,struct AppCtx*user,PetscInt numrecords,int start)
             for (y = 0; y < Ny; y++) {
                 for (x = 0; x < Nx; x++) {
                     if (x == Nx - 1 & y == Ny - 1) {
-                        fprintf(fp, "%.10e\n", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
-//                        fprintf(fp, "%.10e\n", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
+                        fprintf(fp, "%.10e\n", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
 //                            fprintf(fp, "%.10e\n", user->gate_vars->gNMDA[xy_index(x,y,Nx)]);
                     } else {
-                        fprintf(fp, "%.10e,", state_vars->phi[phi_index(x, y, Nc-1,Nx)] * RTFC);
-//                        fprintf(fp, "%.10e,", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
+                        fprintf(fp, "%.10e,", (state_vars->phi[phi_index(x, y, comp,Nx)]-state_vars->phi[phi_index(x, y, Nc-1,Nx)]) * RTFC);
 //                        fprintf(fp, "%.10e,", user->gate_vars->gNMDA[xy_index(x,y,Nx)]);
                     }
                 }
