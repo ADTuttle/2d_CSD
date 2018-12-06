@@ -666,6 +666,24 @@ void save_file(struct AppCtx *user){
             }
         }
     }
+    for(y=0;y<Ny;y++){
+        for(x=0;x<Nx;x++){
+            if (x == Nx - 1 && y == Ny - 1) {
+                fprintf(fp, "%.20e\n", gate_vars->zNMDA[xy_index(x,y,Nx)]);
+            } else {
+                fprintf(fp, "%.20e,", gate_vars->zNMDA[xy_index(x,y,Nx)]);
+            }
+        }
+    }
+    for(y=0;y<Ny;y++){
+        for(x=0;x<Nx;x++){
+            if (x == Nx - 1 && y == Ny - 1) {
+                fprintf(fp, "%.20e\n", gate_vars->dNMDA[xy_index(x,y,Nx)]);
+            } else {
+                fprintf(fp, "%.20e,", gate_vars->dNMDA[xy_index(x,y,Nx)]);
+            }
+        }
+    }
 
 
     fclose(fp);
@@ -887,9 +905,26 @@ void read_file(struct AppCtx *user)
                 gate_vars->yNMDA[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
             }
         }
+        fgets(line, 1024 * 1024, fp);
+        for (y=0;y<Ny;y++){
+            for(x=0;x<Nx;x++){
+                tmp = strdup(line);
+                gate_vars->zNMDA[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+            }
+        }
+        fgets(line, 1024 * 1024, fp);
+        for (y=0;y<Ny;y++){
+            for(x=0;x<Nx;x++){
+                tmp = strdup(line);
+                gate_vars->dNMDA[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
+            }
+        }
 
         //Copy over past vars and calculate g.
         PetscReal Gphi,v;
+        PetscReal K_r = 2.3e-6;//34.9e-6;
+        PetscReal npow = 1.5; //1.4;
+        PetscReal Fglu;
         for(y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
                 gate_vars->gNaT[xy_index(x,y,Nx)] = pow(gate_vars->mNaT[xy_index(x,y,Nx)],3)*gate_vars->hNaT[xy_index(x,y,Nx)];
@@ -898,8 +933,13 @@ void read_file(struct AppCtx *user)
                 gate_vars->gKA[xy_index(x,y,Nx)] = pow(gate_vars->mKA[xy_index(x,y,Nx)],2)*gate_vars->hKA[xy_index(x,y,Nx)];
 
                 v = (state_vars->phi[phi_index(x,y,0,Nx)]-state_vars->phi[phi_index(x,y,Nc-1,Nx)])*RTFC;
-                Gphi = 1/(1+0.28*exp(-0.062*v));
-                gate_vars->gNMDA[xy_index(x,y,Nx)] = gate_vars->yNMDA[xy_index(x,y,Nx)]* Gphi;
+
+                Fglu = pow(state_vars->c[c_index(x,y,Nc-1,3,Nx)],npow)
+                       /(pow(state_vars->c[c_index(x,y,Nc-1,3,Nx)],npow)+pow(K_r,npow));
+                Gphi = 1/(1+0.56*exp(-0.062*v));
+                gate_vars->gNMDA[xy_index(x,y,Nx)] = (gate_vars->yNMDA[xy_index(x,y,Nx)]*Fglu
+                                                      +Desensitize[0]*gate_vars->zNMDA[xy_index(x,y,Nx)]
+                                                      +Desensitize[1]*gate_vars->dNMDA[xy_index(x,y,Nx)])*Gphi;
 
             }
         }
@@ -917,6 +957,9 @@ void read_file(struct AppCtx *user)
         memcpy(user->gate_vars_past->mKDR,user->gate_vars->mKDR,sizeof(PetscReal)*user->Nx*user->Ny);
         memcpy(user->gate_vars_past->gKDR,user->gate_vars->gKDR,sizeof(PetscReal)*user->Nx*user->Ny);
         memcpy(user->gate_vars_past->yNMDA,user->gate_vars->yNMDA,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->zNMDA,user->gate_vars->zNMDA,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->dNMDA,user->gate_vars->dNMDA,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->gNMDA,user->gate_vars->gNMDA,sizeof(PetscReal)*user->Nx*user->Ny);
     }
 
 
