@@ -730,6 +730,7 @@ void wflowm(struct AppCtx *user)
     struct ConstVars *con_vars = user->con_vars;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscReal z_mult;
 
     PetscReal dwdpi,dwdal,piw,piwNc;
     for(PetscInt x=0;x<Nx;x++) {
@@ -747,8 +748,13 @@ void wflowm(struct AppCtx *user)
                 }
                 piw +=con_vars->ao[phi_index(0,0,comp,Nx)]/state_vars->alpha[al_index(x,y,comp,Nx)];
                 //ao, zeta1, and zetalpha are currently constant in space
-                dwdpi = con_vars->zeta1[al_index(0,0,comp,Nx)];
-                dwdal = con_vars->zeta1[al_index(0,0,comp,Nx)]*con_vars->zetaalpha[al_index(0,0,comp,Nx)];
+                if(Nx>1){
+                z_mult=((double)x)/((double)Nx-1)*0.5;
+                }else{
+                    z_mult=1.0;
+                }
+                dwdpi = z_mult*con_vars->zeta1[al_index(0,0,comp,Nx)];
+                dwdal = z_mult*con_vars->zeta1[al_index(0,0,comp,Nx)]*con_vars->zetaalpha[al_index(0,0,comp,Nx)];
 
                 flux->wflow[al_index(x,y,comp,Nx)] = dwdpi*(piwNc-piw)+dwdal*(state_vars->alpha[al_index(x,y,comp,Nx)]-alphao[comp]);
                 flux->dwdpi[al_index(x,y,comp,Nx)] = dwdpi;
