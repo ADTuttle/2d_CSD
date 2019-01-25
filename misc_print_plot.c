@@ -573,6 +573,7 @@ void save_file(struct AppCtx *user){
     FILE *fp;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt Nz = user->Nz;
     PetscInt x,y,ion,comp;
 
     struct SimState *state_vars = user->state_vars;
@@ -590,9 +591,9 @@ void save_file(struct AppCtx *user){
             for (y = 0; y < Ny; y++) {
                 for (x = 0; x < Nx; x++) {
                     if (x == Nx - 1 & y == Ny - 1) {
-                        fprintf(fp, "%.20e\n", state_vars->c[c_index(x, y, 0, comp, ion, Nx, 0)]);
+                        fprintf(fp, "%.20e\n", state_vars->c[c_index(x, y, 0, comp, ion, Nx, Ny)]);
                     } else {
-                        fprintf(fp, "%.20e,", state_vars->c[c_index(x, y, 0, comp, ion, Nx, 0)]);
+                        fprintf(fp, "%.20e,", state_vars->c[c_index(x, y, 0, comp, ion, Nx, Ny)]);
                     }
                 }
             }
@@ -602,9 +603,9 @@ void save_file(struct AppCtx *user){
         for (y = 0; y < Ny; y++) {
             for (x = 0; x < Nx; x++) {
                 if (x == Nx - 1 & y == Ny - 1) {
-                    fprintf(fp, "%.20e\n", state_vars->phi[phi_index(x, y, 0, comp, Nx, 0)]);
+                    fprintf(fp, "%.20e\n", state_vars->phi[phi_index(x, y, 0, comp, Nx, Ny)]);
                 } else {
-                    fprintf(fp, "%.20e,", state_vars->phi[phi_index(x, y, 0, comp, Nx, 0)]);
+                    fprintf(fp, "%.20e,", state_vars->phi[phi_index(x, y, 0, comp, Nx, Ny)]);
                 }
             }
         }
@@ -613,9 +614,9 @@ void save_file(struct AppCtx *user){
         for (y = 0; y < Ny; y++) {
             for (x = 0; x < Nx; x++) {
                 if (x == Nx - 1 & y == Ny - 1) {
-                    fprintf(fp, "%.20e\n", state_vars->alpha[al_index(x, y, 0, comp, Nx, 0)]);
+                    fprintf(fp, "%.20e\n", state_vars->alpha[al_index(x, y, 0, comp, Nx, Ny)]);
                 } else {
-                    fprintf(fp, "%.20e,", state_vars->alpha[al_index(x, y, 0, comp, Nx, 0)]);
+                    fprintf(fp, "%.20e,", state_vars->alpha[al_index(x, y, 0, comp, Nx, Ny)]);
                 }
             }
         }
@@ -625,63 +626,90 @@ void save_file(struct AppCtx *user){
     for(y=0;y<Ny;y++){
         for(x=0;x<Nx;x++){
             if (x == Nx - 1 && y == Ny - 1) {
-                fprintf(fp, "%.20e\n", gate_vars->mNaT[xy_index(x, y, 0, Nx, 0)]);
+                fprintf(fp, "%.20e\n", gate_vars->mNaT[xy_index(x, y, 0, Nx, Ny)]);
             } else {
-                fprintf(fp, "%.20e,", gate_vars->mNaT[xy_index(x, y, 0, Nx, 0)]);
+                fprintf(fp, "%.20e,", gate_vars->mNaT[xy_index(x, y, 0, Nx, Ny)]);
             }
         }
     }
     for(y=0;y<Ny;y++){
         for(x=0;x<Nx;x++){
             if (x == Nx - 1 && y == Ny - 1) {
-                fprintf(fp, "%.20e\n", gate_vars->hNaT[xy_index(x, y, 0, Nx, 0)]);
+                fprintf(fp, "%.20e\n", gate_vars->hNaT[xy_index(x, y, 0, Nx, Ny)]);
             } else {
-                fprintf(fp, "%.20e,", gate_vars->hNaT[xy_index(x, y, 0, Nx, 0)]);
+                fprintf(fp, "%.20e,", gate_vars->hNaT[xy_index(x, y, 0, Nx, Ny)]);
             }
         }
     }
     for(y=0;y<Ny;y++){
         for(x=0;x<Nx;x++){
             if (x == Nx - 1 && y == Ny - 1) {
-                fprintf(fp, "%.20e\n", gate_vars->mNaP[xy_index(x, y, 0, Nx, 0)]);
+                fprintf(fp, "%.20e\n", gate_vars->mNaP[xy_index(x, y, 0, Nx, Ny)]);
             } else {
-                fprintf(fp, "%.20e,", gate_vars->mNaP[xy_index(x, y, 0, Nx, 0)]);
+                fprintf(fp, "%.20e,", gate_vars->mNaP[xy_index(x, y, 0, Nx, Ny)]);
             }
         }
     }
     for(y=0;y<Ny;y++){
         for(x=0;x<Nx;x++){
             if (x == Nx - 1 && y == Ny - 1) {
-                fprintf(fp, "%.20e\n", gate_vars->hNaP[xy_index(x, y, 0, Nx, 0)]);
+                fprintf(fp, "%.20e\n", gate_vars->hNaP[xy_index(x, y, 0, Nx, Ny)]);
             } else {
-                fprintf(fp, "%.20e,", gate_vars->hNaP[xy_index(x, y, 0, Nx, 0)]);
+                fprintf(fp, "%.20e,", gate_vars->hNaP[xy_index(x, y, 0, Nx, Ny)]);
             }
         }
     }
     for(y=0;y<Ny;y++){
         for(x=0;x<Nx;x++){
             if (x == Nx - 1 && y == Ny - 1) {
-                fprintf(fp, "%.20e\n", gate_vars->mKDR[xy_index(x, y, 0, Nx, 0)]);
+                fprintf(fp, "%.20e\n", gate_vars->mKDR[xy_index(x, y, 0, Nx, Ny)]);
             } else {
-                fprintf(fp, "%.20e,", gate_vars->mKDR[xy_index(x, y, 0, Nx, 0)]);
+                fprintf(fp, "%.20e,", gate_vars->mKDR[xy_index(x, y, 0, Nx, Ny)]);
             }
         }
     }
     for(y=0;y<Ny;y++){
         for(x=0;x<Nx;x++){
             if (x == Nx - 1 && y == Ny - 1) {
-                fprintf(fp, "%.20e\n", gate_vars->mKA[xy_index(x, y, 0, Nx, 0)]);
+                fprintf(fp, "%.20e\n", gate_vars->mKA[xy_index(x, y, 0, Nx, Ny)]);
             } else {
-                fprintf(fp, "%.20e,", gate_vars->mKA[xy_index(x, y, 0, Nx, 0)]);
+                fprintf(fp, "%.20e,", gate_vars->mKA[xy_index(x, y, 0, Nx, Ny)]);
             }
         }
     }
     for(y=0;y<Ny;y++){
         for(x=0;x<Nx;x++){
             if (x == Nx - 1 && y == Ny - 1) {
-                fprintf(fp, "%.20e\n", gate_vars->hKA[xy_index(x, y, 0, Nx, 0)]);
+                fprintf(fp, "%.20e\n", gate_vars->hKA[xy_index(x, y, 0, Nx, Ny)]);
             } else {
-                fprintf(fp, "%.20e,", gate_vars->hKA[xy_index(x, y, 0, Nx, 0)]);
+                fprintf(fp, "%.20e,", gate_vars->hKA[xy_index(x, y, 0, Nx, Ny)]);
+            }
+        }
+    }
+    for(y=0;y<Ny;y++){
+        for(x=0;x<Nx;x++){
+            if (x == Nx - 1 && y == Ny - 1) {
+                fprintf(fp, "%.20e\n", gate_vars->yNMDA[xy_index(x,y,0,Nx,Ny)]);
+            } else {
+                fprintf(fp, "%.20e,", gate_vars->yNMDA[xy_index(x,y,0,Nx,Ny)]);
+            }
+        }
+    }
+    for(y=0;y<Ny;y++){
+        for(x=0;x<Nx;x++){
+            if (x == Nx - 1 && y == Ny - 1) {
+                fprintf(fp, "%.20e\n", gate_vars->zNMDA[xy_index(x,y,0,Nx,Ny)]);
+            } else {
+                fprintf(fp, "%.20e,", gate_vars->zNMDA[xy_index(x,y,0,Nx,Ny)]);
+            }
+        }
+    }
+    for(y=0;y<Ny;y++){
+        for(x=0;x<Nx;x++){
+            if (x == Nx - 1 && y == Ny - 1) {
+                fprintf(fp, "%.20e\n", gate_vars->dNMDA[xy_index(x,y,0,Nx,Ny)]);
+            } else {
+                fprintf(fp, "%.20e,", gate_vars->dNMDA[xy_index(x,y,0,Nx,Ny)]);
             }
         }
     }
@@ -693,10 +721,12 @@ void save_file(struct AppCtx *user){
 void read_file(struct AppCtx *user)
 {
     //Read data_csd.txt and copy it into the current state.
-    int Nx,Ny,numrecords;
+    int Nx,Ny,Nz,numrecords;
     struct SimState *state_vars = user->state_vars;
     struct GateType *gate_vars = user->gate_vars;
-    PetscInt x,y,comp,ion;
+    PetscInt x,y,z,comp,ion;
+
+    Nz=user->Nz;
 
 
     char *line = (char *) malloc(sizeof(char) * 1024 * 1024);//[1024];
@@ -734,12 +764,12 @@ void read_file(struct AppCtx *user)
             for (y = 0; y < Ny; y++) {
                 for (comp = 0; comp < Nc; comp++) {
                     for (ion = 0; ion < Ni; ion++) {
-                        state_vars->c[c_index(x, y, 0, comp, ion, Nx, 0)] = 0;
+                        state_vars->c[c_index(x, y, 0, comp, ion, Nx, Ny)] = 0;
                     }
-                    state_vars->phi[phi_index(x, y, 0, comp, Nx, 0)] = 0;
+                    state_vars->phi[phi_index(x, y, 0, comp, Nx, Ny)] = 0;
                 }
                 for (comp = 0; comp < Nc - 1; comp++) {
-                    state_vars->alpha[al_index(x, y, 0, comp, Nx, 0)] = 0;
+                    state_vars->alpha[al_index(x, y, 0, comp, Nx, Ny)] = 0;
                 }
             }
         }
@@ -757,8 +787,8 @@ void read_file(struct AppCtx *user)
                     for (x = 0; x < Nx; x++) {
                         tmp = strdup(line);
 
-                        state_vars->c[c_index(x, y, 0, comp, ion, Nx, 0)] = atof(getfield(tmp,
-                                                                                          xy_index(x, y, 0, Nx, 0) + 1));
+                        state_vars->c[c_index(x, y, 0, comp, ion, Nx, Ny)] = atof(getfield(tmp,
+                                                                                          xy_index(x, y, 0, Nx, Ny) + 1));
 
                     }
                 }
@@ -770,7 +800,7 @@ void read_file(struct AppCtx *user)
                 for (x = 0; x < Nx; x++) {
                     tmp = strdup(line);
 
-                    state_vars->phi[phi_index(x, y, 0, comp, Nx, 0)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, 0) + 1));
+                    state_vars->phi[phi_index(x, y, 0, comp, Nx, Ny)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, Ny) + 1));
 
                 }
             }
@@ -781,8 +811,23 @@ void read_file(struct AppCtx *user)
                 for (x = 0; x < Nx; x++) {
                     tmp = strdup(line);
 
-                    state_vars->alpha[al_index(x, y, 0, comp, Nx, 0)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, 0) + 1));
+                    state_vars->alpha[al_index(x, y, 0, comp, Nx, Ny)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, Ny) + 1));
 
+                }
+            }
+        }
+        for(z=0;z<Nz;z++){
+            for(y=0;y<Ny;y++){
+                for(x=0;x<Nx;x++){
+                    for(comp=0;comp<Nc;comp++){
+                        for(ion=0;ion<Ni;ion++){
+                            state_vars->c[c_index(x,y,z,comp,ion,Nx,Ny)] = state_vars->c[c_index(x,y,0,comp,ion,Nx,Ny)];
+                        }
+                        state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)] = state_vars->phi[phi_index(x,y,0,comp,Nx,Ny)];
+                        if(comp<Nc-1){
+                            state_vars->alpha[al_index(x,y,z,comp,Nx,Ny)] = state_vars->alpha[al_index(x,y,0,comp,Nx,Ny)];
+                        }
+                    }
                 }
             }
         }
@@ -810,12 +855,12 @@ void read_file(struct AppCtx *user)
             for (y = 0; y < Ny; y++) {
                 for (comp = 0; comp < Nc; comp++) {
                     for (ion = 0; ion < Ni; ion++) {
-                        state_vars->c[c_index(x, y, 0, comp, ion, Nx, 0)] = 0;
+                        state_vars->c[c_index(x, y, 0, comp, ion, Nx, Ny)] = 0;
                     }
-                    state_vars->phi[phi_index(x, y, 0, comp, Nx, 0)] = 0;
+                    state_vars->phi[phi_index(x, y, 0, comp, Nx, Ny)] = 0;
                 }
                 for (comp = 0; comp < Nc - 1; comp++) {
-                    state_vars->alpha[al_index(x, y, 0, comp, Nx, 0)] = 0;
+                    state_vars->alpha[al_index(x, y, 0, comp, Nx, Ny)] = 0;
                 }
             }
         }
@@ -827,8 +872,8 @@ void read_file(struct AppCtx *user)
                 for (y = 0; y < Ny; y++) {
                     for (x = 0; x < Nx; x++) {
                         tmp = strdup(line);
-                        state_vars->c[c_index(x, y, 0, comp, ion, Nx, 0)] = atof(getfield(tmp,
-                                                                                          xy_index(x, y, 0, Nx, 0) + 1));
+                        state_vars->c[c_index(x, y, 0, comp, ion, Nx, Ny)] = atof(getfield(tmp,
+                                                                                          xy_index(x, y, 0, Nx, Ny) + 1));
                     }
                 }
             }
@@ -838,7 +883,7 @@ void read_file(struct AppCtx *user)
             for (y = 0; y < Ny; y++) {
                 for (x = 0; x < Nx; x++) {
                     tmp = strdup(line);
-                    state_vars->phi[phi_index(x, y, 0, comp, Nx, 0)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, 0) + 1));
+                    state_vars->phi[phi_index(x, y, 0, comp, Nx, Ny)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, Ny) + 1));
                 }
             }
         }
@@ -847,7 +892,7 @@ void read_file(struct AppCtx *user)
             for (y = 0; y < Ny; y++) {
                 for (x = 0; x < Nx; x++) {
                     tmp = strdup(line);
-                    state_vars->alpha[al_index(x, y, 0, comp, Nx, 0)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, 0) + 1));
+                    state_vars->alpha[al_index(x, y, 0, comp, Nx, Ny)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, Ny) + 1));
                 }
             }
         }
@@ -856,89 +901,152 @@ void read_file(struct AppCtx *user)
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
                 tmp = strdup(line);
-                gate_vars->mNaT[xy_index(x, y, 0, Nx, 0)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, 0) + 1));
+                gate_vars->mNaT[xy_index(x, y, 0, Nx, Ny)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, Ny) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
                 tmp = strdup(line);
-                gate_vars->hNaT[xy_index(x, y, 0, Nx, 0)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, 0) + 1));
+                gate_vars->hNaT[xy_index(x, y, 0, Nx, Ny)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, Ny) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
                 tmp = strdup(line);
-                gate_vars->mNaP[xy_index(x, y, 0, Nx, 0)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, 0) + 1));
+                gate_vars->mNaP[xy_index(x, y, 0, Nx, Ny)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, Ny) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
                 tmp = strdup(line);
-                gate_vars->hNaP[xy_index(x, y, 0, Nx, 0)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, 0) + 1));
+                gate_vars->hNaP[xy_index(x, y, 0, Nx, Ny)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, Ny) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
                 tmp = strdup(line);
-                gate_vars->mKDR[xy_index(x, y, 0, Nx, 0)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, 0) + 1));
+                gate_vars->mKDR[xy_index(x, y, 0, Nx, Ny)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, Ny) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
                 tmp = strdup(line);
-                gate_vars->mKA[xy_index(x, y, 0, Nx, 0)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, 0) + 1));
+                gate_vars->mKA[xy_index(x, y, 0, Nx, Ny)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, Ny) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
                 tmp = strdup(line);
-                gate_vars->hKA[xy_index(x, y, 0, Nx, 0)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, 0) + 1));
+                gate_vars->hKA[xy_index(x, y, 0, Nx, Ny)] = atof(getfield(tmp, xy_index(x, y, 0, Nx, Ny) + 1));
+            }
+        }
+        fgets(line, 1024 * 1024, fp);
+        for (y=0;y<Ny;y++){
+            for(x=0;x<Nx;x++){
+                tmp = strdup(line);
+                gate_vars->yNMDA[xy_index(x,y,0,Nx,Ny)] = atof(getfield(tmp, xy_index(x, y,0, Nx,Ny) + 1));
+            }
+        }
+        fgets(line, 1024 * 1024, fp);
+        for (y=0;y<Ny;y++){
+            for(x=0;x<Nx;x++){
+                tmp = strdup(line);
+                gate_vars->zNMDA[xy_index(x,y,0,Nx,Ny)] = atof(getfield(tmp, xy_index(x, y,0, Nx,Ny) + 1));
+            }
+        }
+        fgets(line, 1024 * 1024, fp);
+        for (y=0;y<Ny;y++){
+            for(x=0;x<Nx;x++){
+                tmp = strdup(line);
+                gate_vars->dNMDA[xy_index(x,y,0,Nx,Ny)] = atof(getfield(tmp, xy_index(x, y,0, Nx,Ny) + 1));
             }
         }
 
         //Copy over past vars and calculate g.
+        PetscReal Gphi,v;
+        PetscReal K_r = 2.3e-6;//34.9e-6;
+        PetscReal npow = 1.5; //1.4;
+        PetscReal Fglu;
         for(y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
-                gate_vars->gNaT[xy_index(x, y, 0, Nx, 0)] = pow(gate_vars->mNaT[xy_index(x, y, 0, Nx, 0)], 3) * gate_vars->hNaT[xy_index(
-                        x,
-                        y,
-                        0,
-                        Nx,
-                        0)];
-                gate_vars->gNaP[xy_index(x, y, 0, Nx, 0)] = pow(gate_vars->mNaP[xy_index(x, y, 0, Nx, 0)], 2) * gate_vars->hNaP[xy_index(
-                        x,
-                        y,
-                        0,
-                        Nx,
-                        0)];
-                gate_vars->gKDR[xy_index(x, y, 0, Nx, 0)] = pow(gate_vars->mKDR[xy_index(x, y, 0, Nx, 0)], 2);
-                gate_vars->gKA[xy_index(x, y, 0, Nx, 0)] = pow(gate_vars->mKA[xy_index(x, y, 0, Nx, 0)], 2) * gate_vars->hKA[xy_index(
-                        x, y,
-                        0,
-                        Nx,
-                        0)];
+                gate_vars->gNaT[xy_index(x, y, 0, Nx, Ny)] =
+                        pow(gate_vars->mNaT[xy_index(x, y, 0, Nx, Ny)], 3) * gate_vars->hNaT[xy_index(x,y,0,Nx,Ny)];
+                gate_vars->gNaP[xy_index(x, y, 0, Nx, Ny)] =
+                        pow(gate_vars->mNaP[xy_index(x, y, 0, Nx, Ny)], 2) * gate_vars->hNaP[xy_index(x,y,0,Nx,Ny)];
+                gate_vars->gKDR[xy_index(x, y, 0, Nx, Ny)] = pow(gate_vars->mKDR[xy_index(x, y, 0, Nx, Ny)], 2);
+                gate_vars->gKA[xy_index(x, y, 0, Nx, Ny)] =
+                        pow(gate_vars->mKA[xy_index(x, y, 0, Nx, Ny)], 2) * gate_vars->hKA[xy_index(x, y,0,Nx,Ny)];
+
+                v = (state_vars->phi[phi_index(x,y,0,0,Nx,Ny)]-state_vars->phi[phi_index(x,y,0,Nc-1,Nx,Ny)])*RTFC;
+
+                Fglu = pow(state_vars->c[c_index(x,y,0,Nc-1,3,Nx,Ny)],npow)
+                       /(pow(state_vars->c[c_index(x,y,0,Nc-1,3,Nx,Ny)],npow)+pow(K_r,npow));
+                Gphi = 1/(1+0.56*exp(-0.062*v));
+                gate_vars->gNMDA[xy_index(x,y,0,Nx,Ny)] = (gate_vars->yNMDA[xy_index(x,y,0,Nx,Ny)]*Fglu
+                                                      +Desensitize[0]*gate_vars->zNMDA[xy_index(x,y,0,Nx,Ny)]
+                                                      +Desensitize[1]*gate_vars->dNMDA[xy_index(x,y,0,Nx,Ny)])*Gphi;
 
             }
         }
+        for(z=0;z<Nz;z++){
+            for(y=0;y<Ny;y++){
+                for(x=0;x<Nx;x++){
+                    for(comp=0;comp<Nc;comp++){
+                        for(ion=0;ion<Ni;ion++){
+                            state_vars->c[c_index(x,y,z,comp,ion,Nx,Ny)] = state_vars->c[c_index(x,y,0,comp,ion,Nx,Ny)];
+                        }
+                        state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)] = state_vars->phi[phi_index(x,y,0,comp,Nx,Ny)];
+                        if(comp<Nc-1){
+                            state_vars->alpha[al_index(x,y,z,comp,Nx,Ny)] = state_vars->alpha[al_index(x,y,0,comp,Nx,Ny)];
+                        }
+                    }
+                    gate_vars->gNaT[xy_index(x,y,z,Nx,Ny)] = gate_vars->gNaT[xy_index(x,y,0,Nx,Ny)];
+                    gate_vars->hNaT[xy_index(x,y,z,Nx,Ny)] = gate_vars->hNaT[xy_index(x,y,0,Nx,Ny)];
+                    gate_vars->mNaT[xy_index(x,y,z,Nx,Ny)] = gate_vars->mNaT[xy_index(x,y,0,Nx,Ny)];
+
+                    gate_vars->gNaP[xy_index(x,y,z,Nx,Ny)] = gate_vars->gNaP[xy_index(x,y,0,Nx,Ny)];
+                    gate_vars->hNaP[xy_index(x,y,z,Nx,Ny)] = gate_vars->hNaP[xy_index(x,y,0,Nx,Ny)];
+                    gate_vars->mNaP[xy_index(x,y,z,Nx,Ny)] = gate_vars->mNaP[xy_index(x,y,0,Nx,Ny)];
+
+                    gate_vars->gKDR[xy_index(x,y,z,Nx,Ny)] = gate_vars->gKDR[xy_index(x,y,0,Nx,Ny)];
+                    gate_vars->mKDR[xy_index(x,y,z,Nx,Ny)] = gate_vars->mKDR[xy_index(x,y,0,Nx,Ny)];
+
+                    gate_vars->gKA[xy_index(x,y,z,Nx,Ny)] = gate_vars->gKA[xy_index(x,y,0,Nx,Ny)];
+                    gate_vars->mKA[xy_index(x,y,z,Nx,Ny)] = gate_vars->mKA[xy_index(x,y,0,Nx,Ny)];
+                    gate_vars->hKA[xy_index(x,y,z,Nx,Ny)] = gate_vars->hKA[xy_index(x,y,0,Nx,Ny)];
+
+                    gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)] = gate_vars->gNMDA[xy_index(x,y,0,Nx,Ny)];
+                    gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] = gate_vars->yNMDA[xy_index(x,y,0,Nx,Ny)];
+                    gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)] = gate_vars->zNMDA[xy_index(x,y,0,Nx,Ny)];
+                    gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny)] = gate_vars->dNMDA[xy_index(x,y,0,Nx,Ny)];
+
+                }
+            }
+        }
+
         //Copy old gating variables
         //Save the gating variables
-        memcpy(user->gate_vars_past->mNaT,user->gate_vars->mNaT,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->hNaT,user->gate_vars->hNaT,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->gNaT,user->gate_vars->gNaT,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->mNaP,user->gate_vars->mNaP,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->hNaP,user->gate_vars->hNaP,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->gNaP,user->gate_vars->gNaP,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->gKA,user->gate_vars->gKA,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->hKA,user->gate_vars->hKA,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->mKA,user->gate_vars->mKA,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->mKDR,user->gate_vars->mKDR,sizeof(PetscReal)*user->Nx*user->Ny);
-        memcpy(user->gate_vars_past->gKDR,user->gate_vars->gKDR,sizeof(PetscReal)*user->Nx*user->Ny);
+        memcpy(user->gate_vars_past->mNaT,user->gate_vars->mNaT,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->hNaT,user->gate_vars->hNaT,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->gNaT,user->gate_vars->gNaT,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->mNaP,user->gate_vars->mNaP,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->hNaP,user->gate_vars->hNaP,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->gNaP,user->gate_vars->gNaP,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->gKA,user->gate_vars->gKA,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->hKA,user->gate_vars->hKA,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->mKA,user->gate_vars->mKA,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->mKDR,user->gate_vars->mKDR,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->gKDR,user->gate_vars->gKDR,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->yNMDA,user->gate_vars->yNMDA,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->zNMDA,user->gate_vars->zNMDA,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->dNMDA,user->gate_vars->dNMDA,sizeof(PetscReal)*Nx*Ny*Nz);
+        memcpy(user->gate_vars_past->gNMDA,user->gate_vars->gNMDA,sizeof(PetscReal)*Nx*Ny*Nz);
     }
 
 
@@ -946,7 +1054,7 @@ void read_file(struct AppCtx *user)
     free(tmp);
     free(line);
     fclose(fp);
-
+    return;
     //Modify beginning of file
     fp = fopen("data_csd.txt", "r");
     if (fp == NULL) {
@@ -1090,8 +1198,8 @@ void calculate_measures(FILE *fp, struct AppCtx *user,PetscInt numrecords,int st
     PetscReal alN;
     for(x=0;x<Nx;x++){
         for(y=0;y<Ny;y++){
-            alN = 1 - al[al_index(x, y, 0, 0, Nx, 0)] - al[al_index(x, y, 0, 1, Nx, 0)];
-            total_amt_K += al[al_index(x, y, 0, 0, Nx, 0)] * c[c_index(x, y, 0, 0, 1, Nx, 0)] + al[al_index(x, y, 0, 1,
+            alN = 1 - al[al_index(x, y, 0, 0, Nx, Ny)] - al[al_index(x, y, 0, 1, Nx, Ny)];
+            total_amt_K += al[al_index(x, y, 0, 0, Nx, Ny)] * c[c_index(x, y, 0, 0, 1, Nx, 0)] + al[al_index(x, y, 0, 1,
                                                                                                             Nx, 0)] * c[c_index(
                     x, y, 0, 1, 1,
                     Nx, 0)] + alN * c[c_index(
