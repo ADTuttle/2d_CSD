@@ -170,11 +170,11 @@ int main(int argc, char **argv)
     printf("\n\n\n");
 
     // Set up Multi Steps if wanted
-    PetscReal KIR_Mult,NMDA_Mult,NaP_Mult;
-    KIR_Mult = 1.0;
+    PetscReal DGlia_Mult,NMDA_Mult,NaP_Mult;
+    DGlia_Mult = 1.0;
     NMDA_Mult = 1.0;
     NaP_Mult = 1.0;
-    PetscOptionsGetReal(NULL,NULL,"-kir",&KIR_Mult,NULL);
+    PetscOptionsGetReal(NULL,NULL,"-Dglia",&DGlia_Mult,NULL);
     PetscOptionsGetReal(NULL,NULL,"-nmda",&NMDA_Mult,NULL);
     PetscOptionsGetReal(NULL,NULL,"-nap",&NaP_Mult,NULL);
 
@@ -200,6 +200,8 @@ int main(int argc, char **argv)
                         for(x=0;x<Nx;x++){
                                 user->con_vars->pNaP[xy_index(x,y,Nx)] = ((NaP_Mult-1.0)/Steps * count +1)*basepNaP;
                                 user->con_vars->pNMDA[xy_index(x,y,Nx)] = ((NMDA_Mult-1.0)/Steps *count+1)*basepNMDA;
+                            user->con_vars->DGliaScale[xy_index(x,y,Nx)*2] = ((DGlia_Mult-1.0)/Steps *count+1)*DGliaMult[0];
+                            user->con_vars->DGliaScale[xy_index(x,y,Nx)*2+1] = ((DGlia_Mult-1.0)/Steps *count+1)*DGliaMult[0];
                         }
                 }
         }
