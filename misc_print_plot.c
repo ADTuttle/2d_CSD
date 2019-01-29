@@ -919,8 +919,32 @@ void read_file(struct AppCtx *user)
                 gate_vars->dNMDA[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
             }
         }
-
-        //Copy over past vars and calculate g.
+         /*
+ PetscReal* c_new = user->state_vars->c;
+        PetscReal* c = malloc(sizeof(PetscReal)*Nx*Ny*Ni*Nc);
+     for(int n=0;n<15;n++){
+          memcpy(c,c_new,sizeof(PetscReal)*Nx*Ny*Ni*Nc);
+        // Smooth past data
+        for (y=1;y<Ny-1;y++){
+            for(x=1;x<Nx-1;x++){
+                for(comp=0;comp<Nc;comp++){
+                    for(ion=0;ion<Ni;ion++){
+                        c_new[c_index(x,y,comp,ion,Nx)]=.25*(c[c_index(x+1,y,comp,ion,Nx)]+
+                                                             c[c_index(x-1,y,comp,ion,Nx)]+
+                                                             c[c_index(x,y+1,comp,ion,Nx)]+
+                                                             c[c_index(x,y-1,comp,ion,Nx)]);
+                    }
+                }
+            }
+        }
+       }
+       for(y=0;y<Ny;y++){
+               for(x=0;x<Nx;x++){
+                       c_new[c_index(x,y,0,3,Nx)]=c[c_index(0,0,0,3,Nx)];
+               }
+       }
+ */
+                //Copy over past vars and calculate g.
         PetscReal Gphi,v;
         PetscReal K_r = 2.3e-6;//34.9e-6;
         PetscReal npow = 1.5; //1.4;
