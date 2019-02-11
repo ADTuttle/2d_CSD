@@ -43,8 +43,8 @@ static const PetscReal DExtraMult[3] = {1.0,1.0,1.0};
 //#define Ly 0.32         //length of domain in cm (y)
 #define Lx 0.5        //width of domain in cm (x)
 #define Ly 0.5         //length of domain in cm (y)
-#define Lz 0.05       //height of domain in cm (z) (1e4*Lz=um,want ~500microns)
-
+//#define Lz 0.05       //height of domain in cm (z) (1e4*Lz=um,want ~500microns)
+#define Lz 0.225        //heigh of domaint (looking at Wadman, Juta, Somjen CSD potential shifts)
 
 //number of variables to be solved for at each grid point
 //#define  Nv  ((Ni+2)*Nc-1) //version if volume is included

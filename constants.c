@@ -326,10 +326,13 @@ void init_arrays(struct AppCtx*user)
 
 void parameter_dependence(struct AppCtx *user)
 {
-    PetscInt soma,soma_width, dendrite,dendrite_width;
+    PetscReal soma,soma_width, dendrite,dendrite_width;
 
-    soma=3;soma_width=1;
-    dendrite=1; dendrite_width=2;
+//    soma=3;soma_width=1;
+//    dendrite=1; dendrite_width=2;
+    soma = 0.1499;soma_width = 0.0301;
+    PetscReal dz = user->dz;
+
 
 
     struct ConstVars *con_vars = user->con_vars;
@@ -384,7 +387,7 @@ void parameter_dependence(struct AppCtx *user)
 
                 // Modification of neuron size
                      cmt = 0.75e-3;            //membrane capacitance in mF/cm^2
-                     if(z>=soma && z<soma+soma_width){
+                     if(z*dz>=soma && z*dz<soma+soma_width){
                          sa = 1.586e-5;          //membrane area in cm^2
                          voli = 2.16e-9;         //intracellular volume in cm^3
                          vole = (0.15*voli);
@@ -393,7 +396,8 @@ void parameter_dependence(struct AppCtx *user)
                          con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*0;
                          con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP;
                          con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
-                     } else if(z>=dendrite && z<(dendrite+dendrite_width)){
+                         con_vars->Imax[xy_index(x,y,z,Nx,Ny)] = 1.1*con_vars->Imax[xy_index(x,y,z,Nx,Ny)];
+                     } else if(z<soma){//else if(z>=dendrite && z<(dendrite+dendrite_width)){
                          sa = 16.408e-5;          //membrane area in cm^2
                          voli = 3.852e-9;         //intracellular volume in cm^3
                          vole = (0.15*voli);

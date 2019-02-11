@@ -1288,7 +1288,7 @@ void draw_csd(struct AppCtx *user)
     threshhold = -30;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
-    PetscInt z = 0;
+    PetscInt z = 2;
     printf("Layer: %d\n",z);
     for(PetscInt y=0;y<Ny;y++){
         printf("_");
