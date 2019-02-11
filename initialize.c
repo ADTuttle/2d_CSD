@@ -61,6 +61,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
     PetscReal *phi = state_vars->phi;
     PetscReal *alpha = state_vars->alpha;
     PetscReal cmphi[Nc]={0,0,0}; //initializing cmphi
+    PetscReal *cm = user->con_vars->cm;
 
     // Compute Chloride concentration
     for(PetscInt z=0;z<Nz;z++){
@@ -153,7 +154,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
                 cmphi[Nc-1] = 0; //initializing extracell cmphi
 
                 for(PetscInt k = 0; k < Nc-1; k++){
-                    cmphi[k] = cm[k]*(phi[phi_index(x,y,z,k,Nx,Ny)]-phi[phi_index(x,y,z,Nc-1,Nx,Ny)]);
+                    cmphi[k] = cm[al_index(x,y,z,k,Nx,Ny)]*(phi[phi_index(x,y,z,k,Nx,Ny)]-phi[phi_index(x,y,z,Nc-1,Nx,Ny)]);
                     cmphi[Nc-1] += cmphi[k];
                     //set intracellular organic anion amounts to ensure osmotic pressure balance
                     osmotic = 0;
@@ -177,7 +178,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
                 for(PetscInt comp = 0; comp < Nc-1; comp++){
                     //based on B.E. Shapiro dissertation (2000)
                     con_vars->zeta1[comp] = 5.4e-5;  //hydraulic permeability in cm/sec/(mmol/cm^3)
-                    con_vars->zeta1[comp] /= ell;  //conversion to 1/sec/(mmol/cm^3)
+                    con_vars->zeta1[comp] /= con_vars->ell[xy_index(x,y,z,Nx,Ny)];  //conversion to 1/sec/(mmol/cm^3)
                     //based on Strieter, Stephenson, Palmer,
                     //Weinstein, Journal or General Physiology, 1990.
                     //zeta=7e-8%6e-10%hydraulic permeability in cm/sec/mmHg
@@ -356,7 +357,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     //    Get Nx, Ny, and dt from options if possible
 
     user->Nx = 16;
-    user->Ny = 32;
+    user->Ny = 16; //32;
     user->Nz = 5;
     user->dt =0.01;
 //    user->dt =1e-4;
@@ -1364,18 +1365,33 @@ PetscErrorCode initialize_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                             ind++;
                         }
                         if(grid){
-                            //Extra phi with intra phi
-                            ierr = MatSetValue(Jac,Ind(x,y,z,Ni,Nc-1,Nx,Ny),Ind(x,y,z,Ni,comp,Nx,Ny),cm[comp],
+                            //Extra phi with intra phi (if constant cm)
+//                            ierr = MatSetValue(Jac,Ind(x,y,z,Ni,Nc-1,Nx,Ny),Ind(x,y,z,Ni,comp,Nx,Ny),cm[comp],
+//                                               INSERT_VALUES);
+//                            CHKERRQ(ierr);
+//                            ind++;
+//                            // Intra phi with Extraphi
+//                            ierr = MatSetValue(Jac,Ind(x,y,z,Ni,comp,Nx,Ny),Ind(x,y,z,Ni,Nc-1,Nx,Ny),cm[comp],
+//                                               INSERT_VALUES);
+//                            CHKERRQ(ierr);
+//                            ind++;
+//                            //Intra phi with Intra phi
+//                            ierr = MatSetValue(Jac,Ind(x,y,z,Ni,comp,Nx,Ny),Ind(x,y,z,Ni,comp,Nx,Ny),-cm[comp],
+//                                               INSERT_VALUES);
+//                            CHKERRQ(ierr);
+//                            ind++;
+                            //Non constant cm
+                            ierr = MatSetValue(Jac,Ind(x,y,z,Ni,Nc-1,Nx,Ny),Ind(x,y,z,Ni,comp,Nx,Ny),0,
                                                INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             // Intra phi with Extraphi
-                            ierr = MatSetValue(Jac,Ind(x,y,z,Ni,comp,Nx,Ny),Ind(x,y,z,Ni,Nc-1,Nx,Ny),cm[comp],
+                            ierr = MatSetValue(Jac,Ind(x,y,z,Ni,comp,Nx,Ny),Ind(x,y,z,Ni,Nc-1,Nx,Ny),0,
                                                INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Intra phi with Intra phi
-                            ierr = MatSetValue(Jac,Ind(x,y,z,Ni,comp,Nx,Ny),Ind(x,y,z,Ni,comp,Nx,Ny),-cm[comp],
+                            ierr = MatSetValue(Jac,Ind(x,y,z,Ni,comp,Nx,Ny),Ind(x,y,z,Ni,comp,Nx,Ny),0,
                                                INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;

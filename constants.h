@@ -91,12 +91,12 @@ static const PetscReal cbath[4]={140*1e-3,3.4*1e-3,120*1e-3,1e-8}; //Na, K, Cl, 
 static const PetscReal alphao[2]={alphaon,alphaog};
 static const PetscReal alpha0[2]={alphaon,alphaog};
 // membrane parameters
-#define  cmt  0.75e-3            //membrane capacitance in mF/cm^2
-#define sa  1.586e-5          //membrane area in cm^2
-#define voli  2.16e-9         //intracellular volume in cm^3
-#define vole (0.15*voli)
-#define ell ((voli+vole)/sa)    //average membrane separation in cm
-static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
+//#define  cmt  0.75e-3            //membrane capacitance in mF/cm^2
+//#define sa  1.586e-5          //membrane area in cm^2
+//#define voli  2.16e-9         //intracellular volume in cm^3
+//#define vole (0.15*voli)
+//#define ell ((voli+vole)/sa)    //average membrane separation in cm
+//static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
 
 
 //data for ion channel currents
@@ -215,6 +215,8 @@ struct ConstVars{
     PetscReal *DNeuronScale; // Glial diffusion scaling
     PetscReal *DGliaScale; // Glial diffusion scaling
     PetscReal *DExtracellScale; // Extracellular diffusion scaling
+    PetscReal *cm;
+    PetscReal *ell;
 };
 // All Solver data structs
 struct Solver{

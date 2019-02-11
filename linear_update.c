@@ -29,6 +29,7 @@ PetscErrorCode calc_residual_linear_algebraic(SNES snes,Vec current_state,Vec Re
     PetscReal *Dcs = user->Dcs;
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
+    PetscReal *cm = user->con_vars->cm;
     PetscReal dt = user->dt;
     PetscReal dx = user->dx;
     PetscReal dy = user->dy;
@@ -270,13 +271,13 @@ PetscErrorCode calc_residual_linear_algebraic(SNES snes,Vec current_state,Vec Re
             for(comp=0;comp<Nc-1;comp++)
             {
                 //Extracell voltage
-                ierr = VecSetValue(Res, Ind_1(x, y, 0, Ni, Nc - 1, Nx, 0), -cm[comp] * (phi[phi_index(x, y, 0, Nc - 1, Nx, 0)] - phi[phi_index(
+                ierr = VecSetValue(Res, Ind_1(x, y, 0, Ni, Nc - 1, Nx, 0), -cm[al_index(x,y,0,comp,Nx,Ny)] * (phi[phi_index(x, y, 0, Nc - 1, Nx, 0)] - phi[phi_index(
                         x, y,
                         0,
                         comp,
                         Nx, 0)]), ADD_VALUES);CHKERRQ(ierr);
                 //Intracell voltage mod
-                ierr = VecSetValue(Res, Ind_1(x, y, 0, Ni, comp, Nx, 0), -cm[comp] * (phi[phi_index(x, y, 0, comp, Nx, 0)] - phi[phi_index(
+                ierr = VecSetValue(Res, Ind_1(x, y, 0, Ni, comp, Nx, 0), -cm[al_index(x,y,0,comp,Nx,Ny)] * (phi[phi_index(x, y, 0, comp, Nx, 0)] - phi[phi_index(
                         x, y,
                         0,
                         Nc -
@@ -321,6 +322,7 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
     struct ConstVars *con_vars = user->con_vars;
+    PetscReal *cm=con_vars->cm;
 
     PetscInt ind = 0;
     PetscInt x,y,ion,comp;
@@ -586,7 +588,7 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                 //electroneutrality-voltage entries
                 Aphi = 0;
                 for (comp = 0; comp < Nc - 1; comp++) {
-                    Aphi -= cm[comp];
+                    Aphi -= cm[al_index(x,y,0,comp,Nx,Ny)];
                 }
                 //extraphi with extra phi
                 ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, Nc - 1, Nx, 0), Ind_1(x, y, 0, Ni, Nc - 1, Nx, 0), Aphi, INSERT_VALUES);
@@ -594,15 +596,15 @@ calc_jacobian_linear_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                 ind++;
                 for (comp = 0; comp < Nc - 1; comp++) {
                     //Extra phi with intra phi
-                    ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, Nc - 1, Nx, 0), Ind_1(x, y, 0, Ni, comp, Nx, 0), cm[comp], INSERT_VALUES);
+                    ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, Nc - 1, Nx, 0), Ind_1(x, y, 0, Ni, comp, Nx, 0), cm[al_index(x,y,0,comp,Nx,Ny)], INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     // Intra phi with Extraphi
-                    ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, Ni, Nc - 1, Nx, 0), cm[comp], INSERT_VALUES);
+                    ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, Ni, Nc - 1, Nx, 0), cm[al_index(x,y,0,comp,Nx,Ny)], INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Intra phi with Intra phi
-                    ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, Ni, comp, Nx, 0), -cm[comp], INSERT_VALUES);
+                    ierr = MatSetValue(Jac, Ind_1(x, y, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, Ni, comp, Nx, 0), -cm[al_index(x,y,0,comp,Nx,Ny)], INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
@@ -805,6 +807,7 @@ PetscErrorCode calc_residual_linear_deriv(SNES snes,Vec current_state,Vec Res,vo
     PetscReal *Dcs = user->Dcs;
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
+    PetscReal *cm = user->con_vars->cm;
     PetscReal dt = user->dt;
     PetscReal dx = user->dx;
     PetscReal dy = user->dy;
@@ -1035,7 +1038,7 @@ PetscErrorCode calc_residual_linear_deriv(SNES snes,Vec current_state,Vec Res,vo
             //Voltage Equations
             ResphN = 0;
             for(comp=0;comp<Nc-1;comp++) {
-                Resph = cm[comp]*(phi[phi_index(x, y, 0, comp, Nx, 0)] - phi[phi_index(x, y, 0, Nc - 1, Nx, 0)]) - cm[comp] * (phip[phi_index(
+                Resph = cm[al_index(x,y,0,comp,Nx,Ny)]*(phi[phi_index(x, y, 0, comp, Nx, 0)] - phi[phi_index(x, y, 0, Nc - 1, Nx, 0)]) - cm[al_index(x,y,0,comp,Nx,Ny)] * (phip[phi_index(
                         x,
                         y,
                         0,
@@ -1104,6 +1107,7 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
     struct ConstVars *con_vars = user->con_vars;
+    PetscReal *cm = con_vars->cm;
 
     PetscInt ind = 0;
     PetscInt x,y,ion,comp;
@@ -1414,8 +1418,8 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                         ierr = MatSetValue(Jac, Ind_1(x, y - 1, 0, Ni, comp, Nx, 0), Ind_1(x, y, 0, Ni, comp, Nx, 0), -Fphph1y[comp], INSERT_VALUES);CHKERRQ(ierr);
                         ind++;
                     }
-                    Avolt = cm[comp]+Fphph0x[comp]+Fphph1x[comp]+Fphph0y[comp]+Fphph1y[comp];
-                    AvoltN = -cm[comp];
+                    Avolt = cm[al_index(x,y,0,comp,Nx,Ny)]+Fphph0x[comp]+Fphph1x[comp]+Fphph0y[comp]+Fphph1y[comp];
+                    AvoltN = -cm[al_index(x,y,0,comp,Nx,Ny)];
                     for(ion=0;ion<Ni;ion++) {
                         Avolt+= z_charge[ion] * flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
                         AvoltN-= z_charge[ion] * flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
@@ -1453,8 +1457,8 @@ calc_jacobian_linear_deriv(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx
                 AvoltN = 0;
 
                 for(int k=0;k<Nc-1;k++) {
-                    AvoltN += cm[k];
-                    Avolt = -cm[k];
+                    AvoltN += cm[al_index(x,y,0,comp,Nx,Ny)];
+                    Avolt = -cm[al_index(x,y,0,comp,Nx,Ny)];
                     for(ion=0;ion<Ni;ion++) {
                         Avolt-= z_charge[ion] * flux->dfdphim[c_index(x, y, 0, k, ion, Nx, 0)] * dt;
                         AvoltN+= z_charge[ion] * flux->dfdphim[c_index(x, y, 0, k, ion, Nx, 0)] * dt;

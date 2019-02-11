@@ -370,6 +370,7 @@ PetscErrorCode Grid_Residual(Vec Res,PetscInt xi,PetscInt yi,void *ctx)
     PetscReal *Dcs = user->Dcs;
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
+    PetscReal *cm = user->con_vars->cm;
     PetscReal dt = user->dt;
     PetscReal dx = user->dx;
     PetscReal dy = user->dy;
@@ -385,7 +386,7 @@ PetscErrorCode Grid_Residual(Vec Res,PetscInt xi,PetscInt yi,void *ctx)
     PetscReal Resph,ResphN;
 
     PetscReal alNc,alpNc;
-    PetscInt ion,comp,x,y;
+    PetscInt ion,comp,x,y,z;
 
 
     for(x=0;x<Nx;x++) {
@@ -550,7 +551,7 @@ PetscErrorCode Grid_Residual(Vec Res,PetscInt xi,PetscInt yi,void *ctx)
             //Voltage Equations
             ResphN = 0;
             for(comp=0;comp<Nc-1;comp++) {
-                Resph = cm[comp]*(phi[phi_index(x, y, 0, comp, Nx, 0)] - phi[phi_index(x, y, 0, Nc - 1, Nx, 0)]) - cm[comp] * (phip[phi_index(
+                Resph = cm[al_index(x+xi,y+yi,0,comp,Nx,0)]*(phi[phi_index(x, y, 0, comp, Nx, 0)] - phi[phi_index(x, y, 0, Nc - 1, Nx, 0)]) - cm[al_index(x+xi,y+yi,0,comp,Nx,0)] * (phip[phi_index(
                         x,
                         y,
                         0,
@@ -615,6 +616,7 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
     PetscInt Nx = 2*width_size+1;
     PetscInt Ny = 2*width_size+1;
     struct ConstVars *con_vars = user->con_vars;
+    PetscReal * cm = user->con_vars->cm;
 
     PetscInt ind = 0;
     PetscInt x, y, ion, comp;
@@ -989,8 +991,8 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
                     CHKERRQ(ierr);
                     ind++;
                 }
-                Avolt = cm[comp] + Fphph0x[comp] + Fphph1x[comp] + Fphph0y[comp] + Fphph1y[comp];
-                AvoltN = -cm[comp];
+                Avolt = cm[al_index(x+xi,y+yi,0,comp,Nx,0)] + Fphph0x[comp] + Fphph1x[comp] + Fphph0y[comp] + Fphph1y[comp];
+                AvoltN = -cm[al_index(x+xi,y+yi,0,comp,Nx,0)];
                 for (ion = 0; ion < Ni; ion++) {
                     Avolt += z_charge[ion] * flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
                     AvoltN -= z_charge[ion] * flux->dfdphim[c_index(x, y, 0, comp, ion, Nx, 0)] * dt;
@@ -1038,8 +1040,8 @@ PetscErrorCode Grid_Jacobian(Mat Jac,PetscInt xi,PetscInt yi,void *ctx) {
             AvoltN = 0;
 
             for (int k = 0; k < Nc - 1; k++) {
-                AvoltN += cm[k];
-                Avolt = -cm[k];
+                AvoltN += cm[al_index(x+xi,y+yi,0,comp,Nx,0)];
+                Avolt = -cm[al_index(x+xi,y+yi,0,comp,Nx,0)];
                 for (ion = 0; ion < Ni; ion++) {
                     Avolt -= z_charge[ion] * flux->dfdphim[c_index(x, y, 0, k, ion, Nx, 0)] * dt;
                     AvoltN += z_charge[ion] * flux->dfdphim[c_index(x, y, 0, k, ion, Nx, 0)] * dt;
@@ -1102,6 +1104,7 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
     PetscReal *Dcs = user->Dcs;
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
+    PetscReal *cm = user->con_vars->cm;
     PetscReal dt = user->dt;
     PetscReal dx = user->dx;
     PetscReal dy = user->dy;
@@ -1296,11 +1299,11 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
                 // Add Modification to electroneutrality for non-zero mem.compacitance
                 for(comp = 0; comp < Nc-1; comp++){
                     //Extracell voltage
-                    ierr = VecSetValue(Res,Ind_2(x,y,z,Ni,Nc-1,Nx,Ny),-cm[comp]*(phi[phi_index(x,y,z,Nc-1,Nx,Ny)]-
+                    ierr = VecSetValue(Res,Ind_2(x,y,z,Ni,Nc-1,Nx,Ny),-cm[al_index(x+xi,y+yi,z,comp,Nx,Ny)]*(phi[phi_index(x,y,z,Nc-1,Nx,Ny)]-
                     phi[phi_index(x,y,z,comp,Nx,Ny)]),ADD_VALUES);
                     CHKERRQ(ierr);
                     //Intracell voltage mod
-                    ierr = VecSetValue(Res,Ind_2(x,y,z,Ni,comp,Nx,Ny),-cm[comp]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
+                    ierr = VecSetValue(Res,Ind_2(x,y,z,Ni,comp,Nx,Ny),-cm[al_index(x+xi,y+yi,z,comp,Nx,Ny)]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
                     phi[phi_index(x,y,z,Nc-1,Nx,Ny)]),ADD_VALUES);
                     CHKERRQ(ierr);
                 }
@@ -1341,6 +1344,7 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
     PetscInt Ny = 2*width_size+1;
     PetscInt Nz = user->Nz;
     struct ConstVars *con_vars = user->con_vars;
+    PetscReal *cm = user->con_vars->cm;
 
     PetscInt ind = 0;
     PetscInt x,y,z,ion,comp;
@@ -1676,16 +1680,16 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                 CHKERRQ(ierr);
                 ind++;
                 for(comp = 0; comp < Nc-1; comp++){
-                    //The next 3 are inserted in init jacobian for the grid
+                    //The next 3 are inserted in init jacobian for the grid (only if cm is constant)
                     //Extra phi with intra phi
-//                ierr = MatSetValue(Jac,Ind_2(x,y,Ni,Nc-1,Nx),Ind_2(x,y,Ni,comp,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
-//                ind++;
+                ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni,Nc-1,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),cm[al_index(x+xi,y+yi,z,comp,Nx,Ny)],INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
                     // Intra phi with Extraphi
-//                ierr = MatSetValue(Jac,Ind_2(x,y,Ni,comp,Nx),Ind_2(x,y,Ni,Nc-1,Nx),cm[comp],INSERT_VALUES);CHKERRQ(ierr);
-//                ind++;
+                ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni,comp,Nx,Ny),Ind_2(x,y,z,Ni,Nc-1,Nx,Ny),cm[al_index(x+xi,y+yi,z,comp,Nx,Ny)],INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
                     //Intra phi with Intra phi
-//                ierr = MatSetValue(Jac,Ind_2(x,y,Ni,comp,Nx),Ind_2(x,y,Ni,comp,Nx),-cm[comp],INSERT_VALUES);CHKERRQ(ierr);
-//                ind++;
+                ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni,comp,Nx,Ny),Ind_2(x,y,z,Ni,comp,Nx,Ny),-cm[al_index(x+xi,y+yi,z,comp,Nx,Ny)],INSERT_VALUES);CHKERRQ(ierr);
+                ind++;
                     //Extra phi with intra-Volume
                     ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni,Nc-1,Nx,Ny),Ind_2(x,y,z,Ni+1,comp,Nx,Ny),
                                        -cz(c,z_charge,x,y,z,Nx,Ny,Nc-1,user),INSERT_VALUES);
@@ -2293,17 +2297,17 @@ PetscErrorCode initialize_grid_jacobian(Mat Jac,struct AppCtx *user,int grid) {
                     }
                     if(grid) {
                         //Extra phi with intra phi
-                        ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni, Nc - 1, Nx, 0), Ind_2(x, y, 0, Ni, comp, Nx, 0), cm[comp],
+                        ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni, Nc - 1, Nx, 0), Ind_2(x, y, 0, Ni, comp, Nx, 0), 0,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // Intra phi with Extraphi
-                        ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni, comp, Nx, 0), Ind_2(x, y, 0, Ni, Nc - 1, Nx, 0), cm[comp],
+                        ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni, comp, Nx, 0), Ind_2(x, y, 0, Ni, Nc - 1, Nx, 0), 0,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Intra phi with Intra phi
-                        ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni, comp, Nx, 0), Ind_2(x, y, 0, Ni, comp, Nx, 0), -cm[comp],
+                        ierr = MatSetValue(Jac, Ind_2(x, y, 0, Ni, comp, Nx, 0), Ind_2(x, y, 0, Ni, comp, Nx, 0), 0,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;

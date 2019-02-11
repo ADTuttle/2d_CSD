@@ -1234,6 +1234,7 @@ void calculate_energy(FILE *fp, struct AppCtx *user, PetscInt numrecords, int st
         PetscInt Ny = user->Ny;
         PetscInt Nz = user->Nz;
         PetscReal dz = user->dz;
+        PetscReal *cm = user->con_vars->cm;
 
         PetscScalar Energy,alNc;
         PetscInt comp,ion,z;
@@ -1252,7 +1253,7 @@ void calculate_energy(FILE *fp, struct AppCtx *user, PetscInt numrecords, int st
                                     log(c[c_index(x,y,z,comp,ion,Nx,Ny)]);
                         }
                         //ElectroPotential part
-                        Energy += (cm[comp]/2)*pow((phi[phi_index(x,y,z,comp,Nx,Ny)]-
+                        Energy += (cm[al_index(x,y,0,comp,Nx,Ny)]/2)*pow((phi[phi_index(x,y,z,comp,Nx,Ny)]-
                                 phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC,2);
                     }
                     //Extracellular ion term
@@ -1284,7 +1285,7 @@ void draw_csd(struct AppCtx *user)
 {
 
     PetscReal vm,threshhold;
-    threshhold = -20;
+    threshhold = -30;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
     PetscInt z = 0;

@@ -156,6 +156,7 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
     PetscReal *cp = user->state_vars_past->c;
     PetscReal *alp = user->state_vars_past->alpha;
     PetscReal *phip = user->state_vars_past->phi;
+    PetscReal *cm = user->con_vars->cm;
 
     PetscReal *Dcs = user->Dcs;
     PetscReal *Dcb = user->Dcb;
@@ -344,8 +345,8 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
                 //Voltage Equations
                 ResphN = 0;
                 for(comp = 0; comp < Nc-1; comp++){
-                    Resph = cm[comp]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,Nc-1,Nx,Ny)])-
-                            cm[comp]*(phip[phi_index(x,y,z,comp,Nx,Ny)]-phip[phi_index(x,y,z,Nc-1,Nx,Ny)]);
+                    Resph = cm[al_index(x,y,z,comp,Nx,Ny)]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,Nc-1,Nx,Ny)])-
+                            cm[al_index(x,y,z,comp,Nx,Ny)]*(phip[phi_index(x,y,z,comp,Nx,Ny)]-phip[phi_index(x,y,z,Nc-1,Nx,Ny)]);
                     for(ion = 0; ion < Ni; ion++){
                         //Ion channel
                         Resph += z_charge[ion]*flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
@@ -431,6 +432,7 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
     PetscInt Ny = user->Ny;
     PetscInt Nz = user->Nz;
     struct ConstVars *con_vars = user->con_vars;
+    PetscReal *cm = con_vars->cm;
 
     PetscInt ind = 0;
     PetscInt x,y,z,ion,comp;
@@ -901,9 +903,9 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                         CHKERRQ(ierr);
                         ind++;
                     }
-                    Avolt = cm[comp]+Fphph0x[comp]+Fphph1x[comp]+Fphph0y[comp]+Fphph1y[comp]+
+                    Avolt = cm[al_index(x,y,z,comp,Nx,Ny)]+Fphph0x[comp]+Fphph1x[comp]+Fphph0y[comp]+Fphph1y[comp]+
                             Fphph0z[comp]+Fphph1z[comp];
-                    AvoltN = -cm[comp];
+                    AvoltN = -cm[al_index(x,y,z,comp,Nx,Ny)];
                     for(ion = 0; ion < Ni; ion++){
                         Avolt += z_charge[ion]*flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
                         AvoltN -= z_charge[ion]*flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
@@ -965,8 +967,8 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 AvoltN = 0;
 
                 for(int k = 0; k < Nc-1; k++){
-                    AvoltN += cm[k];
-                    Avolt = -cm[k];
+                    AvoltN += cm[al_index(x,y,z,k,Nx,Ny)];
+                    Avolt = -cm[al_index(x,y,z,k,Nx,Ny)];
                     for(ion = 0; ion < Ni; ion++){
                         Avolt -= z_charge[ion]*flux->dfdphim[c_index(x,y,z,k,ion,Nx,Ny)]*dt;
                         AvoltN += z_charge[ion]*flux->dfdphim[c_index(x,y,z,k,ion,Nx,Ny)]*dt;
@@ -1152,6 +1154,7 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
     PetscReal *Dcs = user->Dcs;
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
+    PetscReal *cm = user->con_vars->cm;
     PetscReal dt = user->dt;
     PetscReal dx = user->dx;
     PetscReal dy = user->dy;
@@ -1332,8 +1335,8 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
                 //Voltage Equations
                 ResphN = 0;
                 for(comp = 0; comp < Nc-1; comp++){
-                    Resph = cm[comp]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,Nc-1,Nx,Ny)])-
-                            cm[comp]*(phip[phi_index(x,y,z,comp,Nx,Ny)]-phip[phi_index(x,y,z,Nc-1,Nx,Ny)]);
+                    Resph = cm[al_index(x,y,z,comp,Nx,Ny)]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,Nc-1,Nx,Ny)])-
+                            cm[al_index(x,y,z,comp,Nx,Ny)]*(phip[phi_index(x,y,z,comp,Nx,Ny)]-phip[phi_index(x,y,z,Nc-1,Nx,Ny)]);
                     for(ion = 0; ion < Ni; ion++){
                         //Ion channel
                         Resph += z_charge[ion]*flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
@@ -1399,6 +1402,7 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
     PetscInt Ny = user->Ny;
     PetscInt Nz = user->Nz;
     struct ConstVars *con_vars = user->con_vars;
+    PetscReal *cm = con_vars->cm;
 
     PetscInt ind = 0;
     PetscInt x,y,z,ion,comp;
@@ -1857,8 +1861,8 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                         CHKERRQ(ierr);
                         ind++;
                     }
-                    Avolt = cm[comp]+Fphph0x[comp]+Fphph1x[comp]+Fphph0y[comp]+Fphph1y[comp]+Fphph0z[comp]+Fphph1z[comp];
-                    AvoltN = -cm[comp];
+                    Avolt = cm[al_index(x,y,z,comp,Nx,Ny)]+Fphph0x[comp]+Fphph1x[comp]+Fphph0y[comp]+Fphph1y[comp]+Fphph0z[comp]+Fphph1z[comp];
+                    AvoltN = -cm[al_index(x,y,z,comp,Nx,Ny)];
                     for(ion = 0; ion < Ni; ion++){
                         Avolt += z_charge[ion]*flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
                         AvoltN -= z_charge[ion]*flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
@@ -1920,8 +1924,8 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 AvoltN = 0;
 
                 for(int k = 0; k < Nc-1; k++){
-                    AvoltN += cm[k];
-                    Avolt = -cm[k];
+                    AvoltN += cm[al_index(x,y,z,k,Nx,Ny)];
+                    Avolt = -cm[al_index(x,y,z,k,Nx,Ny)];
                     for(ion = 0; ion < Ni; ion++){
                         Avolt -= z_charge[ion]*flux->dfdphim[c_index(x,y,z,k,ion,Nx,Ny)]*dt;
                         AvoltN += z_charge[ion]*flux->dfdphim[c_index(x,y,z,k,ion,Nx,Ny)]*dt;
@@ -1991,6 +1995,7 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
     PetscReal *Dcs = user->Dcs;
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
+    PetscReal *cm = user->con_vars->cm;
     PetscReal dt = user->dt;
     PetscReal dx = user->dx;
     PetscReal dy = user->dy;
@@ -2234,6 +2239,7 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx){
     PetscInt Ny = user->Ny;
     PetscInt Nz = user->Nz;
     struct ConstVars *con_vars = user->con_vars;
+    PetscReal *cm = con_vars->cm;
 
     PetscInt ind = 0;
     PetscInt x,y,z,ion,comp;
@@ -2691,6 +2697,7 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
     PetscReal *Dcs = user->Dcs;
     PetscReal *Dcb = user->Dcb;
     struct FluxData *flux = user->flux;
+    PetscReal *cm = user->con_vars->cm;
     PetscReal dt = user->dt;
     PetscReal dx = user->dx;
     PetscReal dy = user->dy;
@@ -2926,6 +2933,7 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
     PetscInt Ny = user->Ny;
     PetscInt Nz = user->Nz;
     struct ConstVars *con_vars = user->con_vars;
+    PetscReal *cm = con_vars->cm;
 
     PetscInt ind = 0;
     PetscInt x,y,z,ion,comp;

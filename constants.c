@@ -259,6 +259,8 @@ void init_arrays(struct AppCtx*user)
     user->con_vars->zo = (PetscReal*) malloc(Nc*sizeof(PetscReal));
     user->con_vars->zeta1 = (PetscReal*) malloc((Nc-1)*sizeof(PetscReal));
     user->con_vars->zetaalpha = (PetscReal*) malloc((Nc-1)*sizeof(PetscReal));
+    user->con_vars->cm = (PetscReal*) malloc((Nc-1)*Nx*Ny*Nz*sizeof(PetscReal));
+    user->con_vars->ell = (PetscReal *) malloc(Nx*Ny*Nz*sizeof(PetscReal));
 
     //Diffusion in ctx
     user->Dcs = (PetscReal*) malloc(Nx*Ny*Nz*Ni*Nc*3*sizeof(PetscReal));
@@ -324,11 +326,19 @@ void init_arrays(struct AppCtx*user)
 
 void parameter_dependence(struct AppCtx *user)
 {
+    PetscInt soma,soma_width, dendrite,dendrite_width;
+
+    soma=3;soma_width=1;
+    dendrite=1; dendrite_width=2;
+
+
     struct ConstVars *con_vars = user->con_vars;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
     PetscInt Nz = user->Nz;
     PetscInt x,y,z;
+
+    PetscReal cmt,sa,voli,vole;
 
     //Gating variables
     con_vars->pNaT = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*Nz);
@@ -352,11 +362,11 @@ void parameter_dependence(struct AppCtx *user)
 //                con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP*(z<4);
 //                con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR*(z<4);
 
-                con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT;
-                con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA;
-                con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*((double)x)/(Nx-1);
-                con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP*((double)z)/(Nz-1);
-                con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
+//                con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT;
+//                con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA;
+//                con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*((double)x)/(Nx-1);
+//                con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP*((double)z)/(Nz-1);
+//                con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
 
 
                 con_vars->pKIR[xy_index(x,y,z,Nx,Ny)] = basepKIR;
@@ -370,6 +380,42 @@ void parameter_dependence(struct AppCtx *user)
                 con_vars->DExtracellScale[xy_index(x,y,z,Nx,Ny)*3] = DExtraMult[0]; //x-direction scale extracell
                 con_vars->DExtracellScale[xy_index(x,y,z,Nx,Ny)*3+1] = DExtraMult[1]; // y-direction scale Extracell
                 con_vars->DExtracellScale[xy_index(x,y,z,Nx,Ny)*3+2] = DExtraMult[2]; // z-direction scale Extracell
+
+
+                // Modification of neuron size
+                     cmt = 0.75e-3;            //membrane capacitance in mF/cm^2
+                     if(z>=soma && z<soma+soma_width){
+                         sa = 1.586e-5;          //membrane area in cm^2
+                         voli = 2.16e-9;         //intracellular volume in cm^3
+                         vole = (0.15*voli);
+                         con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT;
+                         con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA;
+                         con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*0;
+                         con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP;
+                         con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
+                     } else if(z>=dendrite && z<(dendrite+dendrite_width)){
+                         sa = 16.408e-5;          //membrane area in cm^2
+                         voli = 3.852e-9;         //intracellular volume in cm^3
+                         vole = (0.15*voli);
+                         con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT*0;
+                         con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA*0;
+                         con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA;
+                         con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP;
+                         con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
+                     } else{
+                         sa = 10.324e-5;          //membrane area in cm^2
+                         voli = 1.762e-9;         //intracellular volume in cm^3
+                         vole = (0.15*voli);
+                         con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT*0;
+                         con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA*0;
+                         con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*0;
+                         con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP*0;
+                         con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR*0;
+                     }
+
+                     con_vars->ell[xy_index(x,y,z,Nx,Ny)] = ((voli+vole)/sa);    //average membrane separation in cm
+                     con_vars->cm[al_index(x,y,z,0,Nx,Ny)] =cmt*RTFC/FC/con_vars->ell[xy_index(x,y,z,Nx,Ny)];
+                     con_vars->cm[al_index(x,y,z,1,Nx,Ny)] = cmt*RTFC/FC/con_vars->ell[xy_index(x,y,z,Nx,Ny)];     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
             }
         }
     }

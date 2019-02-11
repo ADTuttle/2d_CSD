@@ -71,7 +71,7 @@ void mcGoldman(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,Pet
 }
 
 void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,PetscInt z,struct SimState *state_vars,
-                    struct SimState *state_vars_past,PetscInt Nx,PetscInt Ny,PetscReal Glut_Excite)
+                    struct SimState *state_vars_past,PetscInt Nx,PetscInt Ny,PetscReal Glut_Excite,struct AppCtx *user)
 {
     PetscReal Glu_n,Glu_g,Glu_np,Glu_gp,vn,vg,NaGlu,ce;
 
@@ -104,16 +104,16 @@ void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,PetscInt z,struc
 
     // For uniformity scale these up by ell
     //Neuronal portion
-    flux->mflux[c_index(x,y,z,0,3,Nx,Ny)] *= ell;
-    flux->dfdci[c_index(x,y,z,0,3,Nx,Ny)] *= ell;
-    flux->dfdce[c_index(x,y,z,0,3,Nx,Ny)] *= ell;
-    flux->dfdphim[c_index(x,y,z,0,3,Nx,Ny)] *= ell;
+    flux->mflux[c_index(x,y,z,0,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
+    flux->dfdci[c_index(x,y,z,0,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
+    flux->dfdce[c_index(x,y,z,0,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
+    flux->dfdphim[c_index(x,y,z,0,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
 
     //Glial Portion
-    flux->mflux[c_index(x,y,z,1,3,Nx,Ny)] *= ell;
-    flux->dfdci[c_index(x,y,z,1,3,Nx,Ny)] *= ell;
-    flux->dfdce[c_index(x,y,z,1,3,Nx,Ny)] *= ell;
-    flux->dfdphim[c_index(x,y,z,1,3,Nx,Ny)] *= ell;
+    flux->mflux[c_index(x,y,z,1,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
+    flux->dfdci[c_index(x,y,z,1,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
+    flux->dfdce[c_index(x,y,z,1,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
+    flux->dfdphim[c_index(x,y,z,1,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
 
 /*
     //Extracellular conc.
@@ -701,6 +701,7 @@ void ionmflux(struct AppCtx* user)
     struct GateType *gvars = user->gate_vars_past;
     struct ExctType *gexct = user->gexct;
     struct ConstVars *con_vars = user->con_vars;
+    PetscReal *ell = con_vars->ell;
     //Variables to save to for ease of notation
     PetscReal vm,vmg,vmgp;
     PetscReal ci,cg,ce,cgp,cep,cnp;
@@ -804,17 +805,17 @@ void ionmflux(struct AppCtx* user)
 
                 //Glutamate transport(Sets glutamate flux and adds to Sodium+K fluxes in both Neurons and glia
                 if(Ni>3){
-                    glutamate_flux(flux,x,y,z,state_vars,state_vars_past,Nx,Ny,gexct->pGlu[xy_index(x,y,z,Nx,Ny)]);
+                    glutamate_flux(flux,x,y,z,state_vars,state_vars_past,Nx,Ny,gexct->pGlu[xy_index(x,y,z,Nx,Ny)],user);
                 }
 
                 //Change units of flux from mmol/cm^2 to mmol/cm^3/s
                 for(PetscInt ion = 0; ion < Ni; ion++){
                     flux->mflux[c_index(x,y,z,Nc-1,ion,Nx,Ny)] = 0;
                     for(PetscInt comp = 0; comp < Nc-1; comp++){
-                        flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]/ell;
-                        flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]/ell;
-                        flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]/ell;
-                        flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]/ell;
+                        flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
+                        flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
+                        flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
+                        flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
 
                         //And calculate the extracellular flux
                         flux->mflux[c_index(x,y,z,Nc-1,ion,Nx,Ny)] -= flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)];
@@ -942,6 +943,7 @@ void grid_ionmflux(struct AppCtx* user,PetscInt xi,PetscInt yi)
     struct GateType *gvars = user->grid_gate_vars;
     struct ExctType *gexct = user->gexct;
     struct ConstVars *con_vars = user->con_vars;
+    PetscReal *ell = con_vars->ell;
     //Variables to save to for ease of notation
     PetscReal vm,vmg,vmgp;
     PetscReal ci,cg,ce,cgp,cep,cnp;
@@ -1044,16 +1046,16 @@ void grid_ionmflux(struct AppCtx* user,PetscInt xi,PetscInt yi)
 
                 //Glutamate transport
                 if(Ni>3){
-                    glutamate_flux(flux,x,y,z,state_vars,state_vars_past,Nx,Ny,gexct->pGlu[xy_index(x,y,z,Nx,Ny)]);
+                    glutamate_flux(flux,x,y,z,state_vars,state_vars_past,Nx,Ny,gexct->pGlu[xy_index(x,y,z,Nx,Ny)],user);
                 }
                 //Change units of flux from mmol/cm^2 to mmol/cm^3/s
                 for(PetscInt ion = 0; ion < Ni; ion++){
                     flux->mflux[c_index(x,y,z,Nc-1,ion,Nx,Ny)] = 0;
                     for(PetscInt comp = 0; comp < Nc-1; comp++){
-                        flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]/ell;
-                        flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]/ell;
-                        flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]/ell;
-                        flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]/ell;
+                        flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
+                        flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
+                        flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
+                        flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
 
                         //And calculate the extracellular flux
                         flux->mflux[c_index(x,y,z,Nc-1,ion,Nx,Ny)] -= flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)];
