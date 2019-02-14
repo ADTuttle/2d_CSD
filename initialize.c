@@ -357,8 +357,8 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     //    Get Nx, Ny, and dt from options if possible
 
     user->Nx = 16;
-    user->Ny = 16; //32;
-    user->Nz = 5;
+    user->Ny = 32;
+    user->Nz = 16;
     user->dt =0.01;
 //    user->dt =1e-4;
 

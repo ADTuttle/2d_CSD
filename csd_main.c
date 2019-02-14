@@ -7,7 +7,6 @@
 
 int main(int argc, char **argv)
 {
-
     PetscErrorCode ierr;
     //Petsc Initialize
     struct Solver *slvr = (struct Solver*)malloc(sizeof(struct Solver));

@@ -396,8 +396,7 @@ void parameter_dependence(struct AppCtx *user)
                          con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*0;
                          con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP;
                          con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
-                         con_vars->Imax[xy_index(x,y,z,Nx,Ny)] = 1.1*con_vars->Imax[xy_index(x,y,z,Nx,Ny)];
-                     } else if(z<soma){//else if(z>=dendrite && z<(dendrite+dendrite_width)){
+                     } else if(z*dz<soma){//else if(z>=dendrite && z<(dendrite+dendrite_width)){
                          sa = 16.408e-5;          //membrane area in cm^2
                          voli = 3.852e-9;         //intracellular volume in cm^3
                          vole = (0.15*voli);
