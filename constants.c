@@ -388,6 +388,7 @@ void parameter_dependence(struct AppCtx *user)
                 // Modification of neuron size
                      cmt = 0.75e-3;            //membrane capacitance in mF/cm^2
                      if(z*dz>=soma && z*dz<soma+soma_width){
+                         // In the soma
                          sa = 1.586e-5;          //membrane area in cm^2
                          voli = 2.16e-9;         //intracellular volume in cm^3
                          vole = (0.15*voli);
@@ -397,15 +398,17 @@ void parameter_dependence(struct AppCtx *user)
                          con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP;
                          con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
                      } else if(z*dz<soma){//else if(z>=dendrite && z<(dendrite+dendrite_width)){
+                         // In the dendrite
                          sa = 16.408e-5;          //membrane area in cm^2
                          voli = 3.852e-9;         //intracellular volume in cm^3
                          vole = (0.15*voli);
-                         con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT*0;
-                         con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA*0;
-                         con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA;
+                         con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT*pow((z*dz/Lz),3);
+                         con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA*pow((z*dz/Lz),3);
+                         con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*pow(1-(z*dz/Lz),1);
                          con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP;
                          con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
                      } else{
+                         //Below the soma
                          sa = 10.324e-5;          //membrane area in cm^2
                          voli = 1.762e-9;         //intracellular volume in cm^3
                          vole = (0.15*voli);
