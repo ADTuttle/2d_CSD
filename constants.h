@@ -33,11 +33,11 @@
 static const   PetscInt z_charge[4] = {1,1,-1,0}; //valences of ion species
 static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,7.6e-6};      //diffusion coefficients in cm^2/sec
 //Diffusion multipliers {x-dir,y-dir,z-dir}
-static const PetscReal DNeuronMult[3] = {0,0,.5};
+static const PetscReal DNeuronMult[3] = {0.5,0.5,.5};
 static const PetscReal DGliaMult[3] = {0.25,0.25,0.25};
 static const PetscReal DExtraMult[3] = {1.0,1.0,1.0};
-#define Time 30.0   //total simulated time in seconds
-//#define  Time  180.0//2e-2
+//#define Time 30.0   //total simulated time in seconds
+#define  Time  180.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
 //#define Ly 0.32         //length of domain in cm (y)
@@ -101,11 +101,11 @@ static const PetscReal alpha0[2]={alphaon,alphaog};
 
 //data for ion channel currents
 //permeabilities in cm/s from Kager, 2000 and Yao, Huang, Miura, 2011.
-#define basepNaT  0//1e-4               //1e-4%0%1e-3%if set to 0, recovery possible
+#define basepNaT  5e-5 //1e-4               //1e-4%0%1e-3%if set to 0, recovery possible
 #define basepNaP  2e-5 //8e-6 //2e-5
 #define basepKDR  1e-3
 #define basepKA  1e-4
-#define basepNMDA  3e-6 //1e-6//1e-7//5e-5           //NMDA permeability (cm/sec)
+#define basepNMDA  5e-5 //3e-6 //1e-6//1e-7//5e-5           //NMDA permeability (cm/sec)
 
 //Leak conductances in mS/cm^2 from Kager, 2000 or Yao, Huang, Miura, 2011.
 #define pKLeak  (7e-2*RTFC/FC)     //Kager:10e-2,Miura:7e-2%K Leak conductance in mS/cm^2 converted to mmol/cm^2/s

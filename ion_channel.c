@@ -641,7 +641,7 @@ void excitation(struct AppCtx* user,PetscReal t)
                     }
                     if(plane_wave_exct){
                         //plane wave at left side
-                        if(t < texct && j == 0){
+                        if(t < texct && j == 0 && z==0){
 //                        if(z == 0 && t < texct && j == 0){
                             num_points++;
                             pexct = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
