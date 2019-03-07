@@ -374,9 +374,9 @@ void parameter_dependence(struct AppCtx *user)
 
                 con_vars->pKIR[xy_index(x,y,z,Nx,Ny)] = basepKIR;
 
-                con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3] = DNeuronMult[0]; //x-direction Neurons
-                con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3+1] = DNeuronMult[1]; //y-direction Neurons
-                con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3+2] = DNeuronMult[2]; //z-direction Neurons
+                con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3] = DNeuronMult[0]; //x-direction Neurons
+                con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3+1] = DNeuronMult[1]; //y-direction Neurons
+                con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3+2] = DNeuronMult[2]; //z-direction Neurons
                 con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny)*3] = DGliaMult[0]; //x-direction scale Glia
                 con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny)*3+1] = DGliaMult[1]; // y-direction scale glia
                 con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny)*3+2] = DGliaMult[2]; // z-direction scale glia
@@ -387,54 +387,71 @@ void parameter_dependence(struct AppCtx *user)
 
                 // Modification of neuron size
                      cmt = 0.75e-3;            //membrane capacitance in mF/cm^2
-                     if(z*dz>=soma && z*dz<soma+soma_width){
-                         // In the soma
-                         sa = 1.586e-5;          //membrane area in cm^2
-                         voli = 2.16e-9;         //intracellular volume in cm^3
-                         vole = (0.15*voli);
-                         con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT;
-                         con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA;
-                         con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*0;
-                         con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP;
-                         con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
 
-                         con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3] = DNeuronMult[0]*0; //x-direction Neurons
-                         con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3+1] = DNeuronMult[1]*0; //y-direction Neurons
-                     } else if(z*dz<soma){//else if(z>=dendrite && z<(dendrite+dendrite_width)){
-                         // In the dendrite
-                         sa = 16.408e-5;          //membrane area in cm^2
-                         voli = 3.852e-9;         //intracellular volume in cm^3
-                         vole = (0.15*voli);
-                         con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT*pow((z*dz/Lz),3);
-                         con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA*pow((z*dz/Lz),3);
-                         con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*pow(1-(z*dz/Lz),1);
-                         con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP;
-                         con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
+                if(z*dz>=soma && z*dz<soma+soma_width){
+                    // In the soma
+                    sa = 1.586e-5;          //membrane area in cm^2
+                    voli = 2.16e-9;         //intracellular volume in cm^3
+                    vole = (0.15*voli);
+                    con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT;
+                    con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA;
+                    con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*0;
+                    con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP;
+                    con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
 
-                         con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3] = DNeuronMult[0]; //x-direction Neurons
-                         con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3+1] = DNeuronMult[1]; //y-direction Neurons
-                     } else{
-                         //Below the soma
-                         sa = 10.324e-5;          //membrane area in cm^2
-                         voli = 1.762e-9;         //intracellular volume in cm^3
-                         vole = (0.15*voli);
-                         con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT*0;
-                         con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA*0;
-                         con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*0.1;
-                         con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP*0;
-                         con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR*0;
+                    con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3] = DNeuronMult[0]*0; //x-direction Neurons
+                    con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3+1] = DNeuronMult[1]*0; //y-direction Neurons
+                } else if(z*dz<soma){//else if(z>=dendrite && z<(dendrite+dendrite_width)){
+                    // In the dendrite
+                    sa = 16.408e-5;          //membrane area in cm^2
+                    voli = 3.852e-9;         //intracellular volume in cm^3
+                    vole = (0.15*voli);
+                    con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT*pow((z*dz/Lz),3);
+                    con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA*(1+0.14*pow(1-(z*dz/Lz),1));
+                    con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*pow(1-(z*dz/Lz),1);
+                    con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP;
+                    con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
 
-                         con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3] = DNeuronMult[0]*.5; //x-direction Neurons
-                         con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3+1] = DNeuronMult[1]*.5; //y-direction Neurons
-                     }
+                    if(z*dz>=soma-0.04){
+                        con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = 0;
+                    }
 
-                     con_vars->ell[xy_index(x,y,z,Nx,Ny)] = ((voli+vole)/sa);    //average membrane separation in cm
+                    con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3] = DNeuronMult[0]*0; //x-direction Neurons
+                    con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3+1] = DNeuronMult[1]*0; //y-direction Neurons
+
+                    if(z==0){
+                        //          con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3] = DNeuronMult[0]*0.5; //x-direction Neurons
+                        //         con_vars->DNeuronScale[xy_index(x,y,0,Nx,Ny)*3+1] = DNeuronMult[1]*0.5; //y-direction Neurons
+
+                    }
+                } else{
+                    //Below the soma
+                    sa = 10.324e-5;          //membrane area in cm^2
+                    voli = 1.762e-9;         //intracellular volume in cm^3
+                    vole = (0.15*voli);
+                    con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT*0;
+                    con_vars->pKA[xy_index(x,y,z,Nx,Ny)] = basepKA*0;
+                    con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = basepNMDA*(z*dz-(soma+soma_width))/(Lz-(soma+soma_width));
+                    con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP*(1+.3*(z*dz-(soma+soma_width))/(Lz-(soma+soma_width)));
+                    con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR*(1+.5*(z*dz-(soma+soma_width))/(Lz-(soma+soma_width)));
+                    //        con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3] = DNeuronMult[0]*.1*(z*dz-(soma+soma_width))/(Lz-(soma+soma_width)); //x-direction Neurons
+                    //        con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3+1] = DNeuronMult[1]*.1*(z*dz-(soma+soma_width))/(Lz-(soma+soma_width)); //y-direction Neurons
+                }
+
+
+
+                    con_vars->ell[xy_index(x,y,z,Nx,Ny)] = ((voli+vole)/sa);    //average membrane separation in cm
                      con_vars->cm[al_index(x,y,z,0,Nx,Ny)] =cmt*RTFC/FC/con_vars->ell[xy_index(x,y,z,Nx,Ny)];
                      con_vars->cm[al_index(x,y,z,1,Nx,Ny)] = cmt*RTFC/FC/con_vars->ell[xy_index(x,y,z,Nx,Ny)];     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
             }
         }
     }
 
+    for(z=0;z<Nz;z++){
+        printf("z:%d,NaT:%1.5e,NaP:%1.5e,",z,con_vars->pNaT[xy_index(0,0,z,Nx,Ny)],con_vars->pNaP[xy_index(0,0,z,Nx,Ny)]);
+        printf("KA:%1.5e,KDR:%1.5e",con_vars->pKA[xy_index(0,0,z,Nx,Ny)],con_vars->pKDR[xy_index(0,0,z,Nx,Ny)]);
+        printf("NMDA:%1.5e,D_N:%1.5e\n",con_vars->pNMDA[xy_index(0,0,z,Nx,Ny)],con_vars->DNeuronScale[3*xy_index(0,0,z,Nx,Ny)]);
+    }
 
 
 
