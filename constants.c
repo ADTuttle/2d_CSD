@@ -330,7 +330,8 @@ void parameter_dependence(struct AppCtx *user)
 
 //    soma=3;soma_width=1;
 //    dendrite=1; dendrite_width=2;
-    soma = 0.1499;soma_width = 0.0301;
+//    soma = 0.1499;soma_width = 0.0301;
+    soma = 0.039; soma_width = 0.00301;
     PetscReal dz = user->dz;
 
 
@@ -412,9 +413,9 @@ void parameter_dependence(struct AppCtx *user)
                     con_vars->pNaP[xy_index(x,y,z,Nx,Ny)] = basepNaP;
                     con_vars->pKDR[xy_index(x,y,z,Nx,Ny)] = basepKDR;
 
-                    if(z*dz>=soma-0.04){
-                        con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = 0;
-                    }
+//                    if(z*dz>=soma-0.04){
+//                        con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = 0;
+//                    }
 
                     con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3] = DNeuronMult[0]*0; //x-direction Neurons
                     con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3+1] = DNeuronMult[1]*0; //y-direction Neurons
