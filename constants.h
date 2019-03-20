@@ -15,8 +15,8 @@
 #define one_point_exct 0 //if true, triggers SD at origin
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
 #define Profiling_on 1 //Turns timing of functions on/off.
-#define trecordstep 0.5 //determines how often to record
-#define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
+#define trecordstep 0.01 //determines how often to record
+#define save_one_var 1 //Instead of saving all 14 vars, save just 1 (specified in write_data)
 #define start_at_steady 1 //Start at steady state?
 
 

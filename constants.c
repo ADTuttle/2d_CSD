@@ -429,7 +429,7 @@ void parameter_dependence(struct AppCtx *user)
                 } else{
                     //Below the soma
 //                    sa = 10.324e-5;          //membrane area in cm^2
-                    sa = ((1.586e-5-10.324e-5)/soma)*z*dz+10.324e-5;          //membrane area in cm^2
+                    sa = ((1.586e-5-10.324e-5)/(soma+soma_width-Lz))*(z*dz-Lz)+10.324e-5;          //membrane area in cm^2
                     voli = 1.762e-9;         //intracellular volume in cm^3
                     vole = (0.15*voli);
                     con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT*0;
@@ -441,6 +441,9 @@ void parameter_dependence(struct AppCtx *user)
                     //        con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3+1] = DNeuronMult[1]*.1*(z*dz-(soma+soma_width))/(Lz-(soma+soma_width)); //y-direction Neurons
                 }
 
+                if(x==0&&y==0){
+                    printf("z:%d,sa:%.10e\n",z,sa);
+                }
 
 
                     con_vars->ell[xy_index(x,y,z,Nx,Ny)] = ((voli+vole)/sa);    //average membrane separation in cm
