@@ -284,6 +284,7 @@ int main(int argc, char **argv)
     fclose(user->fp);
     printf("Finished Running. Full solve time: %.10e\n",full_toc-full_tic);
     printf("Total newton iterations:%d\n",total_newton);
+    printf("Total KSP iterations:%d\n",ksp_iters_new);
 
     if(Profiling_on) {
         PetscLogStagePop();
