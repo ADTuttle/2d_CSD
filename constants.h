@@ -10,7 +10,7 @@
 
 // General options
 
-#define details 0 //if true, will show how many iterations were necessary for each newton solve, and the residual
+#define details 1 //if true, will show how many iterations were necessary for each newton solve, and the residual
 #define mid_points_exct 0
 #define one_point_exct 0 //if true, triggers SD at origin
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
@@ -34,8 +34,8 @@ static const   PetscInt z_charge[4] = {1,1,-1,0}; //valences of ion species
 static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,7.6e-6};      //diffusion coefficients in cm^2/sec
 //Diffusion multipliers {x-dir,y-dir,z-dir}
 static const PetscReal DNeuronMult[3] = {0.0,0.0,.5};
-static const PetscReal DGliaMult[3] = {0.25,0.25,0.25};
-static const PetscReal DExtraMult[3] = {1.0,1.0,1.0};
+static const PetscReal DGliaMult[3] = {0.0,0.25,0.25};
+static const PetscReal DExtraMult[3] = {0.0,1.0,1.0};
 //#define Time 60.0   //total simulated time in seconds
 #define  Time  180.0//2e-2
 #define   Nc 3           //number of compartments

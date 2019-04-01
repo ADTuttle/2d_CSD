@@ -379,8 +379,8 @@ void parameter_dependence(struct AppCtx *user)
                 con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3+1] = DNeuronMult[1]; //y-direction Neurons
                 con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3+2] = DNeuronMult[2]; //z-direction Neurons
                 con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny)*3] = DGliaMult[0]; //x-direction scale Glia
-                con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny)*3+1] = DGliaMult[1]; // y-direction scale glia
-                con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny)*3+2] = DGliaMult[2]; // z-direction scale glia
+                con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny)*3+1] = DGliaMult[1]*pow(2.0,-x); // y-direction scale glia
+                con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny)*3+2] = DGliaMult[2]*pow(2.0,-x); // z-direction scale glia
                 con_vars->DExtracellScale[xy_index(x,y,z,Nx,Ny)*3] = DExtraMult[0]; //x-direction scale extracell
                 con_vars->DExtracellScale[xy_index(x,y,z,Nx,Ny)*3+1] = DExtraMult[1]; // y-direction scale Extracell
                 con_vars->DExtracellScale[xy_index(x,y,z,Nx,Ny)*3+2] = DExtraMult[2]; // z-direction scale Extracell
@@ -404,8 +404,8 @@ void parameter_dependence(struct AppCtx *user)
                     con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3+1] = DNeuronMult[1]*0; //y-direction Neurons
                 } else if(z*dz<soma){//else if(z>=dendrite && z<(dendrite+dendrite_width)){
                     // In the dendrite
-//                    sa = 16.408e-5;          //membrane area in cm^2
-                    sa = ((1.586e-5-16.408e-5)/soma)*z*dz+16.408e-5;          //membrane area in cm^2
+                    sa = 16.408e-5;          //membrane area in cm^2
+//                    sa = ((1.586e-5-16.408e-5)/soma)*z*dz+16.408e-5;          //membrane area in cm^2
                     voli = 3.852e-9;         //intracellular volume in cm^3
                     vole = (0.15*voli);
                     con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT*pow((z*dz/Lz),3);
@@ -428,8 +428,8 @@ void parameter_dependence(struct AppCtx *user)
                     }
                 } else{
                     //Below the soma
-//                    sa = 10.324e-5;          //membrane area in cm^2
-                    sa = ((1.586e-5-10.324e-5)/(soma+soma_width-Lz))*(z*dz-Lz)+10.324e-5;          //membrane area in cm^2
+                    sa = 10.324e-5;          //membrane area in cm^2
+//                    sa = ((1.586e-5-10.324e-5)/(soma+soma_width-Lz))*(z*dz-Lz)+10.324e-5;          //membrane area in cm^2
                     voli = 1.762e-9;         //intracellular volume in cm^3
                     vole = (0.15*voli);
                     con_vars->pNaT[xy_index(x,y,z,Nx,Ny)] = basepNaT*0;
@@ -448,9 +448,9 @@ void parameter_dependence(struct AppCtx *user)
 
                     con_vars->ell[xy_index(x,y,z,Nx,Ny)] = ((voli+vole)/sa);    //average membrane separation in cm
                      con_vars->cm[al_index(x,y,z,0,Nx,Ny)] =cmt*RTFC/FC/con_vars->ell[xy_index(x,y,z,Nx,Ny)];
-                sa = 1.586e-5;          //membrane area in cm^2
-                voli = 2.16e-9;         //intracellular volume in cm^3
-                vole = (0.15*voli);
+//                sa = 1.586e-5;          //membrane area in cm^2
+//                voli = 2.16e-9;         //intracellular volume in cm^3
+//                vole = (0.15*voli);
                      con_vars->cm[al_index(x,y,z,1,Nx,Ny)] = cmt*RTFC/FC/((voli+vole)/sa);//con_vars->ell[xy_index(x,y,z,Nx,Ny)];     //membrane capacitance in mF/cm^2 converted to mmol/cm^3
             }
         }
