@@ -243,9 +243,9 @@ int main(int argc, char **argv)
                 for(y = 0; y < Ny; y++){
                     for(x = 0; x < Nx; x++){
 
-                        user->vm_past[xy_index(x,y,z,Nx,Ny)] =
-                                (user->state_vars_past->phi[phi_index(x,y,z,0,Nx,Ny)]-
-                                user->state_vars_past->phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC;
+                        user->vm_past[xy_index(x,y,z,Nx,Ny,Nz)] =
+                                (user->state_vars_past->phi[phi_index(x,y,z,0,Nx,Ny,Nz)]-
+                                 user->state_vars_past->phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)])*RTFC;
                     }
                 }
             }

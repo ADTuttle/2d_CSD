@@ -71,49 +71,50 @@ void mcGoldman(struct FluxData *flux,PetscInt index,PetscReal pc,PetscInt zi,Pet
 }
 
 void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,PetscInt z,struct SimState *state_vars,
-                    struct SimState *state_vars_past,PetscInt Nx,PetscInt Ny,PetscReal Glut_Excite,struct AppCtx *user)
+                    struct SimState *state_vars_past,PetscInt Nx,PetscInt Ny,PetscInt Nz,PetscReal Glut_Excite,
+                    struct AppCtx *user)
 {
     PetscReal Glu_n,Glu_g,Glu_np,Glu_gp,vn,vg,NaGlu,ce;
 
-    Glu_n = state_vars->c[c_index(x,y,z,0,3,Nx,Ny)];
-    Glu_g = state_vars->c[c_index(x,y,z,1,3,Nx,Ny)];
-    Glu_np = state_vars_past->c[c_index(x,y,z,0,3,Nx,Ny)];
-    Glu_gp= state_vars_past->c[c_index(x,y,z,1,3,Nx,Ny)];
-    ce= state_vars_past->c[c_index(x,y,z,Nc-1,3,Nx,Ny)];
-    vn = state_vars->phi[phi_index(x,y,z,0,Nx,Ny)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)];
-    vg = state_vars->phi[phi_index(x,y,z,1,Nx,Ny)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)];
+    Glu_n = state_vars->c[c_index(x,y,z,0,3,Nx,Ny,Nz)];
+    Glu_g = state_vars->c[c_index(x,y,z,1,3,Nx,Ny,Nz)];
+    Glu_np = state_vars_past->c[c_index(x,y,z,0,3,Nx,Ny,Nz)];
+    Glu_gp= state_vars_past->c[c_index(x,y,z,1,3,Nx,Ny,Nz)];
+    ce= state_vars_past->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)];
+    vn = state_vars->phi[phi_index(x,y,z,0,Nx,Ny,Nz)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)];
+    vg = state_vars->phi[phi_index(x,y,z,1,Nx,Ny,Nz)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)];
 // /*
     PetscReal frac = 1.0/(Glu_n+glut_eps);//1.0/(pow(cn,1.19)+glut_eps);//
     PetscReal expo = 0.76e-3*exp(-0.0044*pow(vn*RTFC-8.66,2));
 
     //Neuronal portion
-    flux->mflux[c_index(x,y,z,0,3,Nx,Ny)] = -(-glut_A*Glu_n*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*Glu_gp)+
+    flux->mflux[c_index(x,y,z,0,3,Nx,Ny,Nz)] = -(-glut_A*Glu_n*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*Glu_gp)+
                                             glut_Bg*(Glu_gp-glut_Rg*Glu_np)-Glut_Excite);
-    flux->dfdci[c_index(x,y,z,0,3,Nx,Ny)] = -(-glut_A*expo*glut_eps*pow(frac,2));
-    flux->dfdce[c_index(x,y,z,0,3,Nx,Ny)] = 0;
-    flux->dfdphim[c_index(x,y,z,0,3,Nx,Ny)] = -(RTFC*0.0088*(vn*RTFC-8.66)*expo*glut_A*Glu_n*frac);
+    flux->dfdci[c_index(x,y,z,0,3,Nx,Ny,Nz)] = -(-glut_A*expo*glut_eps*pow(frac,2));
+    flux->dfdce[c_index(x,y,z,0,3,Nx,Ny,Nz)] = 0;
+    flux->dfdphim[c_index(x,y,z,0,3,Nx,Ny,Nz)] = -(RTFC*0.0088*(vn*RTFC-8.66)*expo*glut_A*Glu_n*frac);
 
 
     //Glial Portion
-    flux->mflux[c_index(x,y,z,1,3,Nx,Ny)] = -((1-glut_gamma)*glut_Bn*(ce-glut_Re*Glu_gp)-glut_Bg*(Glu_gp-glut_Rg*Glu_np));
-    flux->dfdci[c_index(x,y,z,1,3,Nx,Ny)] = 0;
-    flux->dfdce[c_index(x,y,z,1,3,Nx,Ny)] = 0;//-((1-glut_gamma)*glut_Bn);
-    flux->dfdphim[c_index(x,y,z,1,3,Nx,Ny)] = 0;
+    flux->mflux[c_index(x,y,z,1,3,Nx,Ny,Nz)] = -((1-glut_gamma)*glut_Bn*(ce-glut_Re*Glu_gp)-glut_Bg*(Glu_gp-glut_Rg*Glu_np));
+    flux->dfdci[c_index(x,y,z,1,3,Nx,Ny,Nz)] = 0;
+    flux->dfdce[c_index(x,y,z,1,3,Nx,Ny,Nz)] = 0;//-((1-glut_gamma)*glut_Bn);
+    flux->dfdphim[c_index(x,y,z,1,3,Nx,Ny,Nz)] = 0;
 
     //Extracell portion is = -Neuron-Glia. Which is implemented in the solvers.
 
     // For uniformity scale these up by ell
     //Neuronal portion
-    flux->mflux[c_index(x,y,z,0,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
-    flux->dfdci[c_index(x,y,z,0,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
-    flux->dfdce[c_index(x,y,z,0,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
-    flux->dfdphim[c_index(x,y,z,0,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
+    flux->mflux[c_index(x,y,z,0,3,Nx,Ny,Nz)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny,Nz)];
+    flux->dfdci[c_index(x,y,z,0,3,Nx,Ny,Nz)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny,Nz)];
+    flux->dfdce[c_index(x,y,z,0,3,Nx,Ny,Nz)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny,Nz)];
+    flux->dfdphim[c_index(x,y,z,0,3,Nx,Ny,Nz)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny,Nz)];
 
     //Glial Portion
-    flux->mflux[c_index(x,y,z,1,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
-    flux->dfdci[c_index(x,y,z,1,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
-    flux->dfdce[c_index(x,y,z,1,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
-    flux->dfdphim[c_index(x,y,z,1,3,Nx,Ny)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny)];
+    flux->mflux[c_index(x,y,z,1,3,Nx,Ny,Nz)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny,Nz)];
+    flux->dfdci[c_index(x,y,z,1,3,Nx,Ny,Nz)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny,Nz)];
+    flux->dfdce[c_index(x,y,z,1,3,Nx,Ny,Nz)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny,Nz)];
+    flux->dfdphim[c_index(x,y,z,1,3,Nx,Ny,Nz)] *= user->con_vars->ell[xy_index(x,y,z,Nx,Ny,Nz)];
 
 /*
     //Extracellular conc.
@@ -181,12 +182,13 @@ PetscReal inwardrect(PetscReal ci,PetscReal ce,PetscReal phim)
     return sqrt(ce/cKo)*(1+exp(18.5/42.5))/(1+exp((RTFC*phim-Enernst+18.5)/42.5))*(1+exp((-118.6+EKdef)/44.1))/(1+exp((-118.6+RTFC*phim)/44.1));
 }
 PetscReal
-cz(const PetscReal *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt z,PetscInt Nx,PetscInt Ny,PetscInt comp,struct AppCtx *user)
+cz(const PetscReal *cmat,const PetscInt *zvals,PetscInt x,PetscInt y,PetscInt z,PetscInt Nx,PetscInt Ny,PetscInt Nz,
+   PetscInt comp,struct AppCtx *user)
 {
     //function to compute sum over i of c_i*z_i
     PetscReal accumulate=0;
     for(PetscInt ion=0;ion<Ni;ion++){
-        accumulate += zvals[ion]*cmat[c_index(x,y,z,comp,ion,Nx,Ny)];
+        accumulate += zvals[ion]*cmat[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
     }
     return accumulate;
 }
@@ -203,77 +205,77 @@ void diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct AppCtx*
         for(PetscInt y = 0; y < Ny; y++){
             for(PetscInt x = 0; x < Nx; x++){
 
-                alNcL = 1-alp[al_index(x,y,z,0,Nx,Ny)]-alp[al_index(x,y,z,1,Nx,Ny)]; //Left extracell
+                alNcL = 1-alp[al_index(x,y,z,0,Nx,Ny,Nz)]-alp[al_index(x,y,z,1,Nx,Ny,Nz)]; //Left extracell
                 alNcR = 0;
                 if(x < Nx-1){
-                    alNcR = 1-alp[al_index(x+1,y,z,0,Nx,Ny)]-alp[al_index(x+1,y,z,1,Nx,Ny)]; //Right extracell
+                    alNcR = 1-alp[al_index(x+1,y,z,0,Nx,Ny,Nz)]-alp[al_index(x+1,y,z,1,Nx,Ny,Nz)]; //Right extracell
                 }
                 alNcU = 0;
                 if(y < Ny-1){
-                    alNcU = 1-alp[al_index(x,y+1,z,0,Nx,Ny)]-alp[al_index(x,y+1,z,1,Nx,Ny)];
+                    alNcU = 1-alp[al_index(x,y+1,z,0,Nx,Ny,Nz)]-alp[al_index(x,y+1,z,1,Nx,Ny,Nz)];
                 }
                 for(PetscInt ion = 0; ion < Ni; ion++){
                     //diffusion coefficients in x direction
                     if(x == (Nx-1)){
                         //Boundary is zero
-                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3] =
-                                con_vars->DExtracellScale[xy_index(x,y,z,Nx,Ny)*3]*scale*D[ion]*(alNcL)/
+                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3] =
+                                con_vars->DExtracellScale[xy_index(x,y,z,Nx,Ny,Nz)*3]*scale*D[ion]*(alNcL)/
                                 (tortuosity*tortuosity);
                     }else{
                         //diffusion coefficients in the extracellular space proportional to volume fraction
-                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3] =
-                                con_vars->DExtracellScale[xy_index(x,y,z,Nx,Ny)*3]*scale*D[ion]/2*(alNcL+alNcR)/
+                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3] =
+                                con_vars->DExtracellScale[xy_index(x,y,z,Nx,Ny,Nz)*3]*scale*D[ion]/2*(alNcL+alNcR)/
                                 (tortuosity*tortuosity);
                     }
                     //diffusion coefficients in neuronal compartment equal to 0
-                    Dc[c_index(x,y,z,0,ion,Nx,Ny)*3] =
-                            con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3]*scale*D[ion]*alphao[al_index(
-                                    0,0,0,0,Nx,Ny)]/pow(tortuosity,2);
+                    Dc[c_index(x,y,z,0,ion,Nx,Ny,Nz)*3] =
+                            con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny,Nz)*3]*scale*D[ion]*alphao[al_index(
+                                    0,0,0,0,Nx,Ny,Nz)]/pow(tortuosity,2);
                     //diffusion coefficients in glial compartment proportional to default volume fraction
-                    Dc[c_index(x,y,z,1,ion,Nx,Ny)*3] =
-                            con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny)*3]*scale*D[ion]*alphao[al_index(
-                                    0,0,0,1,Nx,Ny)]/pow(tortuosity,2);
+                    Dc[c_index(x,y,z,1,ion,Nx,Ny,Nz)*3] =
+                            con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny,Nz)*3]*scale*D[ion]*alphao[al_index(
+                                    0,0,0,1,Nx,Ny,Nz)]/pow(tortuosity,2);
                     //diffusion coefficients in y direction
                     if(y == (Ny-1)){
                         //Boundary is zero
-                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+1] = con_vars->DExtracellScale[
-                                                                       xy_index(x,y,z,Nx,Ny)*3+1]*scale*D[ion]*(alNcL)/
-                                                               pow(tortuosity,2);
+                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+1] = con_vars->DExtracellScale[
+                                                                          xy_index(x,y,z,Nx,Ny,Nz)*3+1]*scale*D[ion]*(alNcL)/
+                                                                  pow(tortuosity,2);
                     }else{
                         //diffusion coefficients in the extracellular space proportional to volume fraction
-                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+1] = con_vars->DExtracellScale[
-                                                                       xy_index(x,y,z,Nx,Ny)*3+1]*scale*D[ion]/2*
-                                                               (alNcL+alNcU)/pow(tortuosity,2);
+                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+1] = con_vars->DExtracellScale[
+                                                                          xy_index(x,y,z,Nx,Ny,Nz)*3+1]*scale*D[ion]/2*
+                                                                  (alNcL+alNcU)/pow(tortuosity,2);
 
                     }
                     //diffusion coefficients in neuronal compartment equal to 0
-                    Dc[c_index(x,y,z,0,ion,Nx,Ny)*3+1] = con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3+1]*scale*D[ion]*
-                                                        alphao[al_index(0,0,0,0,Nx,Ny)]/pow(tortuosity,2);
+                    Dc[c_index(x,y,z,0,ion,Nx,Ny,Nz)*3+1] = con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny,Nz)*3+1]*scale*D[ion]*
+                                                           alphao[al_index(0,0,0,0,Nx,Ny,Nz)]/pow(tortuosity,2);
                     //diffusion coefficients in glial compartment proportional to default volume fraction
-                    Dc[c_index(x,y,z,1,ion,Nx,Ny)*3+1] =
-                            con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny)*3+1]*scale*D[ion]*alphao[al_index(
-                                    0,0,0,1,Nx,Ny)]/pow(tortuosity,2);
+                    Dc[c_index(x,y,z,1,ion,Nx,Ny,Nz)*3+1] =
+                            con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny,Nz)*3+1]*scale*D[ion]*alphao[al_index(
+                                    0,0,0,1,Nx,Ny,Nz)]/pow(tortuosity,2);
 
                     //diffusion coefficients in z direction
                     if(z == (Nz-1)){
                         //Boundary is zero
-                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+2] = con_vars->DExtracellScale[
-                                                                        xy_index(x,y,z,Nx,Ny)*3+2]*scale*D[ion]*(alNcL)/
-                                                                pow(tortuosity,2);
+                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+2] = con_vars->DExtracellScale[
+                                                                          xy_index(x,y,z,Nx,Ny,Nz)*3+2]*scale*D[ion]*(alNcL)/
+                                                                  pow(tortuosity,2);
                     }else{
                         //diffusion coefficients in the extracellular space proportional to volume fraction
-                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+2] = con_vars->DExtracellScale[
-                                                                        xy_index(x,y,z,Nx,Ny)*3+2]*scale*D[ion]/2*
-                                                                (alNcL+alNcU)/pow(tortuosity,2);
+                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+2] = con_vars->DExtracellScale[
+                                                                          xy_index(x,y,z,Nx,Ny,Nz)*3+2]*scale*D[ion]/2*
+                                                                  (alNcL+alNcU)/pow(tortuosity,2);
 
                     }
                     //diffusion coefficients in neuronal compartment equal to 0
-                    Dc[c_index(x,y,z,0,ion,Nx,Ny)*3+2] = con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3+2]*scale*D[ion]*
-                                                         alphao[al_index(0,0,0,0,Nx,Ny)]/pow(tortuosity,2);
+                    Dc[c_index(x,y,z,0,ion,Nx,Ny,Nz)*3+2] = con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny,Nz)*3+2]*scale*D[ion]*
+                                                           alphao[al_index(0,0,0,0,Nx,Ny,Nz)]/pow(tortuosity,2);
                     //diffusion coefficients in glial compartment proportional to default volume fraction
-                    Dc[c_index(x,y,z,1,ion,Nx,Ny)*3+2] =
-                            con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny)*3+2]*scale*D[ion]*alphao[al_index(
-                                    0,0,0,1,Nx,Ny)]/pow(tortuosity,2);
+                    Dc[c_index(x,y,z,1,ion,Nx,Ny,Nz)*3+2] =
+                            con_vars->DGliaScale[xy_index(x,y,z,Nx,Ny,Nz)*3+2]*scale*D[ion]*alphao[al_index(
+                                    0,0,0,1,Nx,Ny,Nz)]/pow(tortuosity,2);
 
                 }
             }
@@ -300,70 +302,70 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
                 for(PetscInt x = 0; x < Nx; x++){
 
                     //membrane potential in mV
-                    v = (state_vars->phi[phi_index(x,y,z,0,Nx,Ny)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC;
+                    v = (state_vars->phi[phi_index(x,y,z,0,Nx,Ny,Nz)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)])*RTFC;
                     //Iniitialize the point gating variables
 
                     //compute current NaT
                     //gating variables mNaT
                     alpha = xoverexpminusone(v,0.32,51.9,0.25,1); //0.32*(Vm+51.9)./(1-exp(-0.25*(Vm+51.9)))
                     beta = xoverexpminusone(v,0.28,24.89,0.2,0); //0.28*(Vm+24.89)./(exp(0.2*(Vm+24.89))-1)
-                    gate_vars->mNaT[xy_index(x,y,z,Nx,Ny)] = alpha/(alpha+beta);
+                    gate_vars->mNaT[xy_index(x,y,z,Nx,Ny,Nz)] = alpha/(alpha+beta);
 
 
                     //gating variable hNaT
                     alpha = 0.128*exp(-(0.056*v+2.94));
                     beta = 4/(exp(-(0.2*v+6))+1);
-                    gate_vars->hNaT[xy_index(x,y,z,Nx,Ny)] = alpha/(alpha+beta);
+                    gate_vars->hNaT[xy_index(x,y,z,Nx,Ny,Nz)] = alpha/(alpha+beta);
 
-                    gate_vars->gNaT[xy_index(x,y,z,Nx,Ny)] =
-                            pow(gate_vars->mNaT[xy_index(x,y,z,Nx,Ny)],3)*gate_vars->hNaT[xy_index(x,y,z,Nx,Ny)];
+                    gate_vars->gNaT[xy_index(x,y,z,Nx,Ny,Nz)] =
+                            pow(gate_vars->mNaT[xy_index(x,y,z,Nx,Ny,Nz)],3)*gate_vars->hNaT[xy_index(x,y,z,Nx,Ny,Nz)];
 
                     //compute current NaP
                     //gating variable mNaP
                     alpha = 1/(1+exp(-(0.143*v+5.67)))/6;
                     beta = 1.0/6-alpha; //1./(1+exp(0.143*Vm+5.67))/6
-                    gate_vars->mNaP[xy_index(x,y,z,Nx,Ny)] = alpha/(alpha+beta);
+                    gate_vars->mNaP[xy_index(x,y,z,Nx,Ny,Nz)] = alpha/(alpha+beta);
 
                     //gating variable hNaP
                     alpha = 5.12e-6*exp(-(0.056*v+2.94));
                     beta = 1.6e-4/(1+exp(-(0.2*v+8)));
-                    gate_vars->hNaP[xy_index(x,y,z,Nx,Ny)] = alpha/(alpha+beta);
+                    gate_vars->hNaP[xy_index(x,y,z,Nx,Ny,Nz)] = alpha/(alpha+beta);
 
-                    gate_vars->gNaP[xy_index(x,y,z,Nx,Ny)] =
-                            pow(gate_vars->mNaP[xy_index(x,y,z,Nx,Ny)],2)*gate_vars->hNaP[xy_index(x,y,z,Nx,Ny)];
+                    gate_vars->gNaP[xy_index(x,y,z,Nx,Ny,Nz)] =
+                            pow(gate_vars->mNaP[xy_index(x,y,z,Nx,Ny,Nz)],2)*gate_vars->hNaP[xy_index(x,y,z,Nx,Ny,Nz)];
                     //compute KDR current
                     //gating variable mKDR
                     alpha = xoverexpminusone(v,0.016,34.9,0.2,1); //0.016*(Vm+34.9)./(1-exp(-0.2*(Vm+34.9)))
                     beta = 0.25*exp(-(0.025*v+1.25));
-                    gate_vars->mKDR[xy_index(x,y,z,Nx,Ny)] = alpha/(alpha+beta);
+                    gate_vars->mKDR[xy_index(x,y,z,Nx,Ny,Nz)] = alpha/(alpha+beta);
 
-                    gate_vars->gKDR[xy_index(x,y,z,Nx,Ny)] = pow(gate_vars->mKDR[xy_index(x,y,z,Nx,Ny)],2);
+                    gate_vars->gKDR[xy_index(x,y,z,Nx,Ny,Nz)] = pow(gate_vars->mKDR[xy_index(x,y,z,Nx,Ny,Nz)],2);
 
                     //compute KA current
                     //gating variable mKA
                     alpha = xoverexpminusone(v,0.02,56.9,0.1,1); //0.02*(Vm+56.9)./(1-exp(-0.1*(Vm+56.9)))
                     beta = xoverexpminusone(v,0.0175,29.9,0.1,0); //0.0175*(Vm+29.9)./(exp(0.1*(Vm+29.9))-1)
-                    gate_vars->mKA[xy_index(x,y,z,Nx,Ny)] = alpha/(alpha+beta);
+                    gate_vars->mKA[xy_index(x,y,z,Nx,Ny,Nz)] = alpha/(alpha+beta);
 
                     //gating variable hKA
                     alpha = 0.016*exp(-(0.056*v+4.61));
                     beta = 0.5/(exp(-(0.2*v+11.98))+1);
-                    gate_vars->hKA[xy_index(x,y,z,Nx,Ny)] = alpha/(alpha+beta);
+                    gate_vars->hKA[xy_index(x,y,z,Nx,Ny,Nz)] = alpha/(alpha+beta);
 
-                    gate_vars->gKA[xy_index(x,y,z,Nx,Ny)] =
-                            pow(gate_vars->mKA[xy_index(x,y,z,Nx,Ny)],2)*gate_vars->hKA[xy_index(x,y,z,Nx,Ny)];
+                    gate_vars->gKA[xy_index(x,y,z,Nx,Ny,Nz)] =
+                            pow(gate_vars->mKA[xy_index(x,y,z,Nx,Ny,Nz)],2)*gate_vars->hKA[xy_index(x,y,z,Nx,Ny,Nz)];
 
                     //gating variable NMDA
                     if(Ni > 3){
                         if(Num_NMDA_States==2){
-                            alpha = 72*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)];
+                            alpha = 72*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)];
                             beta = 6.6e-3; //just 6.6
-                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] = alpha/(alpha+beta);
+                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = alpha/(alpha+beta);
 
 //                    Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
                             Gphi = 1/(1+0.56*exp(-0.062*v)); //From Rossi/Atwell
 
-                            gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)]*Gphi;
+                            gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*Gphi;
                         }
 
                         if(Num_NMDA_States==3){
@@ -372,39 +374,41 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
                             r6 = 190.0;//190e-3;
                             a11 = 6.9e-3;
                             a12 = -160e-3;
-                            a21 = (r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]);
-                            a22 = (r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]+160e-3+4.7e-3);
+                            a21 = (r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)]);
+                            a22 = (r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)]+160e-3+4.7e-3);
 
                             detA = a11*a22-a12*a21;
-                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] = (a22*0-a12*(r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]));
-                            gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)] = (-a21*0+a11*(r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]));
+                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (a22*0-a12*(r6*state_vars->c[c_index(x,y,z,Nc-
+                                                                                                                   1,3,Nx,Ny,Nz)]));
+                            gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (-a21*0+a11*(r6*state_vars->c[c_index(x,y,z,Nc-
+                                                                                                                    1,3,Nx,Ny,Nz)]));
 
-                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] /= detA;
-                            gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)] /= detA;
+                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)] /= detA;
+                            gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)] /= detA;
 //                    Gphi = 1/(1+0.28*exp(-0.062*v));
                             Gphi = 1/(1+0.56*exp(-0.062*v));
-                            gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)]*Gphi;
+                            gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*Gphi;
 
                         }
                         if(Num_NMDA_States==4){
                             // 4 Stage Solve
                             K_r = 2.3e-6;//34.9e-6;
                             npow = 1.5;//1.4;
-                            Fglu = pow(state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)],npow)
-                                   /(pow(state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)],npow)+pow(K_r,npow));
+                            Fglu = pow(state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)],npow)
+                                   /(pow(state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)],npow)+pow(K_r,npow));
                             k1 = 3.94e-3*Fglu;
                             k2 = 1.94e-3;
                             k3 = 0.0213e-3;
                             k4 = 0.00277e-3;
 
-                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] = (k2*k4)/(k1*k3+k1*k4+k2*k4);
-                            gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)] = (k1*k4)/(k1*k3+k1*k4+k2*k4);
-                            gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny)] = (k1*k3)/(k1*k3+k1*k4+k2*k4);
+                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (k2*k4)/(k1*k3+k1*k4+k2*k4);
+                            gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (k1*k4)/(k1*k3+k1*k4+k2*k4);
+                            gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (k1*k3)/(k1*k3+k1*k4+k2*k4);
 
                             Gphi = 1/(1+0.56*exp(-0.062*v));
-                            gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)] = (gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)]*Fglu
-                                                                  +Desensitize[0]*gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)]
-                                                                  +Desensitize[1]*gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny)])*Gphi;
+                            gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*Fglu
+                                                                         +Desensitize[0]*gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)]
+                                                                         +Desensitize[1]*gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny,Nz)])*Gphi;
                         }
                     }
 
@@ -416,77 +420,77 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
             for(PetscInt y = 0; y < Ny; y++){
                 for(PetscInt x = 0; x < Nx; x++){
                     //membrane potential in mV
-                    v = (state_vars->phi[phi_index(x,y,z,0,Nx,Ny)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC;
+                    v = (state_vars->phi[phi_index(x,y,z,0,Nx,Ny,Nz)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)])*RTFC;
 
                     //compute current NaT
                     //gating variables mNaT
                     alpha = xoverexpminusone(v,0.32,51.9,0.25,1); //0.32*(Vm+51.9)./(1-exp(-0.25*(Vm+51.9)))
                     beta = xoverexpminusone(v,0.28,24.89,0.2,0); //0.28*(Vm+24.89)./(exp(0.2*(Vm+24.89))-1)
-                    gate_vars->mNaT[xy_index(x,y,z,Nx,Ny)] =
-                            (gate_vars_past->mNaT[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                    gate_vars->mNaT[xy_index(x,y,z,Nx,Ny,Nz)] =
+                            (gate_vars_past->mNaT[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
                     //gating variable hNaT
                     alpha = 0.128*exp(-(0.056*v+2.94));
                     beta = 4/(exp(-(0.2*v+6))+1);
-                    gate_vars->hNaT[xy_index(x,y,z,Nx,Ny)] =
-                            (gate_vars_past->hNaT[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                    gate_vars->hNaT[xy_index(x,y,z,Nx,Ny,Nz)] =
+                            (gate_vars_past->hNaT[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
-                    gate_vars->gNaT[xy_index(x,y,z,Nx,Ny)] =
-                            pow(gate_vars->mNaT[xy_index(x,y,z,Nx,Ny)],3)*gate_vars->hNaT[xy_index(x,y,z,Nx,Ny)];
+                    gate_vars->gNaT[xy_index(x,y,z,Nx,Ny,Nz)] =
+                            pow(gate_vars->mNaT[xy_index(x,y,z,Nx,Ny,Nz)],3)*gate_vars->hNaT[xy_index(x,y,z,Nx,Ny,Nz)];
                     //compute current NaP
                     //gating variable mNaP
                     alpha = 1/(1+exp(-(0.143*v+5.67)))/6;
                     beta = 1.0/6.0-alpha; //1./(1+exp(0.143*Vm+5.67))/6
-                    gate_vars->mNaP[xy_index(x,y,z,Nx,Ny)] =
-                            (gate_vars_past->mNaP[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                    gate_vars->mNaP[xy_index(x,y,z,Nx,Ny,Nz)] =
+                            (gate_vars_past->mNaP[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
                     //gating variable hNaP
                     alpha = 5.12e-6*exp(-(0.056*v+2.94));
                     beta = 1.6e-4/(1+exp(-(0.2*v+8)));
-                    gate_vars->hNaP[xy_index(x,y,z,Nx,Ny)] =
-                            (gate_vars_past->hNaP[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                    gate_vars->hNaP[xy_index(x,y,z,Nx,Ny,Nz)] =
+                            (gate_vars_past->hNaP[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
-                    gate_vars->gNaP[xy_index(x,y,z,Nx,Ny)] =
-                            pow(gate_vars->mNaP[xy_index(x,y,z,Nx,Ny)],2)*gate_vars->hNaP[xy_index(x,y,z,Nx,Ny)];
+                    gate_vars->gNaP[xy_index(x,y,z,Nx,Ny,Nz)] =
+                            pow(gate_vars->mNaP[xy_index(x,y,z,Nx,Ny,Nz)],2)*gate_vars->hNaP[xy_index(x,y,z,Nx,Ny,Nz)];
 
                     //compute KDR current
                     //gating variable mKDR
                     alpha = xoverexpminusone(v,0.016,34.9,0.2,1); //0.016*(Vm+34.9)./(1-exp(-0.2*(Vm+34.9)))
                     beta = 0.25*exp(-(0.025*v+1.25));
-                    gate_vars->mKDR[xy_index(x,y,z,Nx,Ny)] =
-                            (gate_vars_past->mKDR[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                    gate_vars->mKDR[xy_index(x,y,z,Nx,Ny,Nz)] =
+                            (gate_vars_past->mKDR[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
-                    gate_vars->gKDR[xy_index(x,y,z,Nx,Ny)] = pow(gate_vars->mKDR[xy_index(x,y,z,Nx,Ny)],2);
+                    gate_vars->gKDR[xy_index(x,y,z,Nx,Ny,Nz)] = pow(gate_vars->mKDR[xy_index(x,y,z,Nx,Ny,Nz)],2);
 
                     //compute KA current
                     //gating variable mKA
                     alpha = xoverexpminusone(v,0.02,56.9,0.1,1); //0.02*(Vm+56.9)./(1-exp(-0.1*(Vm+56.9)))
                     beta = xoverexpminusone(v,0.0175,29.9,0.1,0); //0.0175*(Vm+29.9)./(exp(0.1*(Vm+29.9))-1)
-                    gate_vars->mKA[xy_index(x,y,z,Nx,Ny)] =
-                            (gate_vars_past->mKA[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                    gate_vars->mKA[xy_index(x,y,z,Nx,Ny,Nz)] =
+                            (gate_vars_past->mKA[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
                     //gating variable hKA
                     alpha = 0.016*exp(-(0.056*v+4.61));
                     beta = 0.5/(exp(-(0.2*v+11.98))+1);
-                    gate_vars->hKA[xy_index(x,y,z,Nx,Ny)] =
-                            (gate_vars_past->hKA[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                    gate_vars->hKA[xy_index(x,y,z,Nx,Ny,Nz)] =
+                            (gate_vars_past->hKA[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
-                    gate_vars->gKA[xy_index(x,y,z,Nx,Ny)] =
-                            pow(gate_vars->mKA[xy_index(x,y,z,Nx,Ny)],2)*gate_vars->hKA[xy_index(x,y,z,Nx,Ny)];
+                    gate_vars->gKA[xy_index(x,y,z,Nx,Ny,Nz)] =
+                            pow(gate_vars->mKA[xy_index(x,y,z,Nx,Ny,Nz)],2)*gate_vars->hKA[xy_index(x,y,z,Nx,Ny,Nz)];
                     //gating variable NMDA
                     if(Ni > 3){
                         if(Num_NMDA_States == 2){
                             //72 mM/sec->72 1e-3mM/l *1e-3 1/msec
 
-                            alpha = 72*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)];
+                            alpha = 72*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)];
                             beta = 6.6e-3; // 6.6 (sec)^-1->6.6e-3 msec^-1
-                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] =
-                                    (gate_vars_past->yNMDA[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)] =
+                                    (gate_vars_past->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
 //                Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
                             Gphi = 1/(1+0.56*exp(-0.062*v)); //From Rossi/Atwell
 
-                            gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)]*Gphi;
+                            gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*Gphi;
                         }
                         if(Num_NMDA_States == 3){
                             // 3 Stage Solve
@@ -494,34 +498,34 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
                             r6 = 190.0;//190e-3;
                             a11 = 1+dtms*6.9e-3;
                             a12 = -dtms*160e-3;
-                            a21 = dtms*(r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]);
-                            a22 = 1+dtms*(r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]+160e-3+4.7e-3);
+                            a21 = dtms*(r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)]);
+                            a22 = 1+dtms*(r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)]+160e-3+4.7e-3);
 
                             detA = a11*a22-a12*a21;
-                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] = (a22*gate_vars_past->yNMDA[xy_index(x,y,z,Nx,Ny)]
-                                                                       -a12*
-                                                                        (gate_vars_past->zNMDA[xy_index(x,y,z,Nx,Ny)]+
+                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (a22*gate_vars_past->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)]
+                                                                         -a12*
+                                                                        (gate_vars_past->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)]+
                                                                          dtms*r6*
-                                                                         state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]));
-                            gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)] = (-a21*gate_vars_past->yNMDA[xy_index(x,y,z,Nx,Ny)]
-                                                                       +a11*
-                                                                        (gate_vars_past->zNMDA[xy_index(x,y,z,Nx,Ny)]+
+                                                                         state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)]));
+                            gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (-a21*gate_vars_past->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)]
+                                                                         +a11*
+                                                                        (gate_vars_past->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)]+
                                                                          dtms*r6*
-                                                                         state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]));
+                                                                         state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)]));
 
-                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] /= detA;
-                            gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)] /= detA;
+                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)] /= detA;
+                            gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)] /= detA;
 //                    Gphi = 1/(1+0.28*exp(-0.062*v));
                             Gphi = 1.0/(1+0.56*exp(-0.062*v));
-                            gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)]*Gphi;
+                            gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*Gphi;
                         }
 
                         // 4 Stages
                         if(Num_NMDA_States == 4){
                             K_r = 2.3e-6;//34.9e-6;
                             npow = 1.5; //1.4;
-                            Fglu = pow(state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)],npow)
-                                   /(pow(state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)],npow)+pow(K_r,npow));
+                            Fglu = pow(state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)],npow)
+                                   /(pow(state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)],npow)+pow(K_r,npow));
                             k1 = 3.94e-3*Fglu;
                             k2 = 1.94e-3;
                             k3 = 0.0213e-3;
@@ -531,36 +535,36 @@ void gatevars_update(struct GateType *gate_vars,struct GateType *gate_vars_past,
                             detA = dtms*k1+dtms*k2+dtms*k3+dtms*k4+dtms*dtms*k1*k3+dtms*dtms*k1*k4+dtms*dtms*k2*k4+1;
 
 
-                            Rstar = gate_vars_past->yNMDA[xy_index(x,y,z,Nx,Ny)];
-                            D1 = gate_vars_past->zNMDA[xy_index(x,y,z,Nx,Ny)];
-                            D2 = gate_vars_past->dNMDA[xy_index(x,y,z,Nx,Ny)];
+                            Rstar = gate_vars_past->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)];
+                            D1 = gate_vars_past->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)];
+                            D2 = gate_vars_past->dNMDA[xy_index(x,y,z,Nx,Ny,Nz)];
                             // Explicitly calculate inverse
                             // First row
                             a11 = dtms*k2+dtms*k3+dtms*k4+dtms*dtms*k2*k4+1;
                             a12 = dtms*k2*(dtms*k4+1);
                             a21 = dtms*dtms*k2*k4;
 
-                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] = (a11*Rstar+a12*D1+a21*D2)/detA;
+                            gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (a11*Rstar+a12*D1+a21*D2)/detA;
 
                             // Second Row
                             a11 = dtms*k1*(dtms*k4+1);
                             a12 = (dtms*k1+1)*(dtms*k4+1);
                             a21 = dtms*k4*(dtms*k1+1);
-                            gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)] = (a11*Rstar+a12*D1+a21*D2)/detA;
+                            gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (a11*Rstar+a12*D1+a21*D2)/detA;
 
                             //Third Row
                             a11 = dtms*dtms*k1*k3;
                             a12 = dtms*k3*(dtms*k1+1);
                             a21 = dtms*k1+dtms*k2+dtms*k3+dtms*dtms*k1*k3+1;
-                            gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny)] = (a11*Rstar+a12*D1+a21*D2)/detA;
+                            gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (a11*Rstar+a12*D1+a21*D2)/detA;
 
 
                             Gphi = 1/(1+0.56*exp(-0.062*v));
-                            gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)] = (gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)]*Fglu
-                                                                       +Desensitize[0]*
-                                                                        gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)]
-                                                                       +Desensitize[1]*
-                                                                        gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny)])*Gphi;
+                            gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*Fglu
+                                                                         +Desensitize[0]*
+                                                                        gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)]
+                                                                         +Desensitize[1]*
+                                                                        gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny,Nz)])*Gphi;
                         }
                     }
                 }
@@ -607,16 +611,16 @@ void excitation(struct AppCtx* user,PetscReal t)
                         if(t < texct && i == 0 && j == 0 && z == 0){
                             num_points++;
                             pany = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = pany;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
                         }else{
                             //pexct=0*RTFC/FC
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = 0;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
                         }
 
                     }
@@ -627,16 +631,16 @@ void excitation(struct AppCtx* user,PetscReal t)
                             pexct = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
                             xexct = pow(cos(pi/2*(radius/Lexct)),2);
                             pany = pexct*xexct;
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = pany;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
                         }else{
                             //pexct=0*RTFC/FC
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = 0;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
                         }
                     }
                     if(plane_wave_exct){
@@ -646,16 +650,16 @@ void excitation(struct AppCtx* user,PetscReal t)
                             num_points++;
                             pexct = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
                             pany = pexct;
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = pany;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
                         }else{
                             //pexct=0*RTFC/FC
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = 0;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
                         }
                     }
                     if(!one_point_exct && !mid_points_exct && !plane_wave_exct){
@@ -667,16 +671,16 @@ void excitation(struct AppCtx* user,PetscReal t)
                             xexct = pow(cos(pi/2*(radius/Lexct)),2);
 //				xexct=pow((cos(pi/2*((i+.5)*dx)/Lexct))*(cos(pi/2*((j+.5)*dy)/Lexct)),2);
                             pany = pexct*xexct;
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = pany;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
                         }else{
                             //pexct=0*RTFC/FC
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = 0;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
                         }
                     }
                 }
@@ -714,111 +718,112 @@ void ionmflux(struct AppCtx* user)
         for(PetscInt y = 0; y < Ny; y++){
             for(PetscInt x = 0; x < Nx; x++){
 
-                vm = state_vars->phi[phi_index(x,y,z,0,Nx,Ny)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)];
-                vmg = state_vars->phi[phi_index(x,y,z,1,Nx,Ny)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)];
-                vmgp = state_vars_past->phi[phi_index(x,y,z,1,Nx,Ny)]-state_vars_past->phi[phi_index(x,y,z,Nc-1,Nx,Ny)];
+                vm = state_vars->phi[phi_index(x,y,z,0,Nx,Ny,Nz)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)];
+                vmg = state_vars->phi[phi_index(x,y,z,1,Nx,Ny,Nz)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)];
+                vmgp = state_vars_past->phi[phi_index(x,y,z,1,Nx,Ny,Nz)]-state_vars_past->phi[phi_index(x,y,z,
+                                                                                                       Nc-1,Nx,Ny,Nz)];
 
                 //Compute Na Channel currents
-                ci = state_vars->c[c_index(x,y,z,0,0,Nx,Ny)];
-                cg = state_vars->c[c_index(x,y,z,1,0,Nx,Ny)];
-                ce = state_vars->c[c_index(x,y,z,Nc-1,0,Nx,Ny)];
+                ci = state_vars->c[c_index(x,y,z,0,0,Nx,Ny,Nz)];
+                cg = state_vars->c[c_index(x,y,z,1,0,Nx,Ny,Nz)];
+                ce = state_vars->c[c_index(x,y,z,Nc-1,0,Nx,Ny,Nz)];
 
                 //Neurons
-                pGHK = con_vars->pNaT[xy_index(x,y,z,Nx,Ny)]*gvars->gNaT[xy_index(x,y,z,Nx,Ny)]+
-                        con_vars->pNaP[xy_index(x,y,z,Nx,Ny)]*gvars->gNaP[xy_index(x,y,z,Nx,Ny)]+
-                        con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)]*gvars->gNMDA[xy_index(x,y,z,Nx,Ny)]*(2.0/3.0);
-                pLin = con_vars->pNaLeak[xy_index(x,y,z,Nx,Ny)]+gexct->pNa[xy_index(x,y,z,Nx,Ny)]; //Add excitation
+                pGHK = con_vars->pNaT[xy_index(x,y,z,Nx,Ny,Nz)]*gvars->gNaT[xy_index(x,y,z,Nx,Ny,Nz)]+
+                       con_vars->pNaP[xy_index(x,y,z,Nx,Ny,Nz)]*gvars->gNaP[xy_index(x,y,z,Nx,Ny,Nz)]+
+                       con_vars->pNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*gvars->gNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*(2.0/3.0);
+                pLin = con_vars->pNaLeak[xy_index(x,y,z,Nx,Ny,Nz)]+gexct->pNa[xy_index(x,y,z,Nx,Ny,Nz)]; //Add excitation
                 //Initialize GHK Flux
-                mcGoldman(flux,c_index(x,y,z,0,0,Nx,Ny),pGHK,1,ci,ce,vm,0);
+                mcGoldman(flux,c_index(x,y,z,0,0,Nx,Ny,Nz),pGHK,1,ci,ce,vm,0);
                 //Add leak current to that.
-                mclin(flux,c_index(x,y,z,0,0,Nx,Ny),pLin,1,ci,ce,vm,1);
+                mclin(flux,c_index(x,y,z,0,0,Nx,Ny,Nz),pLin,1,ci,ce,vm,1);
                 //Glial NaLeak
-                mclin(flux,c_index(x,y,z,1,0,Nx,Ny),con_vars->pNaLeakg[xy_index(x,y,z,Nx,Ny)],1,cg,ce,vmg,0);
+                mclin(flux,c_index(x,y,z,1,0,Nx,Ny,Nz),con_vars->pNaLeakg[xy_index(x,y,z,Nx,Ny,Nz)],1,cg,ce,vmg,0);
 
                 // Compute K channel Currents
-                ci = state_vars->c[c_index(x,y,z,0,1,Nx,Ny)];
-                cg = state_vars->c[c_index(x,y,z,1,1,Nx,Ny)];
-                ce = state_vars->c[c_index(x,y,z,Nc-1,1,Nx,Ny)];
+                ci = state_vars->c[c_index(x,y,z,0,1,Nx,Ny,Nz)];
+                cg = state_vars->c[c_index(x,y,z,1,1,Nx,Ny,Nz)];
+                ce = state_vars->c[c_index(x,y,z,Nc-1,1,Nx,Ny,Nz)];
 
                 //Neurons
-                pGHK = con_vars->pKDR[xy_index(x,y,z,Nx,Ny)]*gvars->gKDR[xy_index(x,y,z,Nx,Ny)]+
-                        con_vars->pKA[xy_index(x,y,z,Nx,Ny)]*gvars->gKA[xy_index(x,y,z,Nx,Ny)]+
-                        con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)]*gvars->gNMDA[xy_index(x,y,z,Nx,Ny)]*(1.0/3.0);
-                pLin = pKLeak+gexct->pK[xy_index(x,y,z,Nx,Ny)]; //add excitation
-                mcGoldman(flux,c_index(x,y,z,0,1,Nx,Ny),pGHK,1,ci,ce,vm,0);
-                mclin(flux,c_index(x,y,z,0,1,Nx,Ny),pLin,1,ci,ce,vm,1);
+                pGHK = con_vars->pKDR[xy_index(x,y,z,Nx,Ny,Nz)]*gvars->gKDR[xy_index(x,y,z,Nx,Ny,Nz)]+
+                       con_vars->pKA[xy_index(x,y,z,Nx,Ny,Nz)]*gvars->gKA[xy_index(x,y,z,Nx,Ny,Nz)]+
+                       con_vars->pNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*gvars->gNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*(1.0/3.0);
+                pLin = pKLeak+gexct->pK[xy_index(x,y,z,Nx,Ny,Nz)]; //add excitation
+                mcGoldman(flux,c_index(x,y,z,0,1,Nx,Ny,Nz),pGHK,1,ci,ce,vm,0);
+                mclin(flux,c_index(x,y,z,0,1,Nx,Ny,Nz),pLin,1,ci,ce,vm,1);
 
                 // Glial K Leak(using past)
-                cgp = state_vars_past->c[c_index(x,y,z,1,1,Nx,Ny)];
-                cep = state_vars_past->c[c_index(x,y,z,Nc-1,1,Nx,Ny)];
+                cgp = state_vars_past->c[c_index(x,y,z,1,1,Nx,Ny,Nz)];
+                cep = state_vars_past->c[c_index(x,y,z,Nc-1,1,Nx,Ny,Nz)];
 
-                pLin = con_vars->pKIR[xy_index(x,y,z,Nx,Ny)]*inwardrect(cgp,cep,vmgp)*pKLeakadjust;
-                mclin(flux,c_index(x,y,z,1,1,Nx,Ny),pLin,1,cg,ce,vmg,0);
+                pLin = con_vars->pKIR[xy_index(x,y,z,Nx,Ny,Nz)]*inwardrect(cgp,cep,vmgp)*pKLeakadjust;
+                mclin(flux,c_index(x,y,z,1,1,Nx,Ny,Nz),pLin,1,cg,ce,vmg,0);
 
                 //Compute Cl Channel Current
-                ci = state_vars->c[c_index(x,y,z,0,2,Nx,Ny)];
-                cg = state_vars->c[c_index(x,y,z,1,2,Nx,Ny)];
-                ce = state_vars->c[c_index(x,y,z,Nc-1,2,Nx,Ny)];
+                ci = state_vars->c[c_index(x,y,z,0,2,Nx,Ny,Nz)];
+                cg = state_vars->c[c_index(x,y,z,1,2,Nx,Ny,Nz)];
+                ce = state_vars->c[c_index(x,y,z,Nc-1,2,Nx,Ny,Nz)];
 
                 //Neurons
-                pLin = pClLeak+gexct->pCl[xy_index(x,y,z,Nx,Ny)]; //add excitation
-                mclin(flux,c_index(x,y,z,0,2,Nx,Ny),pLin,-1,ci,ce,vm,0);
+                pLin = pClLeak+gexct->pCl[xy_index(x,y,z,Nx,Ny,Nz)]; //add excitation
+                mclin(flux,c_index(x,y,z,0,2,Nx,Ny,Nz),pLin,-1,ci,ce,vm,0);
 
                 //Glia
-                mclin(flux,c_index(x,y,z,1,2,Nx,Ny),pClLeakg,-1,cg,ce,vmg,0);
+                mclin(flux,c_index(x,y,z,1,2,Nx,Ny,Nz),pClLeakg,-1,cg,ce,vmg,0);
 
                 //Pump Currents(all past values)
 
                 //Neurons
-                Na = state_vars_past->c[c_index(x,y,z,0,0,Nx,Ny)];
-                K = state_vars_past->c[c_index(x,y,z,Nc-1,1,Nx,Ny)];
+                Na = state_vars_past->c[c_index(x,y,z,0,0,Nx,Ny,Nz)];
+                K = state_vars_past->c[c_index(x,y,z,Nc-1,1,Nx,Ny,Nz)];
 
-                Ipump = npump*con_vars->Imax[xy_index(x,y,z,Nx,Ny)]/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
+                Ipump = npump*con_vars->Imax[xy_index(x,y,z,Nx,Ny,Nz)]/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
 
                 //Add to flux(it's explicit so no derivatives)
-                flux->mflux[c_index(x,y,z,0,0,Nx,Ny)] += 3*Ipump; //Na part
-                flux->mflux[c_index(x,y,z,0,1,Nx,Ny)] -= 2*Ipump; //K part
+                flux->mflux[c_index(x,y,z,0,0,Nx,Ny,Nz)] += 3*Ipump; //Na part
+                flux->mflux[c_index(x,y,z,0,1,Nx,Ny,Nz)] -= 2*Ipump; //K part
 
                 //Glia
-                Na = state_vars_past->c[c_index(x,y,z,1,0,Nx,Ny)];
+                Na = state_vars_past->c[c_index(x,y,z,1,0,Nx,Ny,Nz)];
                 //K is the same(extracellular)
-                Ipump = glpump*con_vars->Imaxg[xy_index(x,y,z,Nx,Ny)]/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
+                Ipump = glpump*con_vars->Imaxg[xy_index(x,y,z,Nx,Ny,Nz)]/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
                 //Add to flux(it's explicit so no derivatives)
-                flux->mflux[c_index(x,y,z,1,0,Nx,Ny)] += 3*Ipump; //Na part
-                flux->mflux[c_index(x,y,z,1,1,Nx,Ny)] -= 2*Ipump; //K part
+                flux->mflux[c_index(x,y,z,1,0,Nx,Ny,Nz)] += 3*Ipump; //Na part
+                flux->mflux[c_index(x,y,z,1,1,Nx,Ny,Nz)] -= 2*Ipump; //K part
 
                 //NaKCl Cotransporter
                 //I'm going to reuse variables names...
-                Na = state_vars_past->c[c_index(x,y,z,1,0,Nx,Ny)];//glia Na
-                K = state_vars_past->c[c_index(x,y,z,1,1,Nx,Ny)]; // glia K.
-                cgp = state_vars_past->c[c_index(x,y,z,1,2,Nx,Ny)]; //glia Cl
+                Na = state_vars_past->c[c_index(x,y,z,1,0,Nx,Ny,Nz)];//glia Na
+                K = state_vars_past->c[c_index(x,y,z,1,1,Nx,Ny,Nz)]; // glia K.
+                cgp = state_vars_past->c[c_index(x,y,z,1,2,Nx,Ny,Nz)]; //glia Cl
 
-                cep = state_vars_past->c[c_index(x,y,z,Nc-1,0,Nx,Ny)];//Ext Na
-                ce = state_vars_past->c[c_index(x,y,z,Nc-1,1,Nx,Ny)]; // Ext K.
-                ci = state_vars_past->c[c_index(x,y,z,Nc-1,2,Nx,Ny)]; //Ext Cl
+                cep = state_vars_past->c[c_index(x,y,z,Nc-1,0,Nx,Ny,Nz)];//Ext Na
+                ce = state_vars_past->c[c_index(x,y,z,Nc-1,1,Nx,Ny,Nz)]; // Ext K.
+                ci = state_vars_past->c[c_index(x,y,z,Nc-1,2,Nx,Ny,Nz)]; //Ext Cl
 
-                NaKCl = con_vars->pNaKCl[xy_index(x,y,z,Nx,Ny)]*log(Na*K*pow(cgp,2)/(cep*ce*pow(ci,2)));
+                NaKCl = con_vars->pNaKCl[xy_index(x,y,z,Nx,Ny,Nz)]*log(Na*K*pow(cgp,2)/(cep*ce*pow(ci,2)));
                 //Add to flux
-                flux->mflux[c_index(x,y,z,1,0,Nx,Ny)] += NaKCl; //Sodium
-                flux->mflux[c_index(x,y,z,1,1,Nx,Ny)] += NaKCl; //K
-                flux->mflux[c_index(x,y,z,1,2,Nx,Ny)] += 2*NaKCl; //Cl
+                flux->mflux[c_index(x,y,z,1,0,Nx,Ny,Nz)] += NaKCl; //Sodium
+                flux->mflux[c_index(x,y,z,1,1,Nx,Ny,Nz)] += NaKCl; //K
+                flux->mflux[c_index(x,y,z,1,2,Nx,Ny,Nz)] += 2*NaKCl; //Cl
 
                 //Glutamate transport(Sets glutamate flux and adds to Sodium+K fluxes in both Neurons and glia
                 if(Ni>3){
-                    glutamate_flux(flux,x,y,z,state_vars,state_vars_past,Nx,Ny,gexct->pGlu[xy_index(x,y,z,Nx,Ny)],user);
+                    glutamate_flux(flux,x,y,z,state_vars,state_vars_past,Nx,Ny,Nz,gexct->pGlu[xy_index(x,y,z,Nx,Ny,Nz)],user);
                 }
 
                 //Change units of flux from mmol/cm^2 to mmol/cm^3/s
                 for(PetscInt ion = 0; ion < Ni; ion++){
-                    flux->mflux[c_index(x,y,z,Nc-1,ion,Nx,Ny)] = 0;
+                    flux->mflux[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)] = 0;
                     for(PetscInt comp = 0; comp < Nc-1; comp++){
-                        flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
-                        flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
-                        flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
-                        flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
+                        flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)] = flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]/ell[xy_index(x,y,z,Nx,Ny,Nz)];
+                        flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)] = flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]/ell[xy_index(x,y,z,Nx,Ny,Nz)];
+                        flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)] = flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]/ell[xy_index(x,y,z,Nx,Ny,Nz)];
+                        flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)] = flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]/ell[xy_index(x,y,z,Nx,Ny,Nz)];
 
                         //And calculate the extracellular flux
-                        flux->mflux[c_index(x,y,z,Nc-1,ion,Nx,Ny)] -= flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        flux->mflux[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)] -= flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                     }
                 }
             }
@@ -853,24 +858,24 @@ void wflowm(struct AppCtx *user)
                 //Calculate the pi for extracellular
                 piwNc = 0;
                 for(PetscInt ion = 0; ion < Ni; ion++){
-                    piwNc += state_vars->c[c_index(x,y,z,Nc-1,ion,Nx,Ny)];
+                    piwNc += state_vars->c[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)];
                 }
-                piwNc += con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny)]/
-                        (1-state_vars->alpha[al_index(x,y,z,0,Nx,Ny)]-state_vars->alpha[al_index(x,y,z,1,Nx,Ny)]);
+                piwNc += con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                         (1-state_vars->alpha[al_index(x,y,z,0,Nx,Ny,Nz)]-state_vars->alpha[al_index(x,y,z,1,Nx,Ny,Nz)]);
                 for(PetscInt comp = 0; comp < Nc-1; comp++){
                     piw = 0;
                     for(PetscInt ion = 0; ion < Ni; ion++){
-                        piw += state_vars->c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        piw += state_vars->c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                     }
-                    piw += con_vars->ao[phi_index(0,0,0,comp,Nx,Ny)]/state_vars->alpha[al_index(x,y,z,comp,Nx,Ny)];
+                    piw += con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)]/state_vars->alpha[al_index(x,y,z,comp,Nx,Ny,Nz)];
                     //ao, zeta1, and zetalpha are currently constant in space
-                    dwdpi = con_vars->zeta1[al_index(0,0,0,comp,Nx,Ny)];
-                    dwdal = con_vars->zeta1[al_index(0,0,0,comp,Nx,Ny)]*con_vars->zetaalpha[al_index(0,0,0,comp,Nx,Ny)];
+                    dwdpi = con_vars->zeta1[al_index(0,0,0,comp,Nx,Ny,Nz)];
+                    dwdal = con_vars->zeta1[al_index(0,0,0,comp,Nx,Ny,Nz)]*con_vars->zetaalpha[al_index(0,0,0,comp,Nx,Ny,Nz)];
 
-                    flux->wflow[al_index(x,y,z,comp,Nx,Ny)] = dwdpi*(piwNc-piw)+dwdal*
-                            (state_vars->alpha[al_index(x,y,z,comp,Nx,Ny)]-alphao[comp]);
-                    flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)] = dwdpi;
-                    flux->dwdal[al_index(x,y,z,comp,Nx,Ny)] = dwdal;
+                    flux->wflow[al_index(x,y,z,comp,Nx,Ny,Nz)] = dwdpi*(piwNc-piw)+dwdal*
+                                                                                  (state_vars->alpha[al_index(x,y,z,comp,Nx,Ny,Nz)]-alphao[comp]);
+                    flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)] = dwdpi;
+                    flux->dwdal[al_index(x,y,z,comp,Nx,Ny,Nz)] = dwdal;
                 }
             }
         }
@@ -903,24 +908,24 @@ void grid_wflowm(struct AppCtx *user)
                 //Calculate the pi for extracellular
                 piwNc = 0;
                 for(PetscInt ion = 0; ion < Ni; ion++){
-                    piwNc += state_vars->c[c_index(x,y,z,Nc-1,ion,Nx,Ny)];
+                    piwNc += state_vars->c[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)];
                 }
-                piwNc += con_vars->ao[al_index(0,0,0,Nc-1,Nx,Ny)]/
-                         (1-state_vars->alpha[al_index(x,y,z,0,Nx,Ny)]-state_vars->alpha[al_index(x,y,z,1,Nx,Ny)]);
+                piwNc += con_vars->ao[al_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                         (1-state_vars->alpha[al_index(x,y,z,0,Nx,Ny,Nz)]-state_vars->alpha[al_index(x,y,z,1,Nx,Ny,Nz)]);
                 for(PetscInt comp = 0; comp < Nc-1; comp++){
                     piw = 0;
                     for(PetscInt ion = 0; ion < Ni; ion++){
-                        piw += state_vars->c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        piw += state_vars->c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                     }
-                    piw += con_vars->ao[al_index(0,0,0,comp,Nx,Ny)]/state_vars->alpha[al_index(x,y,z,comp,Nx,Ny)];
+                    piw += con_vars->ao[al_index(0,0,0,comp,Nx,Ny,Nz)]/state_vars->alpha[al_index(x,y,z,comp,Nx,Ny,Nz)];
                     //ao, zeta1, and zetalpha are currently constant in space
-                    dwdpi = con_vars->zeta1[al_index(0,0,0,comp,Nx,Ny)];
-                    dwdal = con_vars->zeta1[al_index(0,0,0,comp,Nx,Ny)]*con_vars->zetaalpha[al_index(0,0,0,comp,Nx,Ny)];
+                    dwdpi = con_vars->zeta1[al_index(0,0,0,comp,Nx,Ny,Nz)];
+                    dwdal = con_vars->zeta1[al_index(0,0,0,comp,Nx,Ny,Nz)]*con_vars->zetaalpha[al_index(0,0,0,comp,Nx,Ny,Nz)];
 
-                    flux->wflow[al_index(x,y,z,comp,Nx,Ny)] =
-                            dwdpi*(piwNc-piw)+dwdal*(state_vars->alpha[al_index(x,y,z,comp,Nx,Ny)]-alphao[comp]);
-                    flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)] = dwdpi;
-                    flux->dwdal[al_index(x,y,z,comp,Nx,Ny)] = dwdal;
+                    flux->wflow[al_index(x,y,z,comp,Nx,Ny,Nz)] =
+                            dwdpi*(piwNc-piw)+dwdal*(state_vars->alpha[al_index(x,y,z,comp,Nx,Ny,Nz)]-alphao[comp]);
+                    flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)] = dwdpi;
+                    flux->dwdal[al_index(x,y,z,comp,Nx,Ny,Nz)] = dwdal;
                 }
             }
         }
@@ -955,110 +960,111 @@ void grid_ionmflux(struct AppCtx* user,PetscInt xi,PetscInt yi)
     for(PetscInt z=0;z<Nz;z++){
         for(PetscInt y = 0; y < Ny; y++){
             for(PetscInt x = 0; x < Nx; x++){
-                vm = state_vars->phi[phi_index(x,y,z,0,Nx,Ny)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)];
-                vmg = state_vars->phi[phi_index(x,y,z,1,Nx,Ny)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)];
-                vmgp = state_vars_past->phi[phi_index(x,y,z,1,Nx,Ny)]-state_vars_past->phi[phi_index(x,y,z,Nc-1,Nx,Ny)];
+                vm = state_vars->phi[phi_index(x,y,z,0,Nx,Ny,Nz)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)];
+                vmg = state_vars->phi[phi_index(x,y,z,1,Nx,Ny,Nz)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)];
+                vmgp = state_vars_past->phi[phi_index(x,y,z,1,Nx,Ny,Nz)]-state_vars_past->phi[phi_index(x,y,z,
+                                                                                                       Nc-1,Nx,Ny,Nz)];
 
                 //Compute Na Channel currents
-                ci = state_vars->c[c_index(x,y,z,0,0,Nx,Ny)];
-                cg = state_vars->c[c_index(x,y,z,1,0,Nx,Ny)];
-                ce = state_vars->c[c_index(x,y,z,Nc-1,0,Nx,Ny)];
+                ci = state_vars->c[c_index(x,y,z,0,0,Nx,Ny,Nz)];
+                cg = state_vars->c[c_index(x,y,z,1,0,Nx,Ny,Nz)];
+                ce = state_vars->c[c_index(x,y,z,Nc-1,0,Nx,Ny,Nz)];
 
                 //Neurons
-                pGHK = con_vars->pNaT[xy_index(xi,yi,z,Nx,Ny)]*gvars->gNaT[xy_index(x,y,z,Nx,Ny)]+
-                        con_vars->pNaP[xy_index(xi,yi,z,Nx,Ny)]*gvars->gNaP[xy_index(x,y,z,Nx,Ny)]+
-                        con_vars->pNMDA[xy_index(xi,yi,z,Nx,Ny)] * gvars->gNMDA[xy_index(x,y,z,Nx,Ny)]*(2.0/3.0);
-                pLin = con_vars->pNaLeak[xy_index(xi,yi,z,Nx,Ny)]+gexct->pNa[xy_index(x,y,z,Nx,Ny)]; //Add excitation
+                pGHK = con_vars->pNaT[xy_index(xi,yi,z,Nx,Ny,Nz)]*gvars->gNaT[xy_index(x,y,z,Nx,Ny,Nz)]+
+                       con_vars->pNaP[xy_index(xi,yi,z,Nx,Ny,Nz)]*gvars->gNaP[xy_index(x,y,z,Nx,Ny,Nz)]+
+                       con_vars->pNMDA[xy_index(xi,yi,z,Nx,Ny,Nz)]*gvars->gNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*(2.0/3.0);
+                pLin = con_vars->pNaLeak[xy_index(xi,yi,z,Nx,Ny,Nz)]+gexct->pNa[xy_index(x,y,z,Nx,Ny,Nz)]; //Add excitation
                 //Initialize GHK Flux
-                mcGoldman(flux,c_index(x,y,z,0,0,Nx,Ny),pGHK,1,ci,ce,vm,0);
+                mcGoldman(flux,c_index(x,y,z,0,0,Nx,Ny,Nz),pGHK,1,ci,ce,vm,0);
                 //Add leak current to that.
-                mclin(flux,c_index(x,y,z,0,0,Nx,Ny),pLin,1,ci,ce,vm,1);
+                mclin(flux,c_index(x,y,z,0,0,Nx,Ny,Nz),pLin,1,ci,ce,vm,1);
                 //Glial NaLeak
-                mclin(flux,c_index(x,y,z,1,0,Nx,Ny),con_vars->pNaLeakg[xy_index(xi,yi,z,Nx,Ny)],1,cg,ce,vmg,0);
+                mclin(flux,c_index(x,y,z,1,0,Nx,Ny,Nz),con_vars->pNaLeakg[xy_index(xi,yi,z,Nx,Ny,Nz)],1,cg,ce,vmg,0);
 
                 // Compute K channel Currents
-                ci = state_vars->c[c_index(x,y,z,0,1,Nx,Ny)];
-                cg = state_vars->c[c_index(x,y,z,1,1,Nx,Ny)];
-                ce = state_vars->c[c_index(x,y,z,Nc-1,1,Nx,Ny)];
+                ci = state_vars->c[c_index(x,y,z,0,1,Nx,Ny,Nz)];
+                cg = state_vars->c[c_index(x,y,z,1,1,Nx,Ny,Nz)];
+                ce = state_vars->c[c_index(x,y,z,Nc-1,1,Nx,Ny,Nz)];
 
                 //Neurons
-                pGHK = con_vars->pKDR[xy_index(xi,yi,z,Nx,Ny)]*gvars->gKDR[xy_index(x,y,z,Nx,Ny)]+
-                        con_vars->pKA[xy_index(xi,yi,z,Nx,Ny)]*gvars->gKA[xy_index(x,y,z,Nx,Ny)]+
-                        con_vars->pNMDA[xy_index(xi,yi,z,Nx,Ny)] * gvars->gNMDA[xy_index(x,y,z,Nx,Ny)]*(1.0/3.0);
-                pLin = pKLeak+gexct->pK[xy_index(x,y,z,Nx,Ny)]; //add excitation
-                mcGoldman(flux,c_index(x,y,z,0,1,Nx,Ny),pGHK,1,ci,ce,vm,0);
-                mclin(flux,c_index(x,y,z,0,1,Nx,Ny),pLin,1,ci,ce,vm,1);
+                pGHK = con_vars->pKDR[xy_index(xi,yi,z,Nx,Ny,Nz)]*gvars->gKDR[xy_index(x,y,z,Nx,Ny,Nz)]+
+                       con_vars->pKA[xy_index(xi,yi,z,Nx,Ny,Nz)]*gvars->gKA[xy_index(x,y,z,Nx,Ny,Nz)]+
+                       con_vars->pNMDA[xy_index(xi,yi,z,Nx,Ny,Nz)]*gvars->gNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*(1.0/3.0);
+                pLin = pKLeak+gexct->pK[xy_index(x,y,z,Nx,Ny,Nz)]; //add excitation
+                mcGoldman(flux,c_index(x,y,z,0,1,Nx,Ny,Nz),pGHK,1,ci,ce,vm,0);
+                mclin(flux,c_index(x,y,z,0,1,Nx,Ny,Nz),pLin,1,ci,ce,vm,1);
 
                 // Glial K Leak(using past)
-                cgp = state_vars_past->c[c_index(x,y,z,1,1,Nx,Ny)];
-                cep = state_vars_past->c[c_index(x,y,z,Nc-1,1,Nx,Ny)];
+                cgp = state_vars_past->c[c_index(x,y,z,1,1,Nx,Ny,Nz)];
+                cep = state_vars_past->c[c_index(x,y,z,Nc-1,1,Nx,Ny,Nz)];
 
-                pLin = con_vars->pKIR[xy_index(xi,yi,z,Nx,Ny)]*inwardrect(cgp,cep,vmgp)*pKLeakadjust;
-                mclin(flux,c_index(x,y,z,1,1,Nx,Ny),pLin,1,cg,ce,vmg,0);
+                pLin = con_vars->pKIR[xy_index(xi,yi,z,Nx,Ny,Nz)]*inwardrect(cgp,cep,vmgp)*pKLeakadjust;
+                mclin(flux,c_index(x,y,z,1,1,Nx,Ny,Nz),pLin,1,cg,ce,vmg,0);
 
                 //Compute Cl Channel Current
-                ci = state_vars->c[c_index(x,y,z,0,2,Nx,Ny)];
-                cg = state_vars->c[c_index(x,y,z,1,2,Nx,Ny)];
-                ce = state_vars->c[c_index(x,y,z,Nc-1,2,Nx,Ny)];
+                ci = state_vars->c[c_index(x,y,z,0,2,Nx,Ny,Nz)];
+                cg = state_vars->c[c_index(x,y,z,1,2,Nx,Ny,Nz)];
+                ce = state_vars->c[c_index(x,y,z,Nc-1,2,Nx,Ny,Nz)];
 
                 //Neurons
-                pLin = pClLeak+gexct->pCl[xy_index(x,y,z,Nx,Ny)]; //add excitation
-                mclin(flux,c_index(x,y,z,0,2,Nx,Ny),pLin,-1,ci,ce,vm,0);
+                pLin = pClLeak+gexct->pCl[xy_index(x,y,z,Nx,Ny,Nz)]; //add excitation
+                mclin(flux,c_index(x,y,z,0,2,Nx,Ny,Nz),pLin,-1,ci,ce,vm,0);
 
                 //Glia
-                mclin(flux,c_index(x,y,z,1,2,Nx,Ny),pClLeakg,-1,cg,ce,vmg,0);
+                mclin(flux,c_index(x,y,z,1,2,Nx,Ny,Nz),pClLeakg,-1,cg,ce,vmg,0);
 
                 //Pump Currents(all past values)
 
                 //Neurons
-                Na = state_vars_past->c[c_index(x,y,z,0,0,Nx,Ny)];
-                K = state_vars_past->c[c_index(x,y,z,Nc-1,1,Nx,Ny)];
+                Na = state_vars_past->c[c_index(x,y,z,0,0,Nx,Ny,Nz)];
+                K = state_vars_past->c[c_index(x,y,z,Nc-1,1,Nx,Ny,Nz)];
 
-                Ipump = npump*con_vars->Imax[xy_index(xi,yi,z,Nx,Ny)]/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
+                Ipump = npump*con_vars->Imax[xy_index(xi,yi,z,Nx,Ny,Nz)]/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
 
                 //Add to flux(it's explicit so no derivatives)
-                flux->mflux[c_index(x,y,z,0,0,Nx,Ny)] += 3*Ipump; //Na part
-                flux->mflux[c_index(x,y,z,0,1,Nx,Ny)] -= 2*Ipump; //K part
+                flux->mflux[c_index(x,y,z,0,0,Nx,Ny,Nz)] += 3*Ipump; //Na part
+                flux->mflux[c_index(x,y,z,0,1,Nx,Ny,Nz)] -= 2*Ipump; //K part
 
                 //Glia
-                Na = state_vars_past->c[c_index(x,y,z,1,0,Nx,Ny)];
+                Na = state_vars_past->c[c_index(x,y,z,1,0,Nx,Ny,Nz)];
                 //K is the same(extracellular)
-                Ipump = glpump*con_vars->Imaxg[xy_index(xi,yi,z,Nx,Ny)]/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
+                Ipump = glpump*con_vars->Imaxg[xy_index(xi,yi,z,Nx,Ny,Nz)]/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
                 //Add to flux(it's explicit so no derivatives)
-                flux->mflux[c_index(x,y,z,1,0,Nx,Ny)] += 3*Ipump; //Na part
-                flux->mflux[c_index(x,y,z,1,1,Nx,Ny)] -= 2*Ipump; //K part
+                flux->mflux[c_index(x,y,z,1,0,Nx,Ny,Nz)] += 3*Ipump; //Na part
+                flux->mflux[c_index(x,y,z,1,1,Nx,Ny,Nz)] -= 2*Ipump; //K part
 
                 //NaKCl Cotransporter
                 //I'm going to reuse variables names...
-                Na = state_vars_past->c[c_index(x,y,z,1,0,Nx,Ny)];//glia Na
-                K = state_vars_past->c[c_index(x,y,z,1,1,Nx,Ny)]; // glia K.
-                cgp = state_vars_past->c[c_index(x,y,z,1,2,Nx,Ny)]; //glia Cl
+                Na = state_vars_past->c[c_index(x,y,z,1,0,Nx,Ny,Nz)];//glia Na
+                K = state_vars_past->c[c_index(x,y,z,1,1,Nx,Ny,Nz)]; // glia K.
+                cgp = state_vars_past->c[c_index(x,y,z,1,2,Nx,Ny,Nz)]; //glia Cl
 
-                cep = state_vars_past->c[c_index(x,y,z,Nc-1,0,Nx,Ny)];//Ext Na
-                ce = state_vars_past->c[c_index(x,y,z,Nc-1,1,Nx,Ny)]; // Ext K.
-                ci = state_vars_past->c[c_index(x,y,z,Nc-1,2,Nx,Ny)]; //Ext Cl
+                cep = state_vars_past->c[c_index(x,y,z,Nc-1,0,Nx,Ny,Nz)];//Ext Na
+                ce = state_vars_past->c[c_index(x,y,z,Nc-1,1,Nx,Ny,Nz)]; // Ext K.
+                ci = state_vars_past->c[c_index(x,y,z,Nc-1,2,Nx,Ny,Nz)]; //Ext Cl
 
-                NaKCl = con_vars->pNaKCl[xy_index(xi,yi,z,Nx,Ny)]*log(Na*K*pow(cgp,2)/(cep*ce*pow(ci,2)));
+                NaKCl = con_vars->pNaKCl[xy_index(xi,yi,z,Nx,Ny,Nz)]*log(Na*K*pow(cgp,2)/(cep*ce*pow(ci,2)));
                 //Add to flux
-                flux->mflux[c_index(x,y,z,1,0,Nx,Ny)] += NaKCl; //Sodium
-                flux->mflux[c_index(x,y,z,1,1,Nx,Ny)] += NaKCl; //K
-                flux->mflux[c_index(x,y,z,1,2,Nx,Ny)] += 2*NaKCl; //Cl
+                flux->mflux[c_index(x,y,z,1,0,Nx,Ny,Nz)] += NaKCl; //Sodium
+                flux->mflux[c_index(x,y,z,1,1,Nx,Ny,Nz)] += NaKCl; //K
+                flux->mflux[c_index(x,y,z,1,2,Nx,Ny,Nz)] += 2*NaKCl; //Cl
 
                 //Glutamate transport
                 if(Ni>3){
-                    glutamate_flux(flux,x,y,z,state_vars,state_vars_past,Nx,Ny,gexct->pGlu[xy_index(x,y,z,Nx,Ny)],user);
+                    glutamate_flux(flux,x,y,z,state_vars,state_vars_past,Nx,Ny,Nz,gexct->pGlu[xy_index(x,y,z,Nx,Ny,Nz)],user);
                 }
                 //Change units of flux from mmol/cm^2 to mmol/cm^3/s
                 for(PetscInt ion = 0; ion < Ni; ion++){
-                    flux->mflux[c_index(x,y,z,Nc-1,ion,Nx,Ny)] = 0;
+                    flux->mflux[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)] = 0;
                     for(PetscInt comp = 0; comp < Nc-1; comp++){
-                        flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
-                        flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
-                        flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
-                        flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)] = flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]/ell[xy_index(x,y,z,Nx,Ny)];
+                        flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)] = flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]/ell[xy_index(x,y,z,Nx,Ny,Nz)];
+                        flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)] = flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]/ell[xy_index(x,y,z,Nx,Ny,Nz)];
+                        flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)] = flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]/ell[xy_index(x,y,z,Nx,Ny,Nz)];
+                        flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)] = flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]/ell[xy_index(x,y,z,Nx,Ny,Nz)];
 
                         //And calculate the extracellular flux
-                        flux->mflux[c_index(x,y,z,Nc-1,ion,Nx,Ny)] -= flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        flux->mflux[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)] -= flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                     }
 
                 }
@@ -1088,74 +1094,74 @@ void gatevars_update_grid(struct GateType *gate_vars,struct SimState *state_vars
             for(PetscInt x = 0; x < Nx; x++){
 
                 //membrane potential in mV
-                v = (state_vars->phi[phi_index(x,y,z,0,Nx,Ny)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny)])*RTFC;
+                v = (state_vars->phi[phi_index(x,y,z,0,Nx,Ny,Nz)]-state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)])*RTFC;
                 //compute current NaT
                 //gating variables mNaT
                 alpha = xoverexpminusone(v,0.32,51.9,0.25,1); //0.32*(Vm+51.9)./(1-exp(-0.25*(Vm+51.9)))
                 beta = xoverexpminusone(v,0.28,24.89,0.2,0); //0.28*(Vm+24.89)./(exp(0.2*(Vm+24.89))-1)
-                gate_vars->mNaT[xy_index(x,y,z,Nx,Ny)] =
-                        (gate_vars->mNaT[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                gate_vars->mNaT[xy_index(x,y,z,Nx,Ny,Nz)] =
+                        (gate_vars->mNaT[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
                 //gating variable hNaT
                 alpha = 0.128*exp(-(0.056*v+2.94));
                 beta = 4/(exp(-(0.2*v+6))+1);
-                gate_vars->hNaT[xy_index(x,y,z,Nx,Ny)] =
-                        (gate_vars->hNaT[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                gate_vars->hNaT[xy_index(x,y,z,Nx,Ny,Nz)] =
+                        (gate_vars->hNaT[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
-                gate_vars->gNaT[xy_index(x,y,z,Nx,Ny)] =
-                        pow(gate_vars->mNaT[xy_index(x,y,z,Nx,Ny)],3)*gate_vars->hNaT[xy_index(x,y,z,Nx,Ny)];
+                gate_vars->gNaT[xy_index(x,y,z,Nx,Ny,Nz)] =
+                        pow(gate_vars->mNaT[xy_index(x,y,z,Nx,Ny,Nz)],3)*gate_vars->hNaT[xy_index(x,y,z,Nx,Ny,Nz)];
                 //compute current NaP
                 //gating variable mNaP
                 alpha = 1/(1+exp(-(0.143*v+5.67)))/6;
                 beta = 1.0/6.0-alpha; //1./(1+exp(0.143*Vm+5.67))/6
-                gate_vars->mNaP[xy_index(x,y,z,Nx,Ny)] =
-                        (gate_vars->mNaP[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                gate_vars->mNaP[xy_index(x,y,z,Nx,Ny,Nz)] =
+                        (gate_vars->mNaP[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
                 //gating variable hNaP
                 alpha = 5.12e-6*exp(-(0.056*v+2.94));
                 beta = 1.6e-4/(1+exp(-(0.2*v+8)));
-                gate_vars->hNaP[xy_index(x,y,z,Nx,Ny)] =
-                        (gate_vars->hNaP[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                gate_vars->hNaP[xy_index(x,y,z,Nx,Ny,Nz)] =
+                        (gate_vars->hNaP[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
-                gate_vars->gNaP[xy_index(x,y,z,Nx,Ny)] =
-                        pow(gate_vars->mNaP[xy_index(x,y,z,Nx,Ny)],2)*gate_vars->hNaP[xy_index(x,y,z,Nx,Ny)];
+                gate_vars->gNaP[xy_index(x,y,z,Nx,Ny,Nz)] =
+                        pow(gate_vars->mNaP[xy_index(x,y,z,Nx,Ny,Nz)],2)*gate_vars->hNaP[xy_index(x,y,z,Nx,Ny,Nz)];
 
                 //compute KDR current
                 //gating variable mKDR
                 alpha = xoverexpminusone(v,0.016,34.9,0.2,1); //0.016*(Vm+34.9)./(1-exp(-0.2*(Vm+34.9)))
                 beta = 0.25*exp(-(0.025*v+1.25));
-                gate_vars->mKDR[xy_index(x,y,z,Nx,Ny)] =
-                        (gate_vars->mKDR[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                gate_vars->mKDR[xy_index(x,y,z,Nx,Ny,Nz)] =
+                        (gate_vars->mKDR[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
-                gate_vars->gKDR[xy_index(x,y,z,Nx,Ny)] = pow(gate_vars->mKDR[xy_index(x,y,z,Nx,Ny)],2);
+                gate_vars->gKDR[xy_index(x,y,z,Nx,Ny,Nz)] = pow(gate_vars->mKDR[xy_index(x,y,z,Nx,Ny,Nz)],2);
 
                 //compute KA current
                 //gating variable mKA
                 alpha = xoverexpminusone(v,0.02,56.9,0.1,1); //0.02*(Vm+56.9)./(1-exp(-0.1*(Vm+56.9)))
                 beta = xoverexpminusone(v,0.0175,29.9,0.1,0); //0.0175*(Vm+29.9)./(exp(0.1*(Vm+29.9))-1)
-                gate_vars->mKA[xy_index(x,y,z,Nx,Ny)] =
-                        (gate_vars->mKA[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                gate_vars->mKA[xy_index(x,y,z,Nx,Ny,Nz)] =
+                        (gate_vars->mKA[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
                 //gating variable hKA
                 alpha = 0.016*exp(-(0.056*v+4.61));
                 beta = 0.5/(exp(-(0.2*v+11.98))+1);
-                gate_vars->hKA[xy_index(x,y,z,Nx,Ny)] =
-                        (gate_vars->hKA[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                gate_vars->hKA[xy_index(x,y,z,Nx,Ny,Nz)] =
+                        (gate_vars->hKA[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
-                gate_vars->gKA[xy_index(x,y,z,Nx,Ny)] =
-                        pow(gate_vars->mKA[xy_index(x,y,z,Nx,Ny)],2)*gate_vars->hKA[xy_index(x,y,z,Nx,Ny)];
+                gate_vars->gKA[xy_index(x,y,z,Nx,Ny,Nz)] =
+                        pow(gate_vars->mKA[xy_index(x,y,z,Nx,Ny,Nz)],2)*gate_vars->hKA[xy_index(x,y,z,Nx,Ny,Nz)];
             //gating variable NMDA
             if(Ni>3){
                 if(Num_NMDA_States==2){
-                    alpha = 72*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)];
+                    alpha = 72*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)];
                     beta = 6.6e-3; // 6.6 (sec)^-1->6.6e-3 msec^-1
-                    gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] =
-                            (gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)]+alpha*dtms)/(1+(alpha+beta)*dtms);
+                    gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)] =
+                            (gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)]+alpha*dtms)/(1+(alpha+beta)*dtms);
 
 //                Gphi = 1/(1+0.28*exp(-0.062*v)); //Other gating "variable" given by just this.
                     Gphi = 1/(1+0.56*exp(-0.062*v)); //From Rossi/Atwell
 
-                    gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)]*Gphi;
+                    gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*Gphi;
                 }
                 if(Num_NMDA_States==3){
                     // 3 Stage Solve
@@ -1163,31 +1169,31 @@ void gatevars_update_grid(struct GateType *gate_vars,struct SimState *state_vars
                     r6 = 190.0;//190e-3;
                     a11 = 1+dtms*6.9e-3;
                     a12 = -dtms*160e-3;
-                    a21 = dtms*(r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]);
-                    a22 = 1+dtms*(r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]+160e-3+4.7e-3);
+                    a21 = dtms*(r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)]);
+                    a22 = 1+dtms*(r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)]+160e-3+4.7e-3);
 
-                    Rstar=gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)];
-                    D1=gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)];
+                    Rstar=gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)];
+                    D1=gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)];
 
                     detA = a11*a22-a12*a21;
-                    gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] = (a22*Rstar
-                                                          -a12*(D1+dtms*r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]));
-                    gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)] = (-a21*Rstar
-                                                          +a11*(D1+dtms*r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)]));
+                    gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (a22*Rstar
+                                                                 -a12*(D1+dtms*r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)]));
+                    gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (-a21*Rstar
+                                                                 +a11*(D1+dtms*r6*state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)]));
 
-                    gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] /= detA;
-                    gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)] /= detA;
+                    gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)] /= detA;
+                    gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)] /= detA;
 //                    Gphi = 1/(1+0.28*exp(-0.062*v));
                     Gphi = 1.0/(1+0.56*exp(-0.062*v));
-                    gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)]*Gphi;
+                    gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*Gphi;
                 }
 
                 // 4 Stages
                 if(Num_NMDA_States==4){
                     K_r = 2.3e-6;//34.9e-6;
                     npow = 1.5; //1.4;
-                    Fglu = pow(state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)],npow)
-                           /(pow(state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny)],npow)+pow(K_r,npow));
+                    Fglu = pow(state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)],npow)
+                           /(pow(state_vars->c[c_index(x,y,z,Nc-1,3,Nx,Ny,Nz)],npow)+pow(K_r,npow));
                     k1 = 3.94e-3*Fglu;
                     k2 = 1.94e-3;
                     k3 = 0.0213e-3;
@@ -1197,34 +1203,34 @@ void gatevars_update_grid(struct GateType *gate_vars,struct SimState *state_vars
                     detA = dtms*k1+dtms*k2+dtms*k3+dtms*k4+dtms*dtms*k1*k3+dtms*dtms*k1*k4+dtms*dtms*k2*k4+1;
 
 
-                    Rstar = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)];
-                    D1 = gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)];
-                    D2 = gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny)];
+                    Rstar = gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)];
+                    D1 = gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)];
+                    D2 = gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny,Nz)];
                     // Explicitly calculate inverse
                     // First row
                     a11 = dtms*k2+dtms*k3+dtms*k4+dtms*dtms*k2*k4+1;
                     a12 = dtms*k2*(dtms*k4+1);
                     a21 = dtms*dtms*k2*k4;
 
-                    gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)] = (a11*Rstar+a12*D1+a21*D2)/detA;
+                    gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (a11*Rstar+a12*D1+a21*D2)/detA;
 
                     // Second Row
                     a11 = dtms*k1*(dtms*k4+1);
                     a12 = (dtms*k1+1)*(dtms*k4+1);
                     a21 = dtms*k4*(dtms*k1+1);
-                    gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)] = (a11*Rstar+a12*D1+a21*D2)/detA;
+                    gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (a11*Rstar+a12*D1+a21*D2)/detA;
 
                     //Third Row
                     a11 = dtms*dtms*k1*k3;
                     a12 = dtms*k3*(dtms*k1+1);
                     a21 = dtms*k1+dtms*k2+dtms*k3+dtms*dtms*k1*k3+1;
-                    gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny)] = (a11*Rstar+a12*D1+a21*D2)/detA;
+                    gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (a11*Rstar+a12*D1+a21*D2)/detA;
 
 
                     Gphi = 1/(1+0.56*exp(-0.062*v));
-                    gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny)] = (gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny)]*Fglu
-                                                          +Desensitize[0]*gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny)]
-                                                          +Desensitize[1]*gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny)])*Gphi;
+                    gate_vars->gNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = (gate_vars->yNMDA[xy_index(x,y,z,Nx,Ny,Nz)]*Fglu
+                                                                 +Desensitize[0]*gate_vars->zNMDA[xy_index(x,y,z,Nx,Ny,Nz)]
+                                                                 +Desensitize[1]*gate_vars->dNMDA[xy_index(x,y,z,Nx,Ny,Nz)])*Gphi;
                 }
             }
             }
@@ -1256,16 +1262,16 @@ void excitation_grid(struct AppCtx* user,PetscReal t,PetscInt xi,PetscInt yi)
                     if(one_point_exct){
                         if(z == 0 && t < texct && i+xi == 0 && j+yi == 0){
                             pany = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = pany;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
                         }else{
                             //pexct=0*RTFC/FC
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = 0;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
 
                         }
                     }
@@ -1275,16 +1281,16 @@ void excitation_grid(struct AppCtx* user,PetscReal t,PetscInt xi,PetscInt yi)
                             pexct = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
                             xexct = pow(cos(pi/2*(radius/Lexct)),2);
                             pany = pexct*xexct;
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = pany;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
                         }else{
                             //pexct=0*RTFC/FC
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = 0;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
                         }
                     }
                     if(plane_wave_exct){
@@ -1292,16 +1298,16 @@ void excitation_grid(struct AppCtx* user,PetscReal t,PetscInt xi,PetscInt yi)
                         if(z == 0 && t < texct && j+yi == 0){
                             pexct = pmax*pow(sin(pi*t/texct),2)*RTFC/FC;
                             pany = pexct;
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = pany;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
                         }else{
                             //pexct=0*RTFC/FC
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = 0;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
                         }
                     }
                     if(!one_point_exct && !mid_points_exct && !plane_wave_exct){
@@ -1312,16 +1318,16 @@ void excitation_grid(struct AppCtx* user,PetscReal t,PetscInt xi,PetscInt yi)
                             xexct = pow(cos(pi/2*(radius/Lexct)),2);
 //				xexct=pow((cos(pi/2*((i+xi+.5)*dx)/Lexct))*(cos(pi/2*((j+yi+.5)*dy)/Lexct)),2);
                             pany = pexct*xexct;
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = pany;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = pany;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = pany;
                         }else{
                             //pexct=0*RTFC/FC
-                            exct->pNa[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pK[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pCl[xy_index(i,j,z,Nx,Ny)] = 0;
-                            exct->pGlu[xy_index(i,j,z,Nx,Ny)] = 0;
+                            exct->pNa[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pK[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pCl[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
+                            exct->pGlu[xy_index(i,j,z,Nx,Ny,Nz)] = 0;
                         }
                     }
                 }
@@ -1344,69 +1350,73 @@ void grid_diff_coef(PetscReal *Dc,const PetscReal *alp,PetscReal scale,struct Ap
         for(PetscInt y=0;y<Ny;y++){
             for(PetscInt x = 0; x < Nx; x++){
 
-                alNcL = 1-alp[al_index(x,y,z,0,Nx,Ny)]-alp[al_index(x,y,z,1,Nx,Ny)]; //Left extracell
+                alNcL = 1-alp[al_index(x,y,z,0,Nx,Ny,Nz)]-alp[al_index(x,y,z,1,Nx,Ny,Nz)]; //Left extracell
                 alNcR = 0;
                 if(x < Nx-1){
-                    alNcR = 1-alp[al_index(x+1,y,0,0,Nx,Ny)]-alp[al_index(x+1,y,z,1,Nx,Ny)]; //Right extracell
+                    alNcR = 1-alp[al_index(x+1,y,0,0,Nx,Ny,Nz)]-alp[al_index(x+1,y,z,1,Nx,Ny,Nz)]; //Right extracell
                 }
                 alNcU = 0;
                 if(y < Ny-1){
-                    alNcU = 1-alp[al_index(x,y+1,0,0,Nx,Ny)]-alp[al_index(x,y+1,z,1,Nx,Ny)];
+                    alNcU = 1-alp[al_index(x,y+1,0,0,Nx,Ny,Nz)]-alp[al_index(x,y+1,z,1,Nx,Ny,Nz)];
                 }
                 for(PetscInt ion = 0; ion < Ni; ion++){
                     //diffusion coefficients in x direction
                     if(x == (Nx-1)){
                         //Boundary is zero
-                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3] = con_vars->DExtracellScale[xy_index(x+xi,y+yi,z,Nx,Ny)*3]*
-                                                            scale*D[ion]*(alNcL)/(tortuosity*tortuosity);
+                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3] = con_vars->DExtracellScale[xy_index(x+xi,y+yi,z,Nx,Ny,Nz)*3]*
+                                                                scale*D[ion]*(alNcL)/(tortuosity*tortuosity);
                     }else{
                         //diffusion coefficients in the extracellular space proportional to volume fraction
-                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3] = con_vars->DExtracellScale[xy_index(x+xi,y+yi,z,Nx,Ny)*3]*
-                                                            scale*D[ion]/2*(alNcL+alNcR)/(tortuosity*tortuosity);
+                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3] = con_vars->DExtracellScale[xy_index(x+xi,y+yi,z,Nx,Ny,Nz)*3]*
+                                                                scale*D[ion]/2*(alNcL+alNcR)/(tortuosity*tortuosity);
                     }
                     //diffusion coefficients in neuronal compartment equal to 0
-                    Dc[c_index(x,y,z,0,ion,Nx,Ny)*3] = con_vars->DNeuronScale[xy_index(x+xi,y+yi,z,Nx,Ny)*3]*
-                            scale*D[ion]*alphao[al_index(0,0,0,0,Nx,Ny)]/pow(tortuosity,2);
+                    Dc[c_index(x,y,z,0,ion,Nx,Ny,Nz)*3] = con_vars->DNeuronScale[xy_index(x+xi,y+yi,z,Nx,Ny,Nz)*3]*
+                                                         scale*D[ion]*alphao[al_index(0,0,0,0,Nx,Ny,Nz)]/pow(tortuosity,2);
                     //diffusion coefficients in glial compartment proportional to default volume fraction
-                    Dc[c_index(x,y,z,1,ion,Nx,Ny)*3] = con_vars->DGliaScale[xy_index(x+xi,y+yi,z,Nx,Ny)*3]*
-                                                        scale*D[ion]*alphao[al_index(0,0,0,1,Nx,Ny)]/pow(tortuosity,2);
+                    Dc[c_index(x,y,z,1,ion,Nx,Ny,Nz)*3] = con_vars->DGliaScale[xy_index(x+xi,y+yi,z,Nx,Ny,Nz)*3]*
+                                                         scale*D[ion]*alphao[al_index(0,0,0,1,Nx,Ny,Nz)]/pow(tortuosity,2);
                     //diffusion coefficients in y direction
                     if(y == (Ny-1)){
                         //Boundary is zero
-                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+1] =con_vars->DExtracellScale[xy_index(x+xi,y+yi,z,Nx,Ny)*3+1]*
-                                                                scale*D[ion]*(alNcL)/pow(tortuosity,2);
+                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+1] = con_vars->DExtracellScale[
+                                                                          xy_index(x+xi,y+yi,z,Nx,Ny,Nz)*3+1]*
+                                                                  scale*D[ion]*(alNcL)/pow(tortuosity,2);
                     }else{
                         //diffusion coefficients in the extracellular space proportional to volume fraction
-                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+1] = con_vars->DExtracellScale[xy_index(x+xi,y+yi,z,Nx,Ny)*3+1]
-                                                                *scale*D[ion]/2*(alNcL+alNcU)/pow(tortuosity,2);
+                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+1] = con_vars->DExtracellScale[
+                                                                          xy_index(x+xi,y+yi,z,Nx,Ny,Nz)*3+1]
+                                                                  *scale*D[ion]/2*(alNcL+alNcU)/pow(tortuosity,2);
 
                     }
                     //diffusion coefficients in neuronal compartment equal to 0
-                    Dc[c_index(x,y,z,0,ion,Nx,Ny)*3+1] = con_vars->DNeuronScale[xy_index(x+xi,y+yi,z,Nx,Ny)*3+1]*
-                                                    scale*D[ion]*alphao[al_index(0,0,0,0,Nx,Ny)]/pow(tortuosity,2);
+                    Dc[c_index(x,y,z,0,ion,Nx,Ny,Nz)*3+1] = con_vars->DNeuronScale[xy_index(x+xi,y+yi,z,Nx,Ny,Nz)*3+1]*
+                                                           scale*D[ion]*alphao[al_index(0,0,0,0,Nx,Ny,Nz)]/pow(tortuosity,2);
                     //diffusion coefficients in glial compartment proportional to default volume fraction
 //			    Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2); //0.25
-                    Dc[c_index(x,y,z,1,ion,Nx,Ny)*3+1] = con_vars->DGliaScale[xy_index(x+xi,y+yi,z,Nx,Ny)*3+1]
-                                                *scale*D[ion]*alphao[al_index(0,0,0,1,Nx,Ny)]/pow(tortuosity,2);
+                    Dc[c_index(x,y,z,1,ion,Nx,Ny,Nz)*3+1] = con_vars->DGliaScale[xy_index(x+xi,y+yi,z,Nx,Ny,Nz)*3+1]
+                                                           *scale*D[ion]*alphao[al_index(0,0,0,1,Nx,Ny,Nz)]/pow(tortuosity,2);
 
                     //diffusion coefficients in z direction
                     if(z == (Nz-1)){
                         //Boundary is zero
-                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+2] =con_vars->DExtracellScale[xy_index(x+xi,y+yi,z,Nx,Ny)*3+2]*
-                                                               scale*D[ion]*(alNcL)/pow(tortuosity,2);
+                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+2] = con_vars->DExtracellScale[
+                                                                          xy_index(x+xi,y+yi,z,Nx,Ny,Nz)*3+2]*
+                                                                  scale*D[ion]*(alNcL)/pow(tortuosity,2);
                     }else{
                         //diffusion coefficients in the extracellular space proportional to volume fraction
-                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+2] = con_vars->DExtracellScale[xy_index(x+xi,y+yi,z,Nx,Ny)*3+2]
-                                                                *scale*D[ion]/2*(alNcL+alNcU)/pow(tortuosity,2);
+                        Dc[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+2] = con_vars->DExtracellScale[
+                                                                          xy_index(x+xi,y+yi,z,Nx,Ny,Nz)*3+2]
+                                                                  *scale*D[ion]/2*(alNcL+alNcU)/pow(tortuosity,2);
 
                     }
                     //diffusion coefficients in neuronal compartment equal to 0
-                    Dc[c_index(x,y,z,0,ion,Nx,Ny)*3+2] = con_vars->DNeuronScale[xy_index(x+xi,y+yi,z,Nx,Ny)*3+2]*
-                                                         scale*D[ion]*alphao[al_index(0,0,0,0,Nx,Ny)]/pow(tortuosity,2);
+                    Dc[c_index(x,y,z,0,ion,Nx,Ny,Nz)*3+2] = con_vars->DNeuronScale[xy_index(x+xi,y+yi,z,Nx,Ny,Nz)*3+2]*
+                                                           scale*D[ion]*alphao[al_index(0,0,0,0,Nx,Ny,Nz)]/pow(tortuosity,2);
                     //diffusion coefficients in glial compartment proportional to default volume fraction
 //			    Dc[c_index(x,y,1,ion,Nx)*2+1] = 0.25*scale*D[ion]*alphao[al_index(0,0,1,Nx)]/pow(tortuosity,2); //0.25
-                    Dc[c_index(x,y,z,1,ion,Nx,Ny)*3+2] = con_vars->DGliaScale[xy_index(x+xi,y+yi,z,Nx,Ny)*3+2]
-                                                         *scale*D[ion]*alphao[al_index(0,0,0,1,Nx,Ny)]/pow(tortuosity,2);
+                    Dc[c_index(x,y,z,1,ion,Nx,Ny,Nz)*3+2] = con_vars->DGliaScale[xy_index(x+xi,y+yi,z,Nx,Ny,Nz)*3+2]
+                                                           *scale*D[ion]*alphao[al_index(0,0,0,1,Nx,Ny,Nz)]/pow(tortuosity,2);
 
                 }
             }

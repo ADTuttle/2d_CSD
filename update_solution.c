@@ -101,13 +101,13 @@ PetscErrorCode newton_solve(Vec current_state,struct Solver *slvr,struct AppCtx 
                 for(x = 0; x < Nx; x++){
                     for(comp = 0; comp < Nc; comp++){
                         for(ion = 0; ion < Ni; ion++){
-                            user->state_vars->c[c_index(x,y,z,comp,ion,Nx,Ny)] -= temp[Ind_1(x,y,z,ion,comp,Nx,Ny)];
+                            user->state_vars->c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)] -= temp[Ind_1(x,y,z,ion,comp,Nx,Ny,Nz)];
                         }
-                        user->state_vars->phi[phi_index(x,y,z,comp,Nx,Ny)] -= temp[Ind_1(x,y,z,Ni,comp,Nx,Ny)];
+                        user->state_vars->phi[phi_index(x,y,z,comp,Nx,Ny,Nz)] -= temp[Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz)];
                     }
                     if(!separate_vol){
                         for(comp = 0; comp < Nc-1; comp++){
-                            user->state_vars->alpha[al_index(x,y,z,comp,Nx,Ny)] -= temp[Ind_1(x,y,z,Ni+1,comp,Nx,Ny)];
+                            user->state_vars->alpha[al_index(x,y,z,comp,Nx,Ny,Nz)] -= temp[Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz)];
                         }
                     }
                 }
@@ -199,59 +199,65 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
                         RcvxRight = 0;
                         if(x > 0){
                             //First difference term
-                            Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                            Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x-1,y,z,comp,ion,Nx,Ny)])+
-                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
-                                    phi[phi_index(x-1,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                            Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(
+                                    x-1,y,z,comp,ion,Nx,Ny,Nz)])+
+                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                                   phi[phi_index(x-1,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                         }
                         //Add Second right moving difference
                         if(x < Nx-1){
-                            RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2;
-                            RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny)])-
-                                    log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
-                                    (phi[phi_index(x+1,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                            RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])-
+                                                   log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*
+                                                                                           (phi[phi_index(
+                                                                                                   x+1,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                         }
                         Rcvy = 0;
                         RcvyUp = 0;
                         //Up down difference
                         if(y > 0){
-                            Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                            Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny)])+
-                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y-1,z,comp,Nx,Ny)]))/dy*dt/dy;
+                            Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                               cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)])+
+                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y-1,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                         }
                         //Next upward difference
                         if(y < Ny-1){
-                            RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2;
-                            RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny)])-
-                                    log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
-                                    (phi[phi_index(x,y+1,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dy*dt/dy;
+                            RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                               cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2;
+                            RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])-
+                                             log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*
+                                                                                     (phi[phi_index(x,
+                                                                                                    y+1,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                         }
                         Rcvz = 0;
                         RcvzTop = 0;
                         //Top Bottom difference
                         if(z > 0){
-                            Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                                                             cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                            Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z-1,comp,ion,Nx,Ny)])+
-                                         z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z-1,comp,Nx,Ny)]))/dz*dt/dz;
+                            Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                               cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,
+                                                                                               z-1,comp,ion,Nx,Ny,Nz)])+
+                                         z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,
+                                                                                                         z-1,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                         }
                         //Next upward difference
                         if(z < Nz-1){
-                            RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                             cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2;
-                            RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny)])-
-                                             log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
-                                             (phi[phi_index(x,y,z+1,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dz*dt/dz;
+                            RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2;
+                            RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])-
+                                               log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*
+                                                                                       (phi[phi_index(x,y,
+                                                                                                      z+1,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                         }
 
-                        Resc = al[al_index(x,y,z,comp,Nx,Ny)]*c[c_index(x,y,z,comp,ion,Nx,Ny)]-
-                                alp[al_index(x,y,z,comp,Nx,Ny)]*cp[c_index(x,y,z,comp,ion,Nx,Ny)];
-                        Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Resc = al[al_index(x,y,z,comp,Nx,Ny,Nz)]*c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]-
+                               alp[al_index(x,y,z,comp,Nx,Ny,Nz)]*cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
+                        Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
 
-                        ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny),Resc,INSERT_VALUES);
+                        ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                         CHKERRQ(ierr);
 
                         //Save values for voltage
@@ -264,73 +270,75 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
 
                     }
                     //Set Extracellular values
-                    alNc = 1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)];
-                    alpNc = 1-alp[al_index(x,y,z,0,Nx,Ny)]-alp[al_index(x,y,z,1,Nx,Ny)];
+                    alNc = 1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)];
+                    alpNc = 1-alp[al_index(x,y,z,0,Nx,Ny,Nz)]-alp[al_index(x,y,z,1,Nx,Ny,Nz)];
                     comp = Nc-1;
                     Rcvx = 0;
                     RcvxRight = 0;
                     if(x > 0){
                         //First difference term
-                        Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                        Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x-1,y,z,comp,ion,Nx,Ny)])+
-                                     z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
-                                                    phi[phi_index(x-1,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                        Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)])+
+                                     z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                                    phi[phi_index(x-1,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                     }
                     //Add Second right moving difference
                     if(x < Nx-1){
-                        RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                          cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2;
-                        RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny)])-
-                                               log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
-                                               (phi[phi_index(x+1,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                        RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])-
+                                               log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*
+                                                                                       (phi[phi_index(
+                                                                                               x+1,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                     }
                     Rcvy = 0;
                     RcvyUp = 0;
                     //Up down difference
                     if(y > 0){
-                        Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                                                         cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                        Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny)])+
-                                     z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y-1,z,comp,Nx,Ny)]))/dy*dt/dy;
+                        Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                           cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)])+
+                                     z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y-1,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                     }
                     //Next upward difference
                     if(y < Ny-1){
-                        RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                         cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2;
-                        RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny)])-
-                                         log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
-                                         (phi[phi_index(x,y+1,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dy*dt/dy;
+                        RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                           cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2;
+                        RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])-
+                                         log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*
+                                                                                 (phi[phi_index(x,y+1,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                     }
                     Rcvz = 0;
                     RcvzTop = 0;
                     //Top Bottom difference
                     if(z > 0){
-                        Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                                                         cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                        Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z-1,comp,ion,Nx,Ny)])+
-                                     z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z-1,comp,Nx,Ny)]))/dz*dt/dz;
+                        Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                           cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)])+
+                                     z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z-1,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                     }
                     //Next upward difference
                     if(z < Nz-1){
-                        RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                          cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2;
-                        RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny)])-
-                                           log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
-                                           (phi[phi_index(x,y,z+1,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dz*dt/dz;
+                        RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2;
+                        RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])-
+                                           log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*
+                                                                                   (phi[phi_index(x,y,
+                                                                                                  z+1,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                     }
 
-                    Resc = alNc*c[c_index(x,y,z,comp,ion,Nx,Ny)]-
-                           alpNc*cp[c_index(x,y,z,comp,ion,Nx,Ny)];
-                    Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                    Resc = alNc*c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]-
+                           alpNc*cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
+                    Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                     //Add bath variables
 
-                    Resc -= sqrt(pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3],2)+
-                            pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3+1],2)+
-                            pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3+2],2))*
-                            (cp[c_index(x,y,z,comp,ion,Nx,Ny)]+cbath[ion])/2.0*
-                            (log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(cbath[ion])+
-                            z_charge[ion]*phi[phi_index(x,y,z,comp,Nx,Ny)]-z_charge[ion]*phibath)*dt;
-                    ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny),Resc,INSERT_VALUES);
+                    Resc -= sqrt(pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3],2)+
+                                 pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1],2)+
+                                 pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2],2))*
+                            (cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+cbath[ion])/2.0*
+                            (log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(cbath[ion])+
+                            z_charge[ion]*phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-z_charge[ion]*phibath)*dt;
+                    ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                     CHKERRQ(ierr);
 
                     //Save values for voltage
@@ -345,16 +353,18 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
                 //Voltage Equations
                 ResphN = 0;
                 for(comp = 0; comp < Nc-1; comp++){
-                    Resph = cm[al_index(x,y,z,comp,Nx,Ny)]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,Nc-1,Nx,Ny)])-
-                            cm[al_index(x,y,z,comp,Nx,Ny)]*(phip[phi_index(x,y,z,comp,Nx,Ny)]-phip[phi_index(x,y,z,Nc-1,Nx,Ny)]);
+                    Resph = cm[al_index(x,y,z,comp,Nx,Ny,Nz)]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,
+                                                                                                             Nc-1,Nx,Ny,Nz)])-
+                            cm[al_index(x,y,z,comp,Nx,Ny,Nz)]*(phip[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phip[phi_index(x,y,z,Nc-
+                                                                                                                       1,Nx,Ny,Nz)]);
                     for(ion = 0; ion < Ni; ion++){
                         //Ion channel
-                        Resph += z_charge[ion]*flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Resph += z_charge[ion]*flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                     }
                     //Add the terms shared with extracell
                     ResphN -= Resph; // Subtract total capacitance, subtract total ion channel flux
                     Resph += Rphx[comp]-RphxRight[comp]+Rphy[comp]-RphyUp[comp]+Rphz[comp]-RphzTop[comp];
-                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny),Resph,INSERT_VALUES);
+                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Resph,INSERT_VALUES);
                     CHKERRQ(ierr);
                 }
 
@@ -363,15 +373,15 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
                 //Add bath contribution
                 for(ion = 0; ion < Ni; ion++){
 
-                    ResphN -= z_charge[ion]*sqrt(pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3],2)+
-                            pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3+1],2)+
-                            pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3+2],2))*
-                                    (cp[c_index(x,y,z,comp,ion,Nx,Ny)]+cbath[ion])/2.0*
-                                    (log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(cbath[ion])+
-                                    z_charge[ion]*phi[phi_index(x,y,z,comp,Nx,Ny)]-z_charge[ion]*phibath)*dt;
+                    ResphN -= z_charge[ion]*sqrt(pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3],2)+
+                                                 pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1],2)+
+                                                 pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2],2))*
+                              (cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+cbath[ion])/2.0*
+                              (log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(cbath[ion])+
+                                    z_charge[ion]*phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-z_charge[ion]*phibath)*dt;
                 }
                 ResphN += Rphx[comp]-RphxRight[comp]+Rphy[comp]-RphyUp[comp]+Rphz[comp]-RphzTop[comp];
-                ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny),ResphN,INSERT_VALUES);
+                ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),ResphN,INSERT_VALUES);
                 CHKERRQ(ierr);
             }
         }
@@ -385,9 +395,9 @@ PetscErrorCode calc_residual(SNES snes,Vec current_state,Vec Res,void *ctx)
                 //Plus modification to electroneutrality for non-zero mem.compacitance
                 for(comp = 0; comp < Nc-1; comp++){
                     //Water flow
-                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni+1,comp,Nx,Ny),al[al_index(x,y,z,comp,Nx,Ny)]
-                                                                        -alp[al_index(x,y,z,comp,Nx,Ny)]+
-                                                                        flux->wflow[al_index(x,y,z,comp,Nx,Ny)]*
+                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),al[al_index(x,y,z,comp,Nx,Ny,Nz)]
+                                                                          -alp[al_index(x,y,z,comp,Nx,Ny,Nz)]+
+                                                                        flux->wflow[al_index(x,y,z,comp,Nx,Ny,Nz)]*
                                                                         dt,INSERT_VALUES);
                     CHKERRQ(ierr);
 
@@ -465,141 +475,141 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                         Ftmpy = 0;Fc0y = 0;Fc1y = 0;Fph0y = 0;Fph1y = 0;
                         Ftmpz = 0;Fc0z = 0;Fc1z = 0;Fph0z = 0;Fph1z = 0;
                         if(x < Nx-1){
-                            Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                            Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                            Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph0x = z_charge[ion]*Ftmpx;
                             // Right c with left c (-Fc0x)
 
-                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc0x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc0x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Right c with left phi (-Fph0x)
-                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph0x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph0x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                             //Right phi with left c in voltage eqn
-                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -z_charge[ion]*Fc0x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(x > 0){
-                            Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                            Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                              cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                            Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph1x = z_charge[ion]*Ftmpx;
                             //left c with right c (-Fc1x)
-                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc1x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc1x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Left c with right phi (-Fph1x)
-                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph1x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph1x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                             //Left phi with right c in voltage eqn
-                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -z_charge[ion]*Fc1x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(y < Ny-1){
-                            Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                            Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                              cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                            Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph0y = z_charge[ion]*Ftmpy;
                             // Upper c with lower c (-Fc0y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc0y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc0y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Upper c with lower phi (-Fph0y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph0y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph0y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                             //Upper phi with lower c in voltage eqn
-                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -z_charge[ion]*Fc0y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(y > 0){
-                            Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                            Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                            Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph1y = z_charge[ion]*Ftmpy;
                             //Lower c with Upper c (-Fc1y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc1y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc1y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Lower c with Upper phi (-Fph1y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph1y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph1y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                             //Lower phi with upper c in voltage eqn
-                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -z_charge[ion]*Fc1y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(z < Nz-1){
-                            Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                          cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                            Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                              cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                            Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph0z = z_charge[ion]*Ftmpz;
                             // Bot c with Top c (-Fc0x)
 
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -Fc0z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Bot c with Top phi (-Fph0x)
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                                -Fph0z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                             //Bot phi with Top c in voltage eqn
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -z_charge[ion]*Fc0z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(z > 0){
-                            Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                                                            cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                            Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                            Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph1z = z_charge[ion]*Ftmpz;
                             //Top c Bot right c (-Fc1x)
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -Fc1z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Top c Bot right phi (-Fph1x)
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                                -Fph1z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                             //Left phi with right c in voltage eqn
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -z_charge[ion]*Fc1z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         //Diagonal term contribution
-                        Ac = al[al_index(x,y,z,comp,Nx,Ny)]+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
+                        Ac = al[al_index(x,y,z,comp,Nx,Ny,Nz)]+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
                         Aphi = Fph0x+Fph1x+Fph0y+Fph1y+Fph0z+Fph1z;
 
                         //Add up terms for voltage eqns
@@ -611,64 +621,64 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                         Fphph1z[comp] += z_charge[ion]*Fph1z;
 
                         //membrane current contributions
-                        Ac += flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
-                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Ac += flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
+                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                         // Different Compartment Terms
                         // C Extracellular with C Inside
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                           -flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // C Intra with C Extra
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,Nc-1,Nx,Ny),
-                                           flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),
+                                           flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // C Extracellular with Phi Inside
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // C Intra with Phi Extra
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),
-                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),
+                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Volume terms
                         //C extra with intra alpha
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni+1,comp,Nx,Ny),
-                                -c[c_index(x,y,z,Nc-1,ion,Nx,Ny)],INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),
+                                           -c[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //C intra with intra alpha
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni+1,comp,Nx,Ny),
-                                c[c_index(x,y,z,comp,ion,Nx,Ny)],INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),
+                                           c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Same compartment terms
                         // c with c
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),Ac,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ac,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // c with phi
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),Aphi,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Aphi,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         //Intra-Phi with c (voltage eqn)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            z_charge[ion]*(Fc0x+Fc1x+Fc0y+Fc1y+
-                                           flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]*dt),INSERT_VALUES);
+                                                          flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt),INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //IntraPhi with c extra(volt eqn)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,Nc-1,Nx,Ny),
-                                           z_charge[ion]*(flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]*dt),INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),
+                                           z_charge[ion]*(flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt),INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Extra-Phi with intra-c (voltage eqn)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                           -z_charge[ion]*(flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]*dt),INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -z_charge[ion]*(flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt),INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
@@ -680,142 +690,142 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                     Ftmpy = 0;Fc0y = 0;Fc1y = 0;Fph0y = 0;Fph1y = 0;
                     Ftmpz = 0;Fc0z = 0;Fc1z = 0;Fph0z = 0;Fph1z = 0;
                     if(x < Nx-1){
-                        Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                      cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                        Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                        cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                        Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph0x = z_charge[ion]*Ftmpx;
                         // Right c with left c (-Fc0x)
 
-                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -Fc0x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Right c with left phi (-Fph0x)
-                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fph0x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         //Right phi with left c in voltage eqn
-                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -z_charge[ion]*Fc0x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(x > 0){
-                        Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
-                                                                        cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                        Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                          cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                        Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph1x = z_charge[ion]*Ftmpx;
                         //left c with right c (-Fc1x)
-                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -Fc1x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Left c with right phi (-Fph1x)
-                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fph1x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         //Left phi with right c in voltage eqn
-                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -z_charge[ion]*Fc1x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(y < Ny-1){
-                        Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                        cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                        Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                          cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                        Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph0y = z_charge[ion]*Ftmpy;
                         // Upper c with lower c (-Fc0y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -Fc0y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Upper c with lower phi (-Fph0y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fph0y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         //Upper phi with lower c in voltage eqn
-                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -z_charge[ion]*Fc0y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(y > 0){
-                        Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                                                          cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                        Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                        Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph1y = z_charge[ion]*Ftmpy;
                         //Lower c with Upper c (-Fc1y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -Fc1y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Lower c with Upper phi (-Fph1y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fph1y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         //Lower phi with upper c in voltage eqn
-                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -z_charge[ion]*Fc1y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(z < Nz-1){
-                        Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                        cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                        Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                          cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                        Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph0z = z_charge[ion]*Ftmpz;
                         // Bot c with Top c (-Fc0x)
 
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -Fc0z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Bot c with Top phi (-Fph0x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fph0z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         //Bot phi with Top c in voltage eqn
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -z_charge[ion]*Fc0z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(z > 0){
-                        Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                                                          cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                        Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                        Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph1z = z_charge[ion]*Ftmpz;
                         //Top c Bot right c (-Fc1x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -Fc1z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Top c Bot right phi (-Fph1x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fph1z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         //Left phi with right c in voltage eqn
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -z_charge[ion]*Fc1z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
 
                     //Diagonal term contribution
-                    Ac = (1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)])+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
+                    Ac = (1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)])+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
                     Aphi = Fph0x+Fph1x+Fph0y+Fph1y+Fph0z+Fph1z;
 
                     Avolt = z_charge[ion]*(Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z);
@@ -830,32 +840,33 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
 
                     //Membrane current contribution
                     for(comp = 0; comp < Nc-1; comp++){
-                        Ac -= flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
-                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
-                        Avolt -= z_charge[ion]*flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Ac -= flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
+                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
+                        Avolt -= z_charge[ion]*flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                     }
                     //Add bath contributions
-                    Ftmpx = sqrt(pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3],2)+
-                            pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+1],2)+
-                            pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+2],2));
-                    Ac -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny)]+cbath[ion])/(2*c[c_index(x,y,z,Nc-1,ion,Nx,Ny)])*dt;
-                    Aphi -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny)]+cbath[ion])*z_charge[ion]/2*dt;
+                    Ftmpx = sqrt(pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3],2)+
+                                 pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+1],2)+
+                                 pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+2],2));
+                    Ac -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)]+cbath[ion])/(2*c[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)])*dt;
+                    Aphi -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)]+cbath[ion])*z_charge[ion]/2*dt;
 
-                    Avolt -= z_charge[ion]*Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny)]+cbath[ion])/
-                            (2*c[c_index(x,y,z,Nc-1,ion,Nx,Ny)])*dt;
+                    Avolt -= z_charge[ion]*Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)]+cbath[ion])/
+                             (2*c[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)])*dt;
 
                     //Insert extracell to extracell parts
                     // c with c
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ac,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ac,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     // c with phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Aphi,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),Aphi,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
 
                     //phi with c (voltage eqn)
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Avolt,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,ion,
+                                                                              Nc-1,Nx,Ny,Nz),Avolt,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
@@ -863,60 +874,61 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 for(comp = 0; comp < Nc-1; comp++){
                     if(x < Nx-1){
                         //Right phi with left phi (-Fph0x)
-                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fphph0x[comp],INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fphph0x[comp],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(x > 0){
                         //Left phi with right phi (-Fph1x)
-                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fphph1x[comp],INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fphph1x[comp],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(y < Ny-1){
                         //Upper phi with lower phi (-Fph0y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fphph0y[comp],INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fphph0y[comp],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(y > 0){
                         //Lower phi with upper phi (-Fph1y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fphph1y[comp],INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fphph1y[comp],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(z < Nz-1){
                         //Bot phi with Top phi (-Fph0x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fphph0z[comp],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(z > 0){
                         //Top phi with Bot phi (-Fph1x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fphph1z[comp],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
-                    Avolt = cm[al_index(x,y,z,comp,Nx,Ny)]+Fphph0x[comp]+Fphph1x[comp]+Fphph0y[comp]+Fphph1y[comp]+
+                    Avolt = cm[al_index(x,y,z,comp,Nx,Ny,Nz)]+Fphph0x[comp]+Fphph1x[comp]+Fphph0y[comp]+Fphph1y[comp]+
                             Fphph0z[comp]+Fphph1z[comp];
-                    AvoltN = -cm[al_index(x,y,z,comp,Nx,Ny)];
+                    AvoltN = -cm[al_index(x,y,z,comp,Nx,Ny,Nz)];
                     for(ion = 0; ion < Ni; ion++){
-                        Avolt += z_charge[ion]*flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
-                        AvoltN -= z_charge[ion]*flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Avolt += z_charge[ion]*flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
+                        AvoltN -= z_charge[ion]*flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                     }
 
                     //Intra-phi with Intra-phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),Avolt,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Avolt,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Intra-phi with extra-phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),AvoltN,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,
+                                                                              Nc-1,Nx,Ny,Nz),AvoltN,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
@@ -924,42 +936,42 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 comp = Nc-1;
                 if(x < Nx-1){
                     //Right phi with left phi (-Fph0x)
-                    ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                            -Fphph0x[comp],INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                       -Fphph0x[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
                 if(x > 0){
                     //Left phi with right phi (-Fph1x)
-                    ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                            -Fphph1x[comp],INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                       -Fphph1x[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
                 if(y < Ny-1){
                     //Upper phi with lower phi (-Fph0y)
-                    ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                            -Fphph0y[comp],INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                       -Fphph0y[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
                 if(y > 0){
                     //Lower phi with upper phi (-Fph1y)
-                    ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                            -Fphph1y[comp],INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                       -Fphph1y[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
                 if(z < Nz-1){
                     //Bot phi with Top phi (-Fph0x)
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                        -Fphph0z[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
                 if(z > 0){
                     //Top phi with Bot phi (-Fph1x)
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                        -Fphph1z[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
@@ -967,14 +979,14 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 AvoltN = 0;
 
                 for(int k = 0; k < Nc-1; k++){
-                    AvoltN += cm[al_index(x,y,z,k,Nx,Ny)];
-                    Avolt = -cm[al_index(x,y,z,k,Nx,Ny)];
+                    AvoltN += cm[al_index(x,y,z,k,Nx,Ny,Nz)];
+                    Avolt = -cm[al_index(x,y,z,k,Nx,Ny,Nz)];
                     for(ion = 0; ion < Ni; ion++){
-                        Avolt -= z_charge[ion]*flux->dfdphim[c_index(x,y,z,k,ion,Nx,Ny)]*dt;
-                        AvoltN += z_charge[ion]*flux->dfdphim[c_index(x,y,z,k,ion,Nx,Ny)]*dt;
+                        Avolt -= z_charge[ion]*flux->dfdphim[c_index(x,y,z,k,ion,Nx,Ny,Nz)]*dt;
+                        AvoltN += z_charge[ion]*flux->dfdphim[c_index(x,y,z,k,ion,Nx,Ny,Nz)]*dt;
                     }
                     //Extra-phi with Intra-phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,k,Nx,Ny),Avolt,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,k,Nx,Ny,Nz),Avolt,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
@@ -983,13 +995,13 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
 
                 //Bath terms
                 for(ion = 0; ion < Ni; ion++){
-                    Ftmpx = sqrt(pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3],2)+
-                            pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+1],2)+
-                            pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+2],2));
-                    AvoltN -= z_charge[ion]*Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny)]+cbath[ion])*z_charge[ion]/2*dt;
+                    Ftmpx = sqrt(pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3],2)+
+                                 pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+1],2)+
+                                 pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+2],2));
+                    AvoltN -= z_charge[ion]*Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)]+cbath[ion])*z_charge[ion]/2*dt;
                 }
                 //extra-phi with extra-phi
-                ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),AvoltN,INSERT_VALUES);
+                ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),AvoltN,INSERT_VALUES);
                 CHKERRQ(ierr);
                 ind++;
 
@@ -1004,41 +1016,42 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 for(comp = 0; comp < Nc-1; comp++){
                     //Water flow volume fraction entries
                     //Volume to Volume
-                    Ac = 1+(flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*(con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny)]/
-                            (pow(1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)],2))+
-                            con_vars->ao[phi_index(0,0,0,comp,Nx,Ny)]/pow(al[al_index(x,y,z,comp,Nx,Ny)],2))+
-                                    flux->dwdal[al_index(x,y,z,comp,Nx,Ny)])*dt;
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny),Ind_1(x,y,z,Ni+1,comp,Nx,Ny),Ac,INSERT_VALUES);
+                    Ac = 1+(flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*(con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                                                                       (pow(1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)],2))+
+                                                                     con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)]/pow(al[al_index(x,y,z,comp,Nx,Ny,Nz)],2))+
+                            flux->dwdal[al_index(x,y,z,comp,Nx,Ny,Nz)])*dt;
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,
+                                                                                Ni+1,comp,Nx,Ny,Nz),Ac,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Off diagonal (from aNc=1-sum(ak))
                     for(PetscInt l = 0; l < comp; l++){
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny),Ind_1(x,y,z,Ni+1,l,Nx,Ny),
-                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*
-                                           con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny)]/
-                                           pow(1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)],2)*dt,
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni+1,l,Nx,Ny,Nz),
+                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*
+                                           con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                                           pow(1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)],2)*dt,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     for(PetscInt l = comp+1; l < Nc-1; l++){
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny),Ind_1(x,y,z,Ni+1,l,Nx,Ny),
-                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*
-                                           con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny)]/
-                                           ((1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)])*
-                                           (1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)]))*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni+1,l,Nx,Ny,Nz),
+                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*
+                                           con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                                           ((1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)])*
+                                            (1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)]))*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     for(ion = 0; ion < Ni; ion++){
                         //Volume to extra c
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny),Ind_1(x,y,z,ion,Nc-1,Nx,Ny),
-                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),
+                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Volume to intra c
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                           -flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
@@ -1099,15 +1112,15 @@ void volume_update(struct SimState *state_vars,struct SimState *state_vars_past,
                     for(x = 0; x < Nx; x++){
                         for(comp = 0; comp < Nc-1; comp++){
 
-                            Func = state_vars->alpha[al_index(x,y,z,comp,Nx,Ny)]-
-                                    state_vars_past->alpha[al_index(x,y,z,comp,Nx,Ny)]+
-                                    dt*user->flux->wflow[al_index(x,y,z,comp,Nx,Ny)];
+                            Func = state_vars->alpha[al_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                   state_vars_past->alpha[al_index(x,y,z,comp,Nx,Ny,Nz)]+
+                                    dt*user->flux->wflow[al_index(x,y,z,comp,Nx,Ny,Nz)];
 
-                            Deriv = 1+dt*user->flux->dwdal[al_index(x,y,z,comp,Nx,Ny)];
+                            Deriv = 1+dt*user->flux->dwdal[al_index(x,y,z,comp,Nx,Ny,Nz)];
 
                             res = -Func/Deriv;
 
-                            state_vars->alpha[al_index(x,y,z,comp,Nx,Ny)] += res;
+                            state_vars->alpha[al_index(x,y,z,comp,Nx,Ny,Nz)] += res;
 
                             if(fabs(res) > max_res){ max_res = fabs(res); }
                         }
@@ -1192,59 +1205,65 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
                         RcvxRight = 0;
                         if(x > 0){
                             //First difference term
-                            Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                            Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x-1,y,z,comp,ion,Nx,Ny)])+
-                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x-1,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                            Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                             cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(
+                                    x-1,y,z,comp,ion,Nx,Ny,Nz)])+
+                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(
+                                            x-1,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                         }
                         //Add Second right moving difference
                         if(x < Nx-1){
-                            RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2;
-                            RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny)])-
-                                    log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
-                                    (phi[phi_index(x+1,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                            RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])-
+                                                   log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*
+                                                                                           (phi[phi_index(
+                                                                                                   x+1,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                         }
                         Rcvy = 0;
                         RcvyUp = 0;
                         //Up down difference
                         if(y > 0){
-                            Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                            Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny)])+
-                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y-1,z,comp,Nx,Ny)]))/dy*dt/dy;
+                            Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                               cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)])+
+                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y-1,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                         }
                         //Next upward difference
                         if(y < Ny-1){
-                            RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2;
-                            RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny)])-
-                                    log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
-                                    (phi[phi_index(x,y+1,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dy*dt/dy;
+                            RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                               cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2;
+                            RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])-
+                                             log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*
+                                                                                     (phi[phi_index(x,
+                                                                                                    y+1,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                         }
                         Rcvz = 0;
                         RcvzTop = 0;
                         //Top Bottom difference
                         if(z > 0){
-                            Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                                                            cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                            Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z-1,comp,ion,Nx,Ny)])+
-                                         z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z-1,comp,Nx,Ny)]))/dz*dt/dz;
+                            Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                               cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,
+                                                                                               z-1,comp,ion,Nx,Ny,Nz)])+
+                                         z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,
+                                                                                                         z-1,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                         }
                         //Next upward difference
                         if(z < Nz-1){
-                            RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                            cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2;
-                            RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny)])-
-                                             log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+
-                                             z_charge[ion]*(phi[phi_index(x,y,z+1,comp,Nx,Ny)]-
-                                             phi[phi_index(x,y,z,comp,Nx,Ny)]))/dz*dt/dz;
+                            RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2;
+                            RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])-
+                                               log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+
+                                             z_charge[ion]*(phi[phi_index(x,y,z+1,comp,Nx,Ny,Nz)]-
+                                                            phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                         }
-                        Resc = al[al_index(x,y,z,comp,Nx,Ny)]*c[c_index(x,y,z,comp,ion,Nx,Ny)]-
-                                alp[al_index(x,y,z,comp,Nx,Ny)]*cp[c_index(x,y,z,comp,ion,Nx,Ny)];
-                        Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Resc = al[al_index(x,y,z,comp,Nx,Ny,Nz)]*c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]-
+                               alp[al_index(x,y,z,comp,Nx,Ny,Nz)]*cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
+                        Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
 
-                        ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny),Resc,INSERT_VALUES);
+                        ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                         CHKERRQ(ierr);
 
                         //Save values for voltage
@@ -1257,70 +1276,73 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
 
                     }
                     //Set Extracellular values
-                    alNc = 1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)];
-                    alpNc = 1-alp[al_index(x,y,z,0,Nx,Ny)]-alp[al_index(x,y,z,1,Nx,Ny)];
+                    alNc = 1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)];
+                    alpNc = 1-alp[al_index(x,y,z,0,Nx,Ny,Nz)]-alp[al_index(x,y,z,1,Nx,Ny,Nz)];
                     comp = Nc-1;
                     Rcvx = 0;
                     RcvxRight = 0;
                     if(x > 0){
                         //First difference term
-                        Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                        Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x-1,y,z,comp,ion,Nx,Ny)])+
-                                z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x-1,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                        Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                         cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)])+
+                                z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(
+                                        x-1,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                     }
                     //Add Second right moving difference
                     if(x < Nx-1){
-                        RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2;
-                        RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny)])-
-                                log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*(phi[phi_index(x+1,y,z,comp,Nx,Ny)]-
-                                phi[phi_index(x,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                        RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])-
+                                               log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*(phi[phi_index(
+                                x+1,y,z,comp,Nx,Ny,Nz)]-
+                                                                                                      phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                     }
                     Rcvy = 0;
                     RcvyUp = 0;
                     //Up down difference
                     if(y > 0){
-                        Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                        Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny)])+
-                                z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y-1,z,comp,Nx,Ny)]))/dy*dt/dy;
+                        Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                           cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)])+
+                                z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,
+                                                                                                y-1,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                     }
                     //Next upward difference
                     if(y < Ny-1){
-                        RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2;
-                        RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+
-                                z_charge[ion]*(phi[phi_index(x,y+1,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dy*dt/dy;
+                        RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                           cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2;
+                        RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+
+                                z_charge[ion]*(phi[phi_index(x,y+1,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                     }
                     Rcvz = 0;
                     RcvzTop = 0;
                     //Top bot difference
                     if(z > 0){
-                        Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                                                         cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                        Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z-1,comp,ion,Nx,Ny)])+
-                                     z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z-1,comp,Nx,Ny)]))/dz*dt/dz;
+                        Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                           cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)])+
+                                     z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z-1,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                     }
                     //Next upward difference
                     if(z < Nz-1){
-                        RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                         cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2;
-                        RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+
-                                         z_charge[ion]*(phi[phi_index(x,y,z+1,comp,Nx,Ny)]-
-                                         phi[phi_index(x,y,z,comp,Nx,Ny)]))/dz*dt/dz;
+                        RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2;
+                        RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+
+                                         z_charge[ion]*(phi[phi_index(x,y,z+1,comp,Nx,Ny,Nz)]-
+                                                        phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                     }
-                    Resc = alNc*c[c_index(x,y,z,comp,ion,Nx,Ny)]-alpNc*cp[c_index(x,y,z,comp,ion,Nx,Ny)];
-                    Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                    Resc = alNc*c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]-alpNc*cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
+                    Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                     //Add bath variables
 
-                    Resc -= sqrt(pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3],2)+
-                            pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3+1],2)+
-                            pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3+2],2))*
-                                    (cp[c_index(x,y,z,comp,ion,Nx,Ny)]+cbath[ion])/2.0*
-                                    (log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(cbath[ion])+
-                                    z_charge[ion]*phi[phi_index(x,y,z,comp,Nx,Ny)]-z_charge[ion]*phibath)*dt;
-                    ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny),Resc,INSERT_VALUES);
+                    Resc -= sqrt(pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3],2)+
+                                 pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1],2)+
+                                 pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2],2))*
+                            (cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+cbath[ion])/2.0*
+                            (log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(cbath[ion])+
+                                    z_charge[ion]*phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-z_charge[ion]*phibath)*dt;
+                    ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                     CHKERRQ(ierr);
 
                     //Save values for voltage
@@ -1335,16 +1357,18 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
                 //Voltage Equations
                 ResphN = 0;
                 for(comp = 0; comp < Nc-1; comp++){
-                    Resph = cm[al_index(x,y,z,comp,Nx,Ny)]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,Nc-1,Nx,Ny)])-
-                            cm[al_index(x,y,z,comp,Nx,Ny)]*(phip[phi_index(x,y,z,comp,Nx,Ny)]-phip[phi_index(x,y,z,Nc-1,Nx,Ny)]);
+                    Resph = cm[al_index(x,y,z,comp,Nx,Ny,Nz)]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,
+                                                                                                             Nc-1,Nx,Ny,Nz)])-
+                            cm[al_index(x,y,z,comp,Nx,Ny,Nz)]*(phip[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phip[phi_index(x,y,z,Nc-
+                                                                                                                       1,Nx,Ny,Nz)]);
                     for(ion = 0; ion < Ni; ion++){
                         //Ion channel
-                        Resph += z_charge[ion]*flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Resph += z_charge[ion]*flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                     }
                     //Add the terms shared with extracell
                     ResphN -= Resph; // Subtract total capacitance, subtract total ion channel flux
                     Resph += Rphx[comp]-RphxRight[comp]+Rphy[comp]-RphyUp[comp]+Rphz[comp]-RphzTop[comp];
-                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny),Resph,INSERT_VALUES);
+                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Resph,INSERT_VALUES);
                     CHKERRQ(ierr);
                 }
 
@@ -1352,15 +1376,15 @@ PetscErrorCode calc_residual_no_vol(SNES snes,Vec current_state,Vec Res,void *ct
                 comp = Nc-1;
                 //Add bath contribution
                 for(ion = 0; ion < Ni; ion++){
-                    ResphN -= z_charge[ion]*sqrt(pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3],2)+
-                            pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3+1],2)+
-                            pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3+2],2))*
-                                    (cp[c_index(x,y,z,comp,ion,Nx,Ny)]+cbath[ion])/2.0*
-                                    (log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(cbath[ion])+
-                                            z_charge[ion]*phi[phi_index(x,y,z,comp,Nx,Ny)]-z_charge[ion]*phibath)*dt;
+                    ResphN -= z_charge[ion]*sqrt(pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3],2)+
+                                                 pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1],2)+
+                                                 pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2],2))*
+                              (cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+cbath[ion])/2.0*
+                              (log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(cbath[ion])+
+                                            z_charge[ion]*phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-z_charge[ion]*phibath)*dt;
                 }
                 ResphN += Rphx[comp]-RphxRight[comp]+Rphy[comp]-RphyUp[comp]+Rphz[comp]-RphzTop[comp];
-                ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny),ResphN,INSERT_VALUES);
+                ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),ResphN,INSERT_VALUES);
                 CHKERRQ(ierr);
             }
         }
@@ -1435,141 +1459,141 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                         Ftmpy = 0;Fc0y = 0;Fc1y = 0;Fph0y = 0;Fph1y = 0;
                         Ftmpz = 0;Fc0z = 0;Fc1z = 0; Fph0z = 0;Fph1z = 0;
                         if(x < Nx-1){
-                            Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                            Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                            Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph0x = z_charge[ion]*Ftmpx;
                             // Right c with left c (-Fc0x)
 
-                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc0x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc0x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Right c with left phi (-Fph0x)
-                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph0x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph0x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                             //Right phi with left c in voltage eqn
-                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -z_charge[ion]*Fc0x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(x > 0){
-                            Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                            Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                              cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                            Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph1x = z_charge[ion]*Ftmpx;
                             //left c with right c (-Fc1x)
-                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc1x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc1x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Left c with right phi (-Fph1x)
-                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph1x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph1x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                             //Left phi with right c in voltage eqn
-                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -z_charge[ion]*Fc1x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(y < Ny-1){
-                            Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                            Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                              cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                            Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph0y = z_charge[ion]*Ftmpy;
                             // Upper c with lower c (-Fc0y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc0y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc0y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Upper c with lower phi (-Fph0y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph0y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph0y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                             //Upper phi with lower c in voltage eqn
-                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -z_charge[ion]*Fc0y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(y > 0){
-                            Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                            Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                            Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph1y = z_charge[ion]*Ftmpy;
                             //Lower c with Upper c (-Fc1y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc1y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc1y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Lower c with Upper phi (-Fph1y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph1y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph1y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                             //Lower phi with upper c in voltage eqn
-                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -z_charge[ion]*Fc1y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(z < Nz-1){
-                            Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                          cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                            Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                              cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                            Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph0z = z_charge[ion]*Ftmpz;
                             // Top c with Bot c (-Fc0x)
 
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -Fc0z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Top c with Bot phi (-Fph0x)
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                                -Fph0z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                             //Bot phi with Top c in voltage eqn
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -z_charge[ion]*Fc0z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(z > 0){
-                            Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                                                            cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                            Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                            Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph1z = z_charge[ion]*Ftmpz;
                             //left c with right c (-Fc1x)
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -Fc1z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Left c with right phi (-Fph1x)
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                                -Fph1z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                             //Left phi with right c in voltage eqn
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -z_charge[ion]*Fc1z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         //Diagonal term contribution
-                        Ac = al[al_index(x,y,z,comp,Nx,Ny)]+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
+                        Ac = al[al_index(x,y,z,comp,Nx,Ny,Nz)]+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
                         Aphi = Fph0x+Fph1x+Fph0y+Fph1y+Fph0z+Fph1z;
 
                         //Add up terms for voltage eqns
@@ -1581,53 +1605,53 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                         Fphph1z[comp] += z_charge[ion]*Fph1z;
 
                         //membrane current contributions
-                        Ac += flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
-                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Ac += flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
+                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                         // Different Compartment Terms
                         // C Extracellular with C Inside
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                           -flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // C Intra with C Extra
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,Nc-1,Nx,Ny),
-                                           flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),
+                                           flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // C Extracellular with Phi Inside
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // C Intra with Phi Extra
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),
-                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),
+                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Same compartment terms
                         // c with c
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),Ac,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ac,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // c with phi
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),Aphi,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Aphi,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         //Intra-Phi with c (voltage eqn)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            z_charge[ion]*(Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z+
-                                           flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]*dt),INSERT_VALUES);
+                                                          flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt),INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //IntraPhi with c extra(volt eqn)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,Nc-1,Nx,Ny),
-                                           z_charge[ion]*(flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]*dt),INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),
+                                           z_charge[ion]*(flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt),INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Extra-Phi with intra-c (voltage eqn)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                           -z_charge[ion]*(flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]*dt),INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -z_charge[ion]*(flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt),INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
@@ -1639,141 +1663,141 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                     Ftmpy = 0;Fc0y = 0;Fc1y = 0;Fph0y = 0;Fph1y = 0;
                     Ftmpz = 0;Fc0z = 0;Fc1z = 0; Fph0z = 0;Fph1z = 0;
                     if(x < Nx-1){
-                        Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                        Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                        cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                        Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph0x = z_charge[ion]*Ftmpx;
                         // Right c with left c (-Fc0x)
-                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                -Fc0x,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -Fc0x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Right c with left phi (-Fph0x)
-                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fph0x,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fph0x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         // Right Phi with left c (voltage eqn)
-                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -z_charge[ion]*Fc0x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(x > 0){
-                        Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                        Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                          cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                        Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph1x = z_charge[ion]*Ftmpx;
                         //left c with right c (-Fc1x)
-                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                -Fc1x,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -Fc1x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Left c with right phi (-Fph1x)
-                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fph1x,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fph1x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         // left Phi with right c (voltage eqn)
-                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -z_charge[ion]*Fc1x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(y < Ny-1){
-                        Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                        Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                          cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                        Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph0y = z_charge[ion]*Ftmpy;
                         // Upper c with lower c (-Fc0y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                -Fc0y,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -Fc0y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Upper c with lower phi (-Fph0y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fph0y,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fph0y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         // Upper Phi with lower c (voltage eqn)
-                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -z_charge[ion]*Fc0y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(y > 0){
-                        Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                        Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                        Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph1y = z_charge[ion]*Ftmpy;
                         //Lower c with Upper c (-Fc1y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                -Fc1y,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -Fc1y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Lower c with Upper phi (-Fph1y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fph1y,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fph1y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         // Lower Phi with upper c (voltage eqn)
-                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -z_charge[ion]*Fc1y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(z < Nz-1){
-                        Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                        cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                        Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                          cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                        Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph0z = z_charge[ion]*Ftmpz;
                         // Top c with Bot c (-Fc0x)
 
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -Fc0z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Top c with Bot phi (-Fph0x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fph0z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         //Bot phi with Top c in voltage eqn
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -z_charge[ion]*Fc0z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(z > 0){
-                        Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                                                          cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                        Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                        Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph1z = z_charge[ion]*Ftmpz;
                         //left c with right c (-Fc1x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -Fc1z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Left c with right phi (-Fph1x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fph1z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                         //Left phi with right c in voltage eqn
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -z_charge[ion]*Fc1z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
 
                     //Diagonal term contribution
-                    Ac = (1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)])+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
+                    Ac = (1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)])+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
                     Aphi = Fph0x+Fph1x+Fph0y+Fph1y+Fph0z+Fph1z;
 
                     Avolt = z_charge[ion]*(Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z);
@@ -1788,32 +1812,33 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
 
                     //Membrane current contribution
                     for(comp = 0; comp < Nc-1; comp++){
-                        Ac -= flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
-                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
-                        Avolt -= z_charge[ion]*flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Ac -= flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
+                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
+                        Avolt -= z_charge[ion]*flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                     }
                     //Add bath contributions
-                    Ftmpx = sqrt(pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3],2)+
-                            pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+1],2)+
-                            pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+2],2));
-                    Ac -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny)]+cbath[ion])/(2*c[c_index(x,y,z,Nc-1,ion,Nx,Ny)])*dt;
-                    Aphi -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny)]+cbath[ion])*z_charge[ion]/2*dt;
+                    Ftmpx = sqrt(pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3],2)+
+                                 pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+1],2)+
+                                 pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+2],2));
+                    Ac -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)]+cbath[ion])/(2*c[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)])*dt;
+                    Aphi -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)]+cbath[ion])*z_charge[ion]/2*dt;
 
-                    Avolt -= z_charge[ion]*Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny)]+
-                            cbath[ion])/(2*c[c_index(x,y,z,Nc-1,ion,Nx,Ny)])*dt;
+                    Avolt -= z_charge[ion]*Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)]+
+                                                  cbath[ion])/(2*c[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)])*dt;
 
                     //Insert extracell to extracell parts
                     // c with c
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ac,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ac,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     // c with phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Aphi,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),Aphi,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
 
                     //phi with c (voltage eqn)
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Avolt,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,ion,
+                                                                              Nc-1,Nx,Ny,Nz),Avolt,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
@@ -1821,59 +1846,60 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 for(comp = 0; comp < Nc-1; comp++){
                     if(x < Nx-1){
                         //Right phi with left phi (-Fph0x)
-                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fphph0x[comp],INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fphph0x[comp],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(x > 0){
                         //Left phi with right phi (-Fph1x)
-                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fphph1x[comp],INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fphph1x[comp],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(y < Ny-1){
                         //Upper phi with lower phi (-Fph0y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fphph0y[comp],INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fphph0y[comp],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(y > 0){
                         //Lower phi with upper phi (-Fph1y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fphph1y[comp],INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fphph1y[comp],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(z < Nz-1){
                         //Top phi with Bot phi (-Fph0x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fphph0z[comp],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(z > 0){
                         //Bot phi with Top phi (-Fph1x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fphph1z[comp],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
-                    Avolt = cm[al_index(x,y,z,comp,Nx,Ny)]+Fphph0x[comp]+Fphph1x[comp]+Fphph0y[comp]+Fphph1y[comp]+Fphph0z[comp]+Fphph1z[comp];
-                    AvoltN = -cm[al_index(x,y,z,comp,Nx,Ny)];
+                    Avolt = cm[al_index(x,y,z,comp,Nx,Ny,Nz)]+Fphph0x[comp]+Fphph1x[comp]+Fphph0y[comp]+Fphph1y[comp]+Fphph0z[comp]+Fphph1z[comp];
+                    AvoltN = -cm[al_index(x,y,z,comp,Nx,Ny,Nz)];
                     for(ion = 0; ion < Ni; ion++){
-                        Avolt += z_charge[ion]*flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
-                        AvoltN -= z_charge[ion]*flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Avolt += z_charge[ion]*flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
+                        AvoltN -= z_charge[ion]*flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                     }
 
                     //Intra-phi with Intra-phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),Avolt,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Avolt,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Intra-phi with extra-phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),AvoltN,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,
+                                                                              Nc-1,Nx,Ny,Nz),AvoltN,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
@@ -1881,42 +1907,42 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 comp = Nc-1;
                 if(x < Nx-1){
                     //Right phi with left phi (-Fph0x)
-                    ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                            -Fphph0x[comp],INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x+1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                       -Fphph0x[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
                 if(x > 0){
                     //Left phi with right phi (-Fph1x)
-                    ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                            -Fphph1x[comp],INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x-1,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                       -Fphph1x[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
                 if(y < Ny-1){
                     //Upper phi with lower phi (-Fph0y)
-                    ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                            -Fphph0y[comp],INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y+1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                       -Fphph0y[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
                 if(y > 0){
                     //Lower phi with upper phi (-Fph1y)
-                    ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                            -Fphph1y[comp],INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y-1,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                       -Fphph1y[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
                 if(z < Nz-1){
                     //Top phi with Bot phi (-Fph0x)
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z+1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                        -Fphph0z[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
                 if(z > 0){
                     //Bot phi with Top phi (-Fph1x)
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z-1,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                        -Fphph1z[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
@@ -1924,14 +1950,14 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 AvoltN = 0;
 
                 for(int k = 0; k < Nc-1; k++){
-                    AvoltN += cm[al_index(x,y,z,k,Nx,Ny)];
-                    Avolt = -cm[al_index(x,y,z,k,Nx,Ny)];
+                    AvoltN += cm[al_index(x,y,z,k,Nx,Ny,Nz)];
+                    Avolt = -cm[al_index(x,y,z,k,Nx,Ny,Nz)];
                     for(ion = 0; ion < Ni; ion++){
-                        Avolt -= z_charge[ion]*flux->dfdphim[c_index(x,y,z,k,ion,Nx,Ny)]*dt;
-                        AvoltN += z_charge[ion]*flux->dfdphim[c_index(x,y,z,k,ion,Nx,Ny)]*dt;
+                        Avolt -= z_charge[ion]*flux->dfdphim[c_index(x,y,z,k,ion,Nx,Ny,Nz)]*dt;
+                        AvoltN += z_charge[ion]*flux->dfdphim[c_index(x,y,z,k,ion,Nx,Ny,Nz)]*dt;
                     }
                     //Extra-phi with Intra-phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,k,Nx,Ny),Avolt,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,k,Nx,Ny,Nz),Avolt,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
@@ -1940,13 +1966,13 @@ calc_jacobian_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
 
                 //Bath terms
                 for(ion = 0; ion < Ni; ion++){
-                    Ftmpx = sqrt(pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3],2)+
-                            pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+1],2)+
-                            pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+2],2));
-                    AvoltN -= z_charge[ion]*Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny)]+cbath[ion])*z_charge[ion]/2*dt;
+                    Ftmpx = sqrt(pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3],2)+
+                                 pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+1],2)+
+                                 pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+2],2));
+                    AvoltN -= z_charge[ion]*Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)]+cbath[ion])*z_charge[ion]/2*dt;
                 }
                 //extra-phi with extra-phi
-                ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),AvoltN,INSERT_VALUES);
+                ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),AvoltN,INSERT_VALUES);
                 CHKERRQ(ierr);
                 ind++;
 
@@ -2020,130 +2046,139 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
                         RcvxRight = 0;
                         if(x > 0){
                             //First difference term
-                            Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                            Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x-1,y,z,comp,ion,Nx,Ny)])+
-                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x-1,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                            Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                             cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(
+                                    x-1,y,z,comp,ion,Nx,Ny,Nz)])+
+                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(
+                                            x-1,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                         }
                         //Add Second right moving difference
                         if(x < Nx-1){
-                            RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2;
-                            RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny)])-
-                                    log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
-                                    (phi[phi_index(x+1,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                            RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])-
+                                                   log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*
+                                                                                           (phi[phi_index(
+                                                                                                   x+1,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                         }
                         Rcvy = 0;
                         RcvyUp = 0;
                         //Up down difference
                         if(y > 0){
-                            Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                            Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny)])+
-                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y-1,z,comp,Nx,Ny)]))/dy*dt/dy;
+                            Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                               cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)])+
+                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y-1,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                         }
                         //Next upward difference
                         if(y < Ny-1){
-                            RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2;
-                            RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny)])-
-                                    log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
-                                    (phi[phi_index(x,y+1,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dy*dt/dy;
+                            RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                               cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2;
+                            RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])-
+                                             log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*
+                                                                                     (phi[phi_index(x,
+                                                                                                    y+1,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                         }
                         Rcvz = 0;
                         RcvzTop = 0;
                         if(z > 0){
                             //First difference term
-                            Rcvz = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                                                           cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                            Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z-1,comp,ion,Nx,Ny)])+
-                                         z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
-                                         phi[phi_index(x,y,z-1,comp,Nx,Ny)]))/dz*dt/dz;
+                            Rcvz = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                               cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,
+                                                                                               z-1,comp,ion,Nx,Ny,Nz)])+
+                                         z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                                        phi[phi_index(x,y,z-1,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                         }
                         //Add Second right moving difference
                         if(z < Nz-1){
-                            RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                              cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2;
-                            RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny)])-
-                                    log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
-                                    (phi[phi_index(x,y,z+1,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dz*dt/dz;
+                            RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2;
+                            RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])-
+                                               log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*
+                                                                                       (phi[phi_index(x,y,
+                                                                                                      z+1,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                         }
-                        Resc = al[al_index(x,y,z,comp,Nx,Ny)]*c[c_index(x,y,z,comp,ion,Nx,Ny)]-
-                                alp[al_index(x,y,z,comp,Nx,Ny)]*cp[c_index(x,y,z,comp,ion,Nx,Ny)];
-                        Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Resc = al[al_index(x,y,z,comp,Nx,Ny,Nz)]*c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]-
+                               alp[al_index(x,y,z,comp,Nx,Ny,Nz)]*cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
+                        Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
 
-                        ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny),Resc,INSERT_VALUES);
+                        ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                         CHKERRQ(ierr);
 
                     }
                     //Set Extracellular values
-                    alNc = 1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)];
-                    alpNc = 1-alp[al_index(x,y,z,0,Nx,Ny)]-alp[al_index(x,y,z,1,Nx,Ny)];
+                    alNc = 1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)];
+                    alpNc = 1-alp[al_index(x,y,z,0,Nx,Ny,Nz)]-alp[al_index(x,y,z,1,Nx,Ny,Nz)];
                     comp = Nc-1;
                     Rcvx = 0;
                     RcvxRight = 0;
                     if(x > 0){
                         //First difference term
-                        Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                        Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x-1,y,z,comp,ion,Nx,Ny)])+
-                                z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
-                                phi[phi_index(x-1,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                        Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                         cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)])+
+                                z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                               phi[phi_index(x-1,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                     }
                     //Add Second right moving difference
                     if(x < Nx-1){
-                        RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2;
-                        RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny)])-
-                                log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*(phi[phi_index(x+1,y,z,comp,Nx,Ny)]-
-                                phi[phi_index(x,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                        RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])-
+                                               log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*(phi[phi_index(
+                                x+1,y,z,comp,Nx,Ny,Nz)]-
+                                                                                                      phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                     }
                     Rcvy = 0;
                     RcvyUp = 0;
                     //Up down difference
                     if(y > 0){
-                        Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                        Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny)])+
-                                z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-phi[phi_index(x,y-1,z,comp,Nx,Ny)]))/dy*dt/dy;
+                        Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                           cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)])+
+                                z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,
+                                                                                                y-1,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                     }
                     //Next upward difference
                     if(y < Ny-1){
-                        RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2;
-                        RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+
-                                z_charge[ion]*(phi[phi_index(x,y+1,z,comp,Nx,Ny)]-
-                                phi[phi_index(x,y,z,comp,Nx,Ny)]))/dy*dt/dy;
+                        RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                           cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2;
+                        RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+
+                                z_charge[ion]*(phi[phi_index(x,y+1,z,comp,Nx,Ny,Nz)]-
+                                               phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                     }
                     Rcvz = 0;
                     RcvzTop = 0;
                     if(z > 0){
                         //First difference term
-                        Rcvz = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                                                         cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                        Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z-1,comp,ion,Nx,Ny)])+
-                                     z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
-                                                    phi[phi_index(x,y,z-1,comp,Nx,Ny)]))/dz*dt/dz;
+                        Rcvz = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                           cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)])+
+                                     z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                                    phi[phi_index(x,y,z-1,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                     }
                     //Add Second right moving difference
                     if(z < Nz-1){
-                        RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                          cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2;
-                        RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny)])-
-                                           log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
-                                           (phi[phi_index(x,y,z+1,comp,Nx,Ny)]-
-                                           phi[phi_index(x,y,z,comp,Nx,Ny)]))/dz*dt/dz;
+                        RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2;
+                        RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])-
+                                           log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*
+                                                                                   (phi[phi_index(x,y,
+                                                                                                  z+1,comp,Nx,Ny,Nz)]-
+                                                                                    phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                     }
-                    Resc = alNc*c[c_index(x,y,z,comp,ion,Nx,Ny)]-alpNc*cp[c_index(x,y,z,comp,ion,Nx,Ny)];
-                    Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                    Resc = alNc*c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]-alpNc*cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
+                    Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                     //Add bath variables
 
-                    Resc -= sqrt(pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3],2)+
-                            pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3+1],2)+
-                            pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3+2],2))*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cbath[ion])/2.0*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(cbath[ion])+
-                                            z_charge[ion]*phi[phi_index(x,y,z,comp,Nx,Ny)]-z_charge[ion]*phibath)*dt;
-                    ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny),Resc,INSERT_VALUES);
+                    Resc -= sqrt(pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3],2)+
+                                 pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1],2)+
+                                 pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2],2))*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                                   cbath[ion])/2.0*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(cbath[ion])+
+                                            z_charge[ion]*phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-z_charge[ion]*phibath)*dt;
+                    ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                     CHKERRQ(ierr);
 
                 }
@@ -2156,25 +2191,26 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
             for(x = 0; x < Nx; x++){
                 //Residual for electroneutrality condition
                 for(comp = 0; comp < Nc-1; comp++){
-                    Resc = al[al_index(x,y,z,comp,Nx,Ny)]*cz(c,z_charge,x,y,z,Nx,Ny,comp,user)+
-                            user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny)]*
-                            user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny)];
-                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny),Resc,INSERT_VALUES);
+                    Resc = al[al_index(x,y,z,comp,Nx,Ny,Nz)]*cz(c,z_charge,x,y,z,Nx,Ny,Nz,comp,user)+
+                           user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny,Nz)]*
+                           user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)];
+                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                     CHKERRQ(ierr);
                 }
                 //Extracellular term
                 comp = Nc-1;
-                Resc = (1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)])*cz(c,z_charge,x,y,z,Nx,Ny,comp,user)+
-                        user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny)]*user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny)];
-                ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny),Resc,INSERT_VALUES);
+                Resc = (1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)])*
+                       cz(c,z_charge,x,y,z,Nx,Ny,Nz,comp,user)+
+                       user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny,Nz)]*user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)];
+                ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                 CHKERRQ(ierr);
 
                 //Residual for water flow
                 //Plus modification to electroneutrality for non-zero mem.compacitance
                 for(comp = 0; comp < Nc-1; comp++){
                     //Water flow
-                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni+1,comp,Nx,Ny),al[al_index(x,y,z,comp,Nx,Ny)]-
-                    alp[al_index(x,y,z,comp,Nx,Ny)]+flux->wflow[al_index(x,y,z,comp,Nx,Ny)]*dt,INSERT_VALUES);
+                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),al[al_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                                                          alp[al_index(x,y,z,comp,Nx,Ny,Nz)]+flux->wflow[al_index(x,y,z,comp,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                     CHKERRQ(ierr);
 
                 }
@@ -2190,12 +2226,12 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
                 // Add Modification to electroneutrality for non-zero mem.compacitance
                 for(comp = 0; comp < Nc-1; comp++){
                     //Extracell voltage
-                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),-cm[comp]*(phi[phi_index(x,y,z,Nc-1,Nx,Ny)]-
-                    phi[phi_index(x,y,z,comp,Nx,Ny)]),ADD_VALUES);
+                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),-cm[comp]*(phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)]-
+                                                                                   phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]),ADD_VALUES);
                     CHKERRQ(ierr);
                     //Intracell voltage mod
-                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny),-cm[comp]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
-                    phi[phi_index(x,y,z,Nc-1,Nx,Ny)]),ADD_VALUES);
+                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),-cm[comp]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                                                                   phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)]),ADD_VALUES);
                     CHKERRQ(ierr);
                 }
             }
@@ -2261,152 +2297,152 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx){
                         Ftmpy = 0;Fc0y = 0;Fc1y = 0;Fph0y = 0;Fph1y = 0;
                         Ftmpz = 0;Fc0z = 0;Fc1z = 0;Fph0z = 0;Fph1z = 0;
                         if(x < Nx-1){
-                            Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                            Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                            Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph0x = z_charge[ion]*Ftmpx;
                             // Right c with left c (-Fc0x)
 
-                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc0x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc0x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Right c with left phi (-Fph0x)
-                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph0x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph0x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                         }
                         if(x > 0){
-                            Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                            Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                              cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                            Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph1x = z_charge[ion]*Ftmpx;
                             //left c with right c (-Fc1x)
-                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc1x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc1x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Left c with right phi (-Fph1x)
-                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph1x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph1x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(y < Ny-1){
-                            Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                            Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                              cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                            Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph0y = z_charge[ion]*Ftmpy;
                             // Upper c with lower c (-Fc0y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc0y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc0y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Upper c with lower phi (-Fph0y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph0y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph0y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(y > 0){
-                            Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                            Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                            Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph1y = z_charge[ion]*Ftmpy;
                             //Lower c with Upper c (-Fc1y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc1y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc1y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Lower c with Upper phi (-Fph1y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph1y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph1y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(z < Nz-1){
-                            Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                            Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                              cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                            Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph0z = z_charge[ion]*Ftmpz;
                             // Top c with Bot c (-Fc0x)
 
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -Fc0z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Top c with Bot phi (-Fph0x)
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                                -Fph0z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                         }
                         if(z > 0){
-                            Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                            Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                            Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph1z = z_charge[ion]*Ftmpz;
                             //Top c with Bot c (-Fc1x)
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -Fc1z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Top c with Bot phi (-Fph1x)
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                                -Fph1z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         //Diagonal term contribution
-                        Ac = al[al_index(x,y,z,comp,Nx,Ny)]+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
+                        Ac = al[al_index(x,y,z,comp,Nx,Ny,Nz)]+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
                         Aphi = Fph0x+Fph1x+Fph0y+Fph1y+Fph0z+Fph1z;
 
 
                         //membrane current contributions
-                        Ac += flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
-                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Ac += flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
+                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                         // Different Compartment Terms
                         // C Extracellular with C Inside
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                           -flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // C Intra with C Extra
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,Nc-1,Nx,Ny),
-                                           flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),
+                                           flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // C Extracellular with Phi Inside
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // C Intra with Phi Extra
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),
-                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),
+                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Volume terms
                         //C extra with intra alpha
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni+1,comp,Nx,Ny),
-                                -c[c_index(x,y,z,Nc-1,ion,Nx,Ny)],INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),
+                                           -c[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //C intra with intra alpha
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni+1,comp,Nx,Ny),
-                                c[c_index(x,y,z,comp,ion,Nx,Ny)],INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),
+                                           c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Same compartment terms
                         // c with c
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),Ac,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ac,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // c with phi
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),Aphi,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Aphi,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
@@ -2418,127 +2454,127 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx){
                     Ftmpy = 0;Fc0y = 0;Fc1y = 0;Fph0y = 0;Fph1y = 0;
                     Ftmpz = 0;Fc0z = 0;Fc1z = 0;Fph0z = 0;Fph1z = 0;
                     if(x < Nx-1){
-                        Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                        Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                        cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                        Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph0x = z_charge[ion]*Ftmpx;
                         // Right c with left c (-Fc0x)
-                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                -Fc0x,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -Fc0x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Right c with left phi (-Fph0x)
-                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fph0x,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fph0x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(x > 0){
-                        Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]
-                                +cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                        Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]
+                                                                          +cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                        Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph1x = z_charge[ion]*Ftmpx;
                         //left c with right c (-Fc1x)
-                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                -Fc1x,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -Fc1x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Left c with right phi (-Fph1x)
-                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fph1x,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fph1x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(y < Ny-1){
-                        Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                        Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                          cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                        Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph0y = z_charge[ion]*Ftmpy;
                         // Upper c with lower c (-Fc0y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                -Fc0y,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -Fc0y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Upper c with lower phi (-Fph0y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fph0y,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fph0y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(y > 0){
-                        Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                        Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                        Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph1y = z_charge[ion]*Ftmpy;
                         //Lower c with Upper c (-Fc1y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                -Fc1y,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -Fc1y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Lower c with Upper phi (-Fph1y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fph1y,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fph1y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(z < Nz-1){
-                        Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                        cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                        Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                          cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                        Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph0z = z_charge[ion]*Ftmpz;
                         // Top c with Bot c (-Fc0x)
 
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -Fc0z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Top c with Bot phi (-Fph0x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fph0z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                     }
                     if(z > 0){
-                        Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                                                          cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                        Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                        Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph1z = z_charge[ion]*Ftmpz;
                         //Top c with Bot c (-Fc1x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -Fc1z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Top c with Bot phi (-Fph1x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fph1z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
 
                     //Diagonal term contribution
-                    Ac = (1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)])+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
+                    Ac = (1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)])+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
                     Aphi = Fph0x+Fph1x+Fph0y+Fph1y+Fph0z+Fph1z;
 
                     //Membrane current contribution
                     for(comp = 0; comp < Nc-1; comp++){
-                        Ac -= flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
-                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Ac -= flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
+                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                     }
                     //Add bath contributions
-                    Ftmpx = sqrt(pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3],2)+
-                            pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+1],2)+
-                            pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+2],2));
-                    Ac -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny)]+cbath[ion])/(2*c[c_index(x,y,z,Nc-1,ion,Nx,Ny)])*dt;
-                    Aphi -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny)]+cbath[ion])*z_charge[ion]/2*dt;
+                    Ftmpx = sqrt(pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3],2)+
+                                 pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+1],2)+
+                                 pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+2],2));
+                    Ac -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)]+cbath[ion])/(2*c[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)])*dt;
+                    Aphi -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)]+cbath[ion])*z_charge[ion]/2*dt;
 
                     //Insert extracell to extracell parts
                     // c with c
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ac,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ac,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     // c with phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Aphi,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),Aphi,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
@@ -2555,15 +2591,15 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx){
                 for(ion = 0; ion < Ni; ion++){
                     for(comp = 0; comp < Nc-1; comp++){
                         //Phi with C entries
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                           z_charge[ion]*al[al_index(x,y,z,comp,Nx,Ny)],INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           z_charge[ion]*al[al_index(x,y,z,comp,Nx,Ny,Nz)],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     //Phi with C extracellular one
                     comp = Nc-1;
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                       z_charge[ion]*(1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)]),
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                       z_charge[ion]*(1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)]),
                                        INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
@@ -2575,30 +2611,32 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx){
                     Aphi -= cm[comp];
                 }
                 //extraphi with extra phi
-                ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Aphi,INSERT_VALUES);
+                ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),Aphi,INSERT_VALUES);
                 CHKERRQ(ierr);
                 ind++;
                 for(comp = 0; comp < Nc-1; comp++){
                     //Extra phi with intra phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),cm[comp],INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,
+                                                 Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),cm[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     // Intra phi with Extraphi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),cm[comp],INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,
+                                                                              Nc-1,Nx,Ny,Nz),cm[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Intra phi with Intra phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),-cm[comp],INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),-cm[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Extra phi with intra-Volume
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni+1,comp,Nx,Ny),
-                            -cz(c,z_charge,x,y,z,Nx,Ny,Nc-1,user),INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),
+                                       -cz(c,z_charge,x,y,z,Nx,Ny,Nz,Nc-1,user),INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Intra phi with Intra Vol
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni+1,comp,Nx,Ny),
-                            cz(c,z_charge,x,y,z,Nx,Ny,comp,user),INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),
+                                       cz(c,z_charge,x,y,z,Nx,Ny,Nz,comp,user),INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
@@ -2613,41 +2651,42 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx){
                 for(comp = 0; comp < Nc-1; comp++){
                     //Water flow volume fraction entries
                     //Volume to Volume
-                    Ac = 1+(flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*(con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny)]/
-                            (pow(1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)],2))+
-                            con_vars->ao[phi_index(0,0,0,comp,Nx,Ny)]/pow(al[al_index(x,y,z,comp,Nx,Ny)],2))+
-                                    flux->dwdal[al_index(x,y,z,comp,Nx,Ny)])*dt;
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny),Ind_1(x,y,z,Ni+1,comp,Nx,Ny),Ac,INSERT_VALUES);
+                    Ac = 1+(flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*(con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                                                                       (pow(1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)],2))+
+                                                                     con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)]/pow(al[al_index(x,y,z,comp,Nx,Ny,Nz)],2))+
+                            flux->dwdal[al_index(x,y,z,comp,Nx,Ny,Nz)])*dt;
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,
+                                                                                Ni+1,comp,Nx,Ny,Nz),Ac,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Off diagonal (from aNc=1-sum(ak))
                     for(PetscInt l = 0; l < comp; l++){
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny),Ind_1(x,y,z,Ni+1,l,Nx,Ny),
-                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*
-                                           con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny)]/
-                                           pow(1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)],2)*dt,
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni+1,l,Nx,Ny,Nz),
+                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*
+                                           con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                                           pow(1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)],2)*dt,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     for(PetscInt l = comp+1; l < Nc-1; l++){
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny),Ind_1(x,y,z,Ni+1,l,Nx,Ny),
-                                flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*
-                                con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny)]/
-                                ((1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)])*
-                                (1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)]))*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni+1,l,Nx,Ny,Nz),
+                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*
+                                           con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                                           ((1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)])*
+                                            (1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)]))*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     for(ion = 0; ion < Ni; ion++){
                         //Volume to extra c
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny),Ind_1(x,y,z,ion,Nc-1,Nx,Ny),
-                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),
+                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Volume to intra c
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                           -flux->dwdpi[al_index(x,y,z,comp,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
@@ -2722,132 +2761,136 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
                         RcvxRight = 0;
                         if(x > 0){
                             //First difference term
-                            Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                            Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x-1,y,z,comp,ion,Nx,Ny)])+
-                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
-                                    phi[phi_index(x-1,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                            Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                             cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(
+                                    x-1,y,z,comp,ion,Nx,Ny,Nz)])+
+                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                                   phi[phi_index(x-1,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                         }
                         //Add Second right moving difference
                         if(x < Nx-1){
-                            RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2;
-                            RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny)])-
-                                    log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*
-                                    (phi[phi_index(x+1,y,z,comp,Nx,Ny)]-phi[phi_index(x,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                            RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])-
+                                                   log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*
+                                                                                           (phi[phi_index(
+                                                                                                   x+1,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                         }
                         Rcvy = 0;
                         RcvyUp = 0;
                         //Up down difference
                         if(y > 0){
-                            Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                            Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny)])+
-                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
-                                    phi[phi_index(x,y-1,z,comp,Nx,Ny)]))/dy*dt/dy;
+                            Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                               cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)])+
+                                    z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                                   phi[phi_index(x,y-1,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                         }
                         //Next upward difference
                         if(y < Ny-1){
-                            RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2;
-                            RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+
-                                    z_charge[ion]*(phi[phi_index(x,y+1,z,comp,Nx,Ny)]-
-                                    phi[phi_index(x,y,z,comp,Nx,Ny)]))/dy*dt/dy;
+                            RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                               cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2;
+                            RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+
+                                    z_charge[ion]*(phi[phi_index(x,y+1,z,comp,Nx,Ny,Nz)]-
+                                                   phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                         }
                         Rcvz = 0;
                         RcvzTop = 0;
                         //Top Bot difference
                         if(z > 0){
-                            Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                                                             cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                            Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z-1,comp,ion,Nx,Ny)])+
-                                         z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
-                                                        phi[phi_index(x,y,z-1,comp,Nx,Ny)]))/dz*dt/dz;
+                            Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                               cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                            Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,
+                                                                                               z-1,comp,ion,Nx,Ny,Nz)])+
+                                         z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                                        phi[phi_index(x,y,z-1,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                         }
                         //Next Topward difference
                         if(z < Nz-1){
-                            RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                             cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2;
-                            RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+
-                                             z_charge[ion]*(phi[phi_index(x,y,z+1,comp,Nx,Ny)]-
-                                                            phi[phi_index(x,y,z,comp,Nx,Ny)]))/dz*dt/dz;
+                            RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2;
+                            RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+
+                                             z_charge[ion]*(phi[phi_index(x,y,z+1,comp,Nx,Ny,Nz)]-
+                                                            phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                         }
-                        Resc = al[al_index(x,y,z,comp,Nx,Ny)]*c[c_index(x,y,z,comp,ion,Nx,Ny)]-
-                                alp[al_index(x,y,z,comp,Nx,Ny)]*cp[c_index(x,y,z,comp,ion,Nx,Ny)];
-                        Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Resc = al[al_index(x,y,z,comp,Nx,Ny,Nz)]*c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]-
+                               alp[al_index(x,y,z,comp,Nx,Ny,Nz)]*cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
+                        Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
 
-                        ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny),Resc,INSERT_VALUES);
+                        ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                         CHKERRQ(ierr);
 
                     }
                     //Set Extracellular values
-                    alNc = 1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)];
-                    alpNc = 1-alp[al_index(x,y,z,0,Nx,Ny)]-alp[al_index(x,y,z,1,Nx,Ny)];
+                    alNc = 1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)];
+                    alpNc = 1-alp[al_index(x,y,z,0,Nx,Ny,Nz)]-alp[al_index(x,y,z,1,Nx,Ny,Nz)];
                     comp = Nc-1;
                     Rcvx = 0;
                     RcvxRight = 0;
                     if(x > 0){
                         //First difference term
-                        Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                        Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x-1,y,z,comp,ion,Nx,Ny)])+
-                                z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
-                                phi[phi_index(x-1,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                        Rcvx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                         cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        Rcvx = Rcvx*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)])+
+                                z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                               phi[phi_index(x-1,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                     }
                     //Add Second right moving difference
                     if(x < Nx-1){
-                        RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2;
-                        RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny)])-
-                                log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+z_charge[ion]*(phi[phi_index(x+1,y,z,comp,Nx,Ny)]-
-                                phi[phi_index(x,y,z,comp,Nx,Ny)]))/dx*dt/dx;
+                        RcvxRight = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        RcvxRight = RcvxRight*(log(c[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])-
+                                               log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]*(phi[phi_index(
+                                x+1,y,z,comp,Nx,Ny,Nz)]-
+                                                                                                      phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dx*dt/dx;
                     }
                     Rcvy = 0;
                     RcvyUp = 0;
                     //Up down difference
                     if(y > 0){
-                        Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                        Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny)])+
-                                z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
-                                phi[phi_index(x,y-1,z,comp,Nx,Ny)]))/dy*dt/dy;
+                        Rcvy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                           cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        Rcvy = Rcvy*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)])+
+                                z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                               phi[phi_index(x,y-1,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                     }
                     //Next upward difference
                     if(y < Ny-1){
-                        RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2;
-                        RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+
-                                z_charge[ion]*(phi[phi_index(x,y+1,z,comp,Nx,Ny)]-
-                                phi[phi_index(x,y,z,comp,Nx,Ny)]))/dy*dt/dy;
+                        RcvyUp = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                           cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2;
+                        RcvyUp = RcvyUp*(log(c[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+
+                                z_charge[ion]*(phi[phi_index(x,y+1,z,comp,Nx,Ny,Nz)]-
+                                               phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dy*dt/dy;
                     }
                     Rcvz = 0;
                     RcvzTop = 0;
                     //Top Bot difference
                     if(z > 0){
-                        Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                                                         cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2;
-                        Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z-1,comp,ion,Nx,Ny)])+
-                                     z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
-                                                    phi[phi_index(x,y,z-1,comp,Nx,Ny)]))/dz*dt/dz;
+                        Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                           cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)])+
+                                     z_charge[ion]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                                    phi[phi_index(x,y,z-1,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                     }
                     //Next Topward difference
                     if(z < Nz-1){
-                        RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                                                          cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2;
-                        RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny)])+
-                                           z_charge[ion]*(phi[phi_index(x,y,z+1,comp,Nx,Ny)]-
-                                                          phi[phi_index(x,y,z,comp,Nx,Ny)]))/dz*dt/dz;
+                        RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2;
+                        RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])-log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+
+                                           z_charge[ion]*(phi[phi_index(x,y,z+1,comp,Nx,Ny,Nz)]-
+                                                          phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dz*dt/dz;
                     }
-                    Resc = alNc*c[c_index(x,y,z,comp,ion,Nx,Ny)]-alpNc*cp[c_index(x,y,z,comp,ion,Nx,Ny)];
-                    Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                    Resc = alNc*c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]-alpNc*cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
+                    Resc += Rcvx-RcvxRight+Rcvy-RcvyUp+Rcvz-RcvzTop+flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                     //Add bath variables
 
-                    Resc -= sqrt(pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3],2)+
-                            pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3+1],2)+
-                            pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny)*3+2],2))*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cbath[ion])/2.0*(log(c[c_index(x,y,z,comp,ion,Nx,Ny)])-log(cbath[ion])+
-                                            z_charge[ion]*phi[phi_index(x,y,z,comp,Nx,Ny)]-z_charge[ion]*phibath)*dt;
-                    ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny),Resc,INSERT_VALUES);
+                    Resc -= sqrt(pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3],2)+
+                                 pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1],2)+
+                                 pow(Dcb[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2],2))*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                                   cbath[ion])/2.0*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])-log(cbath[ion])+
+                                            z_charge[ion]*phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-z_charge[ion]*phibath)*dt;
+                    ierr = VecSetValue(Res,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                     CHKERRQ(ierr);
 
                 }
@@ -2860,17 +2903,18 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
             for(x = 0; x < Nx; x++){
                 //Residual for electroneutrality condition
                 for(comp = 0; comp < Nc-1; comp++){
-                    Resc = al[al_index(x,y,z,comp,Nx,Ny)]*cz(c,z_charge,x,y,z,Nx,Ny,comp,user)+
-                            user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny)]*
-                            user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny)];
-                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny),Resc,INSERT_VALUES);
+                    Resc = al[al_index(x,y,z,comp,Nx,Ny,Nz)]*cz(c,z_charge,x,y,z,Nx,Ny,Nz,comp,user)+
+                           user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny,Nz)]*
+                           user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)];
+                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                     CHKERRQ(ierr);
                 }
                 //Extracellular term
                 comp = Nc-1;
-                Resc = (1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)])*cz(c,z_charge,x,y,z,Nx,Ny,comp,user)+
-                        user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny)]*user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny)];
-                ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny),Resc,INSERT_VALUES);
+                Resc = (1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)])*
+                       cz(c,z_charge,x,y,z,Nx,Ny,Nz,comp,user)+
+                       user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny,Nz)]*user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)];
+                ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                 CHKERRQ(ierr);
             }
         }
@@ -2885,12 +2929,12 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
                 // Add Modification to electroneutrality for non-zero mem.compacitance
                 for(comp = 0; comp < Nc-1; comp++){
                     //Extracell voltage
-                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),-cm[comp]*(phi[phi_index(x,y,z,Nc-1,Nx,Ny)]-
-                    phi[phi_index(x,y,z,comp,Nx,Ny)]),ADD_VALUES);
+                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),-cm[comp]*(phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)]-
+                                                                                   phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]),ADD_VALUES);
                     CHKERRQ(ierr);
                     //Intracell voltage mod
-                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny),-cm[comp]*(phi[phi_index(x,y,z,comp,Nx,Ny)]-
-                    phi[phi_index(x,y,z,Nc-1,Nx,Ny)]),ADD_VALUES);
+                    ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),-cm[comp]*(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-
+                                                                                   phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)]),ADD_VALUES);
                     CHKERRQ(ierr);
                 }
             }
@@ -2955,141 +2999,141 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                         Ftmpy = 0;Fc0y = 0;Fc1y = 0;Fph0y = 0;Fph1y = 0;
                         Ftmpz = 0;Fc0z = 0;Fc1z = 0;Fph0z = 0;Fph1z = 0;
                         if(x < Nx-1){
-                            Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                            Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                            Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph0x = z_charge[ion]*Ftmpx;
                             // Right c with left c (-Fc0x)
 
-                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc0x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc0x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Right c with left phi (-Fph0x)
-                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph0x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph0x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                         }
                         if(x > 0){
-                            Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                            Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                              cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                            Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph1x = z_charge[ion]*Ftmpx;
                             //left c with right c (-Fc1x)
-                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc1x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc1x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Left c with right phi (-Fph1x)
-                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph1x,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph1x,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(y < Ny-1){
-                            Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                            Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                              cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                            Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph0y = z_charge[ion]*Ftmpy;
                             // Upper c with lower c (-Fc0y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc0y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc0y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Upper c with lower phi (-Fph0y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph0y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph0y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(y > 0){
-                            Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                            Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                            Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph1y = z_charge[ion]*Ftmpy;
                             //Lower c with Upper c (-Fc1y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                    -Fc1y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                               -Fc1y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Lower c with Upper phi (-Fph1y)
-                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                    -Fph1y,INSERT_VALUES);
+                            ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                               -Fph1y,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         if(z < Nz-1){
-                            Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                            Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                              cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                            Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph0z = z_charge[ion]*Ftmpz;
                             // Right c with left c (-Fc0z)
 
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -Fc0z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Right c with left phi (-Fph0z)
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                                -Fph0z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
 
                         }
                         if(z > 0){
-                            Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                    cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                            Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                            Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                                cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                            Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                             Fph1z = z_charge[ion]*Ftmpz;
                             //left c with right c (-Fc1x)
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                                -Fc1z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                             //Left c with right phi (-Fph1x)
-                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                            ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                                -Fph1z,INSERT_VALUES);
                             CHKERRQ(ierr);
                             ind++;
                         }
                         //Diagonal term contribution
-                        Ac = al[al_index(x,y,z,comp,Nx,Ny)]+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
+                        Ac = al[al_index(x,y,z,comp,Nx,Ny,Nz)]+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
                         Aphi = Fph0x+Fph1x+Fph0y+Fph1y+Fph0z+Fph1z;
 
 
                         //membrane current contributions
-                        Ac += flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
-                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Ac += flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
+                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                         // Different Compartment Terms
                         // C Extracellular with C Inside
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                -flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -flux->dfdci[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // C Intra with C Extra
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,Nc-1,Nx,Ny),
-                                flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),
+                                           flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // C Extracellular with Phi Inside
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // C Intra with Phi Extra
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),
-                                -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),
+                                           -flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Same compartment terms
                         // c with c
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),Ac,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ac,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         // c with phi
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),Aphi,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Aphi,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
@@ -3101,127 +3145,127 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                     Ftmpy = 0;Fc0y = 0;Fc1y = 0;Fph0y = 0;Fph1y = 0;
                     Ftmpz = 0;Fc0z = 0;Fc1z = 0;Fph0z = 0;Fph1z = 0;
                     if(x < Nx-1){
-                        Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x+1,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                        Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpx = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                        cp[c_index(x+1,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                        Fc0x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph0x = z_charge[ion]*Ftmpx;
                         // Right c with left c (-Fc0x)
-                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                -Fc0x,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -Fc0x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Right c with left phi (-Fph0x)
-                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fph0x,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x+1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fph0x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(x > 0){
-                        Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dx*dt/dx;
-                        Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpx = Dcs[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)*3]*(cp[c_index(x-1,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                          cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dx*dt/dx;
+                        Fc1x = Ftmpx/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph1x = z_charge[ion]*Ftmpx;
                         //left c with right c (-Fc1x)
-                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                -Fc1x,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -Fc1x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Left c with right phi (-Fph1x)
-                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fph1x,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x-1,y,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fph1x,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(y < Ny-1){
-                        Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y+1,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                        Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpy = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                          cp[c_index(x,y+1,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                        Fc0y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph0y = z_charge[ion]*Ftmpy;
                         // Upper c with lower c (-Fc0y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                -Fc0y,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -Fc0y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Upper c with lower phi (-Fph0y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fph0y,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y+1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fph0y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(y > 0){
-                        Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dy*dt/dy;
-                        Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpy = Dcs[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)*3+1]*(cp[c_index(x,y-1,z,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dy*dt/dy;
+                        Fc1y = Ftmpy/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph1y = z_charge[ion]*Ftmpy;
                         //Lower c with Upper c (-Fc1y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                -Fc1y,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                           -Fc1y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Lower c with Upper phi (-Fph1y)
-                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
-                                -Fph1y,INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y-1,z,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
+                                           -Fph1y,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     if(z < Nz-1){
-                        Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y,z+1,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                        Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpz = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+
+                                                                          cp[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                        Fc0z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph0z = z_charge[ion]*Ftmpz;
                         // Right c with left c (-Fc0z)
 
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -Fc0z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Right c with left phi (-Fph0z)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z+1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fph0z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
 
                     }
                     if(z > 0){
-                        Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny)]+
-                                cp[c_index(x,y,z,comp,ion,Nx,Ny)])/2/dz*dt/dz;
-                        Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny)];
+                        Ftmpz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*(cp[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+
+                                                                            cp[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2/dz*dt/dz;
+                        Fc1z = Ftmpz/c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)];
                         Fph1z = z_charge[ion]*Ftmpz;
                         //left c with right c (-Fc1x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
                                            -Fc1z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                         //Left c with right phi (-Fph1x)
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z-1,ion,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),
                                            -Fph1z,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
 
                     //Diagonal term contribution
-                    Ac = (1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)])+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
+                    Ac = (1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)])+Fc0x+Fc1x+Fc0y+Fc1y+Fc0z+Fc1z;
                     Aphi = Fph0x+Fph1x+Fph0y+Fph1y+Fph0z+Fph1z;
 
                     //Membrane current contribution
                     for(comp = 0; comp < Nc-1; comp++){
-                        Ac -= flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
-                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny)]*dt;
+                        Ac -= flux->dfdce[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
+                        Aphi += flux->dfdphim[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*dt;
                     }
                     //Add bath contributions
-                    Ftmpx = sqrt(pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3],2)+
-                            pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+1],2)+
-                            pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny)*3+2],2));
-                    Ac -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny)]+cbath[ion])/(2*c[c_index(x,y,z,Nc-1,ion,Nx,Ny)])*dt;
-                    Aphi -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny)]+cbath[ion])*z_charge[ion]/2*dt;
+                    Ftmpx = sqrt(pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3],2)+
+                                 pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+1],2)+
+                                 pow(Dcb[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)*3+2],2));
+                    Ac -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)]+cbath[ion])/(2*c[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)])*dt;
+                    Aphi -= Ftmpx*(cp[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)]+cbath[ion])*z_charge[ion]/2*dt;
 
                     //Insert extracell to extracell parts
                     // c with c
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ac,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ac,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     // c with phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Aphi,INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,ion,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),Aphi,INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
@@ -3238,15 +3282,15 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                 for(ion = 0; ion < Ni; ion++){
                     for(comp = 0; comp < Nc-1; comp++){
                         //Phi with C entries
-                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                                z_charge[ion]*al[al_index(x,y,z,comp,Nx,Ny)],INSERT_VALUES);
+                        ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                                z_charge[ion]*al[al_index(x,y,z,comp,Nx,Ny,Nz)],INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
                     }
                     //Phi with C extracellular one
                     comp = Nc-1;
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,ion,comp,Nx,Ny),
-                            z_charge[ion]*(1-al[al_index(x,y,z,0,Nx,Ny)]-al[al_index(x,y,z,1,Nx,Ny)]),INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,ion,comp,Nx,Ny,Nz),
+                            z_charge[ion]*(1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)]),INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }
@@ -3256,20 +3300,22 @@ calc_jacobian_algebraic_no_vol(SNES snes,Vec current_state, Mat A, Mat Jac,void 
                     Aphi -= cm[comp];
                 }
                 //extraphi with extra phi
-                ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Aphi,INSERT_VALUES);
+                ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny,Nz),Aphi,INSERT_VALUES);
                 CHKERRQ(ierr);
                 ind++;
                 for(comp = 0; comp < Nc-1; comp++){
                     //Extra phi with intra phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),cm[comp],INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,
+                                                 Nc-1,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),cm[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     // Intra phi with Extraphi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,Nc-1,Nx,Ny),cm[comp],INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,
+                                                                              Nc-1,Nx,Ny,Nz),cm[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                     //Intra phi with Intra phi
-                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny),Ind_1(x,y,z,Ni,comp,Nx,Ny),-cm[comp],INSERT_VALUES);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),-cm[comp],INSERT_VALUES);
                     CHKERRQ(ierr);
                     ind++;
                 }

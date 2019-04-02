@@ -32,12 +32,13 @@ void mclin(struct FluxData *,int,double,int,double,double,double,int);
 void mcGoldman(struct FluxData *,int,double,int,double,double,double,int);
 //Glutamate membrane fluxes
 void glutamate_flux(struct FluxData *,PetscInt,PetscInt,PetscInt z,struct SimState *state_vars,
-                    struct SimState *state_vars_past,PetscInt,PetscInt,PetscReal,struct AppCtx *user);
+                    struct SimState *state_vars_past,PetscInt,PetscInt,PetscInt Nz,PetscReal,struct AppCtx *user);
 //Conductance for potassium inward rectifier
 double inwardrect(double,double,double);
 //Returns of c_i*z_i
 PetscReal
-cz(const PetscReal *,const PetscInt *,PetscInt,PetscInt,PetscInt z,PetscInt,PetscInt Ny,PetscInt,struct AppCtx *);
+cz(const PetscReal *,const PetscInt *,PetscInt,PetscInt,PetscInt z,PetscInt,PetscInt Ny,PetscInt Nz,PetscInt,
+   struct AppCtx *);
 //Computes diffusion coef
 void diff_coef(double *,const PetscReal *,PetscReal,struct AppCtx*);
 //Calculate the ion fluxes and derivatives
@@ -53,12 +54,12 @@ void volume_update(struct SimState*,struct SimState*,struct AppCtx*);
 void excitation(struct AppCtx*,PetscReal);
 
 // Indexing functions
-PetscInt c_index(PetscInt, PetscInt, PetscInt , PetscInt, PetscInt, PetscInt, PetscInt );
-PetscInt phi_index(PetscInt, PetscInt, PetscInt , PetscInt, PetscInt, PetscInt );
-PetscInt al_index(PetscInt, PetscInt, PetscInt , PetscInt, PetscInt, PetscInt );
-PetscInt xy_index(PetscInt, PetscInt, PetscInt , PetscInt, PetscInt );
-PetscInt Ind_1(PetscInt, PetscInt, PetscInt , PetscInt, PetscInt, PetscInt, PetscInt );
-PetscInt Ind_2(PetscInt, PetscInt, PetscInt , PetscInt, PetscInt, PetscInt, PetscInt);
+PetscInt c_index(PetscInt,PetscInt,PetscInt,PetscInt,PetscInt,PetscInt,PetscInt,PetscInt Nz);
+PetscInt phi_index(PetscInt,PetscInt,PetscInt,PetscInt,PetscInt,PetscInt,PetscInt Nz);
+PetscInt al_index(PetscInt,PetscInt,PetscInt,PetscInt,PetscInt,PetscInt,PetscInt Nz);
+PetscInt xy_index(PetscInt,PetscInt,PetscInt,PetscInt,PetscInt,PetscInt Nz);
+PetscInt Ind_1(PetscInt,PetscInt,PetscInt,PetscInt,PetscInt,PetscInt,PetscInt,PetscInt Nz);
+PetscInt Ind_2(PetscInt,PetscInt,PetscInt,PetscInt,PetscInt,PetscInt,PetscInt,PetscInt nz);
 
 
 //Create Petsc Structures
