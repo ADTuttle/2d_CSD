@@ -685,16 +685,19 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
             for(comp=0;comp<Nc-1;comp++) {
                 //Water flow volume fraction entries
                 //Volume to Volume
-                Ac=1+(flux->dwdpi[al_index(x,y,comp,Nx)]*(con_vars->ao[phi_index(0,0,Nc-1,Nx)]/(pow(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)],2))+con_vars->ao[phi_index(0,0,comp,Nx)]/pow(al[al_index(x,y,comp,Nx)],2))+flux->dwdal[al_index(x,y,comp,Nx)])*dt;
+                Ac=1+(flux->dwdpi[al_index(x,y,comp,Nx)]*(con_vars->ao[phi_index(x,y,Nc-1,Nx)]/
+                        (pow(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)],2))+con_vars->ao[phi_index(x,y,comp,Nx)]/
+                                                                                 pow(al[al_index(x,y,comp,Nx)],2))+
+                                                                                         flux->dwdal[al_index(x,y,comp,Nx)])*dt;
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,Ni+1,comp,Nx),Ac,INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
                 //Off diagonal (from aNc=1-sum(ak))
                 for (PetscInt l=0; l<comp; l++) {
-                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,Ni+1,l,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*con_vars->ao[phi_index(0,0,Nc-1,Nx)]/pow(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)],2)*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,Ni+1,l,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*con_vars->ao[phi_index(x,y,Nc-1,Nx)]/pow(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)],2)*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
                 for (PetscInt l=comp+1; l<Nc-1; l++) {
-                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,Ni+1,l,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*con_vars->ao[phi_index(0,0,Nc-1,Nx)]/((1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)]))*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,Ni+1,l,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*con_vars->ao[phi_index(x,y,Nc-1,Nx)]/((1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)]))*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
                 for (ion=0; ion<Ni; ion++) {
@@ -1450,12 +1453,12 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
             for(comp=0;comp<Nc-1;comp++)
             {
 
-                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(x,y,comp,Nx)]*user->con_vars->ao[phi_index(x,y,comp,Nx)];
                 ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
             }
             //Extracellular term
             comp=Nc-1;
-            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(x,y,comp,Nx)]*user->con_vars->ao[phi_index(x,y,comp,Nx)];
             ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
 
             //Residual for water flow
@@ -1769,16 +1772,16 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
             for(comp=0;comp<Nc-1;comp++) {
                 //Water flow volume fraction entries
                 //Volume to Volume
-                Ac=1+(flux->dwdpi[al_index(x,y,comp,Nx)]*(con_vars->ao[phi_index(0,0,Nc-1,Nx)]/(pow(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)],2))+con_vars->ao[phi_index(0,0,comp,Nx)]/pow(al[al_index(x,y,comp,Nx)],2))+flux->dwdal[al_index(x,y,comp,Nx)])*dt;
+                Ac=1+(flux->dwdpi[al_index(x,y,comp,Nx)]*(con_vars->ao[phi_index(x,y,Nc-1,Nx)]/(pow(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)],2))+con_vars->ao[phi_index(x,y,comp,Nx)]/pow(al[al_index(x,y,comp,Nx)],2))+flux->dwdal[al_index(x,y,comp,Nx)])*dt;
                 ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,Ni+1,comp,Nx),Ac,INSERT_VALUES);CHKERRQ(ierr);
                 ind++;
                 //Off diagonal (from aNc=1-sum(ak))
                 for (PetscInt l=0; l<comp; l++) {
-                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,Ni+1,l,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*con_vars->ao[phi_index(0,0,Nc-1,Nx)]/pow(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)],2)*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,Ni+1,l,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*con_vars->ao[phi_index(x,y,Nc-1,Nx)]/pow(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)],2)*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
                 for (PetscInt l=comp+1; l<Nc-1; l++) {
-                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,Ni+1,l,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*con_vars->ao[phi_index(0,0,Nc-1,Nx)]/((1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)]))*dt,INSERT_VALUES);CHKERRQ(ierr);
+                    ierr = MatSetValue(Jac,Ind_1(x,y,Ni+1,comp,Nx),Ind_1(x,y,Ni+1,l,Nx),flux->dwdpi[al_index(x,y,comp,Nx)]*con_vars->ao[phi_index(x,y,Nc-1,Nx)]/((1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*(1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)]))*dt,INSERT_VALUES);CHKERRQ(ierr);
                     ind++;
                 }
                 for (ion=0; ion<Ni; ion++) {
@@ -1929,12 +1932,12 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
             for(comp=0;comp<Nc-1;comp++)
             {
 
-                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+                Resc = al[al_index(x,y,comp,Nx)]*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(x,y,comp,Nx)]*user->con_vars->ao[phi_index(x,y,comp,Nx)];
                 ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
             }
             //Extracellular term
             comp=Nc-1;
-            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(0,0,comp,Nx)]*user->con_vars->ao[phi_index(0,0,comp,Nx)];
+            Resc = (1-al[al_index(x,y,0,Nx)]-al[al_index(x,y,1,Nx)])*cz(c,z,x,y,Nx,comp,user)+user->con_vars->zo[phi_index(x,y,comp,Nx)]*user->con_vars->ao[phi_index(x,y,comp,Nx)];
             ierr = VecSetValue(Res,Ind_1(x,y,Ni,comp,Nx),Resc,INSERT_VALUES); CHKERRQ(ierr);
         }
     }

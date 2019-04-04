@@ -796,16 +796,16 @@ void wflowm(struct AppCtx *user)
             for(PetscInt ion=0;ion<Ni;ion++) {
                 piwNc +=state_vars->c[c_index(x,y,Nc-1,ion,Nx)];
             }
-            piwNc +=con_vars->ao[phi_index(0,0,Nc-1,Nx)]/(1-state_vars->alpha[al_index(x,y,0,Nx)]-state_vars->alpha[al_index(x,y,1,Nx)]);
+            piwNc +=con_vars->ao[phi_index(x,y,Nc-1,Nx)]/(1-state_vars->alpha[al_index(x,y,0,Nx)]-state_vars->alpha[al_index(x,y,1,Nx)]);
             for(PetscInt comp = 0;comp<Nc-1;comp++) {
                 piw = 0;
                 for(PetscInt ion=0;ion<Ni;ion++) {
                     piw +=state_vars->c[c_index(x,y,comp,ion,Nx)];
                 }
-                piw +=con_vars->ao[phi_index(0,0,comp,Nx)]/state_vars->alpha[al_index(x,y,comp,Nx)];
+                piw +=con_vars->ao[phi_index(x,y,comp,Nx)]/state_vars->alpha[al_index(x,y,comp,Nx)];
                 //ao, zeta1, and zetalpha are currently constant in space
-                dwdpi = con_vars->zeta1[al_index(0,0,comp,Nx)];
-                dwdal = con_vars->zeta1[al_index(0,0,comp,Nx)]*con_vars->zetaalpha[al_index(0,0,comp,Nx)];
+                dwdpi = con_vars->zeta1[al_index(x,y,comp,Nx)];
+                dwdal = con_vars->zeta1[al_index(x,y,comp,Nx)]*con_vars->zetaalpha[al_index(0,0,comp,Nx)];
 
                 flux->wflow[al_index(x,y,comp,Nx)] = dwdpi*(piwNc-piw)+dwdal*(state_vars->alpha[al_index(x,y,comp,Nx)]-alphao[comp]);
                 flux->dwdpi[al_index(x,y,comp,Nx)] = dwdpi;
