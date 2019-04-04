@@ -414,15 +414,15 @@ void parameter_dependence(struct AppCtx *user)
 //                    sa = ((1.586e-5-16.408e-5)/soma)*z*dz+16.408e-5;          //membrane area in cm^2
                     voli = 3.852e-9;         //intracellular volume in cm^3
                     vole = (0.15*voli);
-                    con_vars->pNaT[xy_index(x,y,z,Nx,Ny,Nz)] = basepNaT*pow((z*dz/Lz),3);
-                    con_vars->pKA[xy_index(x,y,z,Nx,Ny,Nz)] = basepKA*(1+0.14*pow(1-(z*dz/Lz),1));
-                    con_vars->pNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = basepNMDA*pow(1-(z*dz/Lz),1);
+                    con_vars->pNaT[xy_index(x,y,z,Nx,Ny,Nz)] = basepNaT*0;//*pow((z*dz/Lz),3);
+                    con_vars->pKA[xy_index(x,y,z,Nx,Ny,Nz)] = basepKA*0;//*(1+0.14*pow(1-(z*dz/Lz),1));
+                    con_vars->pNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = basepNMDA;//*pow(1-(z*dz/Lz),1);
                     con_vars->pNaP[xy_index(x,y,z,Nx,Ny,Nz)] = basepNaP;
                     con_vars->pKDR[xy_index(x,y,z,Nx,Ny,Nz)] = basepKDR;
 
-//                    if(z*dz>=soma-0.04){
-//                        con_vars->pNMDA[xy_index(x,y,z,Nx,Ny)] = 0;
-//                    }
+                    if(z*dz>=soma-0.0036){
+                        con_vars->pNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = 0;
+                    }
 
                     con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny,Nz)*3] = DNeuronMult[0]*0; //x-direction Neurons
                     con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny,Nz)*3+1] = DNeuronMult[1]*0; //y-direction Neurons
@@ -440,9 +440,9 @@ void parameter_dependence(struct AppCtx *user)
                     vole = (0.15*voli);
                     con_vars->pNaT[xy_index(x,y,z,Nx,Ny,Nz)] = basepNaT*0;
                     con_vars->pKA[xy_index(x,y,z,Nx,Ny,Nz)] = basepKA*0;
-                    con_vars->pNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = basepNMDA*(z*dz-(soma+soma_width))/(Lz-(soma+soma_width));
-                    con_vars->pNaP[xy_index(x,y,z,Nx,Ny,Nz)] = basepNaP*(1+.3*(z*dz-(soma+soma_width))/(Lz-(soma+soma_width)));
-                    con_vars->pKDR[xy_index(x,y,z,Nx,Ny,Nz)] = basepKDR*(1+.5*(z*dz-(soma+soma_width))/(Lz-(soma+soma_width)));
+                    con_vars->pNMDA[xy_index(x,y,z,Nx,Ny,Nz)] = basepNMDA*0;//*(z*dz-(soma+soma_width))/(Lz-(soma+soma_width));
+                    con_vars->pNaP[xy_index(x,y,z,Nx,Ny,Nz)] = basepNaP*0;//*(1+.3*(z*dz-(soma+soma_width))/(Lz-(soma+soma_width)));
+                    con_vars->pKDR[xy_index(x,y,z,Nx,Ny,Nz)] = basepKDR*0;//*(1+.5*(z*dz-(soma+soma_width))/(Lz-(soma+soma_width)));
                     //        con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3] = DNeuronMult[0]*.1*(z*dz-(soma+soma_width))/(Lz-(soma+soma_width)); //x-direction Neurons
                     //        con_vars->DNeuronScale[xy_index(x,y,z,Nx,Ny)*3+1] = DNeuronMult[1]*.1*(z*dz-(soma+soma_width))/(Lz-(soma+soma_width)); //y-direction Neurons
                 }

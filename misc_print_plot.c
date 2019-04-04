@@ -397,9 +397,9 @@ void measure_flux(FILE *fp, struct AppCtx* user,PetscInt numrecords,int start)
     struct SimState *state_vars= user->state_vars;
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
+    PetscInt Nz = user->Nz;
     if (start) {
-        fprintf(fp, "%d,%d,%d,%d,%d,%d,%d,%d\n", Nx, Ny, numrecords, Nc, Ni, use_en_deriv, separate_vol,
-                Linear_Diffusion);
+        fprintf(fp, "%d,%d,%d,%d\n", Nz, numrecords, Nc, Ni);
         measure_flux(fp, user, numrecords, 0);
     } else{
         //compute diffusion coefficients
@@ -414,106 +414,42 @@ void measure_flux(FILE *fp, struct AppCtx* user,PetscInt numrecords,int start)
         PetscReal *Dcb = user->Dcb;
         PetscReal dx = user->dx;
         PetscReal dy = user->dy;
+        PetscReal dz = user->dz;
 
-        PetscReal Ftmp;
+        PetscInt x,y,z,comp,ion;
+        PetscReal Rcvz,RcvzTop;
 
-        PetscReal Rcvx,RcvxRight,alNc;
-        PetscReal Rcvy,RcvyUp;
+        x = (PetscInt) floor(((double) Nx)/2);
+        y = 3;//(PetscInt)floor(((double)Ny)/2);
+        ionmflux(user);
 
-        PetscReal Rphx,RphxRight;
-        PetscReal Rphy,RphyUp;
+        for(z = 0; z < Nz; z++){
+            for(ion = 0; ion < Ni; ion++){
+                for(comp = 0; comp < Nc; comp++){
 
-        PetscReal RBath;
-
-        PetscInt x,y,comp,ion;
-
-        PetscReal Circ_Radius = 0.05;
-        PetscReal radius;
-
-        PetscReal Fluxc[Nc] = {0,0,0};
-        PetscReal Fluxph[Nc] = {0,0,0};
-        PetscReal Fluxbath[Nc] = {0,0,0};
-
-        int num_points=0;
-
-        for(x=0;x<Nx;x++){
-            for(y=0;y<Ny;y++){
-                radius = sqrt(pow((x + 0.5) * dx - Lx / 2, 2) + pow((y + 0.5) * dy - Lx / 2, 2));
-                if(radius<=Circ_Radius) {
-//                if(fabs((x+0.5)*dx-Lx/2)<=0.1 && fabs((y+0.5)*dy-Ly/2)<=0.1 ){
-                    num_points++;
-                    for(comp=0;comp<Nc;comp++) {
-                        //Reset values
-                        Rphx = 0;
-                        RphxRight = 0;
-                        Rphy = 0;
-                        RphyUp = 0;
-                        Rcvx = 0;
-                        RcvxRight = 0;
-                        Rcvy = 0;
-                        RcvyUp = 0;
-                        RBath = 0;
-                        //Sum over all ions
-                        for (ion = 0; ion < Ni; ion++) {
-                            if (x > 0) {
-                                //First difference term
-                                Ftmp = z_charge[ion]*Dcs[c_index(x-1,y,0,comp,ion,Nx,0,0)*2]/(dx*dx);
-                                Rcvx += Ftmp * (c[c_index(x,y,0,comp,ion,Nx,0,0)]-c[c_index(x-1,y,0,comp,
-                                                                                            ion,Nx,
-                                                                                            0,0)]);
-                                Rphx += Ftmp*z_charge[ion]*c[c_index(x-1,y,0,comp,ion,Nx,0,0)]*
-                                        (phi[phi_index(x,y,0,comp,Nx,0,0)]-phi[phi_index(x-1,y,0,comp,Nx,0,0)]);
-                            }
-                            //Add Second right moving difference
-                            if (x < Nx - 1) {
-                                //Second difference term
-                                Ftmp = z_charge[ion]*Dcs[c_index(x,y,0,comp,ion,Nx,0,0)*2]/(dx*dx);
-                                RcvxRight +=
-                                        Ftmp * (c[c_index(x+1,y,0,comp,ion,Nx,0,0)]-c[c_index(x,y,0,comp,
-                                                                                              ion,Nx,
-                                                                                              0,0)]);
-                                RphxRight += Ftmp*z_charge[ion]*c[c_index(x,y,0,comp,ion,Nx,0,0)]*
-                                             (phi[phi_index(x+1,y,0,comp,Nx,0,0)]-phi[phi_index(x,y,0,comp,
-                                                                                                Nx,0,0)]);
-                            }
-                            if (y > 0) {
-                                //Updown difference term
-                                Ftmp = z_charge[ion]*Dcs[c_index(x,y-1,0,comp,ion,Nx,0,0)*2+1]/(dy*dy);
-                                Rcvy += Ftmp * (c[c_index(x,y,0,comp,ion,Nx,0,0)]-c[c_index(x,y-1,0,comp,
-                                                                                            ion,Nx,
-                                                                                            0,0)]);
-                                Rphy += Ftmp*z_charge[ion]*c[c_index(x,y-1,0,comp,ion,Nx,0,0)]*
-                                        (phi[phi_index(x,y,0,comp,Nx,0,0)]-phi[phi_index(x,y-1,0,comp,Nx,0,0)]);
-                            }
-                            //Next upward difference
-                            if (y < Ny - 1) {
-                                Ftmp = z_charge[ion]*Dcs[c_index(x,y,0,comp,ion,Nx,0,0)*2+1]/(dy*dy);
-                                RcvyUp +=
-                                        Ftmp * (c[c_index(x,y+1,0,comp,ion,Nx,0,0)]-c[c_index(x,y,0,comp,
-                                                                                              ion,Nx,
-                                                                                              0,0)]);
-                                RcvyUp += Ftmp*z_charge[ion]*c[c_index(x,y,0,comp,ion,Nx,0,0)]*
-                                          (phi[phi_index(x,y+1,0,comp,Nx,0,0)]-phi[phi_index(x,y,0,comp,Nx,0,0)]);
-
-                            }
-                            if (comp == Nc - 1) {
-                                Ftmp = z_charge[ion] * sqrt(pow(Dcb[c_index(x,y,0,comp,ion,Nx,0,0)*2],2)+
-                                                            pow(Dcb[c_index(x,y,0,comp,ion,Nx,0,0)*2+1],2));
-                                RBath -= Ftmp * (c[c_index(x,y,0,comp,ion,Nx,0,0)]-cbath[ion]);
-                                RBath -= Ftmp*(c[c_index(x,y,0,comp,ion,Nx,0,0)]+cbath[ion])/2.0*
-                                         (z_charge[ion] * phi[phi_index(x,y,0,comp,Nx,0,0)]-z_charge[ion]*phibath);
-                            }
-                        }
-
-                        Fluxph[comp] += (Rphx - RphxRight + Rphy - RphyUp) * dx * dy;
-                        Fluxc[comp] += (Rcvx - RcvxRight + Rcvy - RcvyUp) * dx * dy;
-                        Fluxbath[comp] += RBath * dx * dy;
+                    Rcvz = 0;
+                    RcvzTop = 0;
+                    //Top Bottom difference
+                    if(z > 0){
+                        Rcvz = Dcs[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)*3+2]*
+                                (c[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)]+c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])/2;
+                        Rcvz = Rcvz*(log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])
+                                -log(c[c_index(x,y,z-1,comp,ion,Nx,Ny,Nz)])+z_charge[ion]
+                                *(phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z-1,comp,Nx,Ny,Nz)]))/dz/dz;
                     }
+                    //Next upward difference
+                    if(z < Nz-1){
+                        RcvzTop = Dcs[c_index(x,y,z,comp,ion,Nx,Ny,Nz)*3+2]*
+                                (c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]+c[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])/2;
+                        RcvzTop = RcvzTop*(log(c[c_index(x,y,z+1,comp,ion,Nx,Ny,Nz)])
+                                -log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)])+z_charge[ion]
+                                *(phi[phi_index(x,y,z+1,comp,Nx,Ny,Nz)]-phi[phi_index(x,y,z,comp,Nx,Ny,Nz)]))/dz/dz;
+                    }
+                    fprintf(fp,"%.10e,%.10e,",Rcvz-RcvzTop,user->flux->mflux[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]);
                 }
             }
+            fprintf(fp,"\n");
         }
-        fprintf(fp,"%.10e,%.10e,%.10e\n",Fluxc[Nc-1], Fluxph[Nc-1], Fluxbath[Nc-1]);
-
     }
 }
 void init_events(struct AppCtx *user)
@@ -1292,13 +1228,15 @@ void draw_csd(struct AppCtx *user)
     PetscInt Nx = user->Nx;
     PetscInt Ny = user->Ny;
     PetscInt Nz = user->Nz;
-    PetscInt z = 2;
-    printf("Layer: %d\n",z);
+//    PetscInt z = 2;
+    PetscInt x=0;
+//    printf("Layer: %d\n",z);
     for(PetscInt y=0;y<Ny;y++){
         printf("_");
     }
     printf("\n");
-    for(PetscInt x=0;x<Nx;x++){
+//    for(PetscInt x=0;x<Nx;x++){
+        for(PetscInt z=0;z<Nz;z++){
         printf("|");
         for(PetscInt y=0;y<Ny;y++){
             vm = user->state_vars->phi[phi_index(x,y,z,0,Nx,Ny,Nz)]-user->state_vars->phi[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)];

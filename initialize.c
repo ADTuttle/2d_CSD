@@ -179,7 +179,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
                 zetaadjust = 1; //modify glial permeability
                 for(PetscInt comp = 0; comp < Nc-1; comp++){
                     //based on B.E. Shapiro dissertation (2000)
-                    con_vars->zeta1[comp] = 5.4e-5;  //hydraulic permeability in cm/sec/(mmol/cm^3)
+                    con_vars->zeta1[comp] = 5.4e-8;//5.4e-5;  //hydraulic permeability in cm/sec/(mmol/cm^3)
                     con_vars->zeta1[comp] /= con_vars->ell[xy_index(x,y,z,Nx,Ny,Nz)];  //conversion to 1/sec/(mmol/cm^3)
                     //based on Strieter, Stephenson, Palmer,
                     //Weinstein, Journal or General Physiology, 1990.
@@ -358,7 +358,7 @@ PetscErrorCode initialize_petsc(struct Solver *slvr,int argc, char **argv,struct
     ierr = MPI_Comm_size(PETSC_COMM_WORLD,&slvr->size);CHKERRQ(ierr);
     //    Get Nx, Ny, and dt from options if possible
 
-    user->Nx = 3;
+    user->Nx = 1;
     user->Ny = 32;
     user->Nz = 16;
     user->dt =0.01;
