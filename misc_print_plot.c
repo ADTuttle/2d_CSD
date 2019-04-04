@@ -1185,7 +1185,7 @@ void calculate_energy(FILE *fp, struct AppCtx *user, PetscInt numrecords, int st
                     //Ionic contribution
                     for(comp = 0; comp < Nc-1; comp++){
                         //Immobile ion part
-                        Energy += user->con_vars->ao[comp]*log(user->con_vars->ao[comp])/al[al_index(x,y,z,comp,Nx,Ny,Nz)];
+                        Energy += user->con_vars->ao[al_index(x,y,z,comp,Nx,Ny,Nz)]*log(user->con_vars->ao[al_index(x,y,z,comp,Nx,Ny,Nz)])/al[al_index(x,y,z,comp,Nx,Ny,Nz)];
                         //Mobile ions
                         for(ion = 0; ion < Ni; ion++){
                             Energy += al[al_index(x,y,z,comp,Nx,Ny,Nz)]*c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*
@@ -1199,7 +1199,7 @@ void calculate_energy(FILE *fp, struct AppCtx *user, PetscInt numrecords, int st
                     comp = Nc-1;
                     alNc = 1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)];
                     //Immobile ion part
-                    Energy += user->con_vars->ao[comp]*log(user->con_vars->ao[comp])/(alNc);
+                    Energy += user->con_vars->ao[al_index(x,y,z,comp,Nx,Ny,Nz)]*log(user->con_vars->ao[al_index(x,y,z,comp,Nx,Ny,Nz)])/(alNc);
                     //Mobile ions
                     for(ion = 0; ion < Ni; ion++){
                         Energy += alNc*c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]*log(c[c_index(x,y,z,comp,ion,Nx,Ny,Nz)]);

@@ -261,9 +261,9 @@ void init_arrays(struct AppCtx*user)
     user->gexct->pGlu = (PetscReal*) malloc(Nx*Ny*Nz*sizeof(PetscReal));
 
     //Constant params
-    user->con_vars->ao = (PetscReal*) malloc(Nc*sizeof(PetscReal));
-    user->con_vars->zo = (PetscReal*) malloc(Nc*sizeof(PetscReal));
-    user->con_vars->zeta1 = (PetscReal*) malloc((Nc-1)*sizeof(PetscReal));
+    user->con_vars->ao = (PetscReal*) malloc(Nx*Ny*Nz*Nc*sizeof(PetscReal));
+    user->con_vars->zo = (PetscReal*) malloc(Nx*Ny*Nz*Nc*sizeof(PetscReal));
+    user->con_vars->zeta1 = (PetscReal*) malloc(Nx*Ny*Nz*(Nc-1)*sizeof(PetscReal));
     user->con_vars->zetaalpha = (PetscReal*) malloc((Nc-1)*sizeof(PetscReal));
     user->con_vars->cm = (PetscReal*) malloc((Nc-1)*Nx*Ny*Nz*sizeof(PetscReal));
     user->con_vars->ell = (PetscReal *) malloc(Nx*Ny*Nz*sizeof(PetscReal));
@@ -478,9 +478,9 @@ void parameter_dependence(struct AppCtx *user)
     con_vars->pNaLeak = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*Nz);
     con_vars->pNaLeakg = (PetscReal*)malloc(sizeof(PetscReal)*Nx*Ny*Nz);
 
-    con_vars->zo = (PetscReal*)malloc(sizeof(PetscReal)*Nc);
-    con_vars->ao = (PetscReal*)malloc(sizeof(PetscReal)*Nc);
-    con_vars->zeta1 = (PetscReal*)malloc(sizeof(PetscReal)*(Nc-1));
+//    con_vars->zo = (PetscReal*)malloc(sizeof(PetscReal)*Nc*Nx*Ny*Nz);
+//    con_vars->ao = (PetscReal*)malloc(sizeof(PetscReal)*Nc*Nx*Ny*Nz);
+//    con_vars->zeta1 = (PetscReal*)malloc(sizeof(PetscReal)*(Nc-1)*Nx*Ny*Nz);
 
 
 }

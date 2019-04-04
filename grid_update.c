@@ -358,7 +358,7 @@ PetscErrorCode Grid_Residual(Vec Res,PetscInt xi,PetscInt yi,void *ctx)
     grid_ionmflux(user,xi,yi);
 
     //Compute membrane water flow related quantities
-    grid_wflowm(user);
+    grid_wflowm(user,0,0);
 
     PetscReal *c = user->grid_vars->c;
     PetscReal *phi = user->grid_vars->phi;
@@ -1096,7 +1096,7 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
     grid_ionmflux(user,xi,yi);
 
     //Compute membrane water flow related quantities
-    grid_wflowm(user);
+    grid_wflowm(user,0,0);
 
     PetscReal *c = user->grid_vars->c;
     PetscReal *phi = user->grid_vars->phi;
@@ -1281,8 +1281,8 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
                 //Residual for electroneutrality condition
                 for(comp = 0; comp < Nc-1; comp++){
                     Resc = al[al_index(x,y,z,comp,Nx,Ny,Nz)]*cz(c,z_charge,x,y,z,Nx,Ny,Nz,comp,user)+
-                           user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny,Nz)]*
-                           user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)];
+                           user->con_vars->zo[phi_index(x,y,z,comp,Nx,Ny,Nz)]*
+                           user->con_vars->ao[phi_index(x,y,z,comp,Nx,Ny,Nz)];
                     ierr = VecSetValue(Res,Ind_2(x,y,z,Ni,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                     CHKERRQ(ierr);
                 }
@@ -1290,7 +1290,7 @@ PetscErrorCode Grid_Residual_algebraic(Vec Res,PetscInt xi,PetscInt yi,void *ctx
                 comp = Nc-1;
                 Resc = (1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)])*
                        cz(c,z_charge,x,y,z,Nx,Ny,Nz,comp,user)+
-                       user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny,Nz)]*user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)];
+                       user->con_vars->zo[phi_index(x,y,z,comp,Nx,Ny,Nz)]*user->con_vars->ao[phi_index(x,y,z,comp,Nx,Ny,Nz)];
                 ierr = VecSetValue(Res,Ind_2(x,y,z,Ni,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                 CHKERRQ(ierr);
 
@@ -1733,9 +1733,9 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                 for(comp = 0; comp < Nc-1; comp++){
                     //Water flow volume fraction entries
                     //Volume to Volume
-                    Ac = 1+(flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*(con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                    Ac = 1+(flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*(con_vars->ao[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)]/
                                                                        (pow(1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)],2))+
-                                                                     con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)]/pow(al[al_index(x,y,z,comp,Nx,Ny,Nz)],2))+
+                                                                     con_vars->ao[phi_index(x,y,z,comp,Nx,Ny,Nz)]/pow(al[al_index(x,y,z,comp,Nx,Ny,Nz)],2))+
                             flux->dwdal[al_index(x,y,z,comp,Nx,Ny,Nz)])*dt;
                     ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_2(x,y,z,
                                                                                 Ni+1,comp,Nx,Ny,Nz),Ac,INSERT_VALUES);
@@ -1744,7 +1744,7 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                     //Off diagonal (from aNc=1-sum(ak))
                     for(PetscInt l = 0; l < comp; l++){
                         ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_2(x,y,z,Ni+1,l,Nx,Ny,Nz),
-                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                                           flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*con_vars->ao[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)]/
                                            pow(1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)],2)*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
                         ind++;
@@ -1752,7 +1752,7 @@ Grid_Jacobian_algebraic(Mat Jac,PetscInt xi, PetscInt yi,void *ctx)
                     for(PetscInt l = comp+1; l < Nc-1; l++){
                         ierr = MatSetValue(Jac,Ind_2(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_2(x,y,z,Ni+1,l,Nx,Ny,Nz),
                                            flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*
-                                           con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                                           con_vars->ao[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)]/
                                            ((1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)])*
                                             (1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)]))*dt,INSERT_VALUES);
                         CHKERRQ(ierr);

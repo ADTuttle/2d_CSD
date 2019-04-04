@@ -150,7 +150,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
 
                 //Compute resting organic anion amounts and average valences
                 //set extracellular organic anion amounts and valence to ensure electroneutrality
-                con_vars->ao[Nc-1] = 5e-4;
+                con_vars->ao[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)] = 5e-4;
                 alNc = 1-alpha[al_index(x,y,z,0,Nx,Ny,Nz)]-alpha[al_index(x,y,z,1,Nx,Ny,Nz)];
                 cmphi[Nc-1] = 0; //initializing extracell cmphi
 
@@ -163,12 +163,13 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
                     for(PetscInt ion = 0; ion < Ni; ion++){
                         osmotic += c[c_index(x,y,z,Nc-1,ion,Nx,Ny,Nz)]-c[c_index(x,y,z,k,ion,Nx,Ny,Nz)];
                     }
-                    con_vars->ao[k] = alpha[al_index(x,y,z,k,Nx,Ny,Nz)]*(con_vars->ao[Nc-1]/alNc+osmotic);
+                    con_vars->ao[phi_index(x,y,z,k,Nx,Ny,Nz)] = alpha[al_index(x,y,z,k,Nx,Ny,Nz)]*(con_vars->ao[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)]/alNc+osmotic);
                     //set average valence to ensure electroneutrality
-                    con_vars->zo[k] =
+                    con_vars->zo[phi_index(x,y,z,k,Nx,Ny,Nz)] =
                             (-cz(c,z_charge,x,y,z,Nx,Ny,Nz,k,user)*alpha[al_index(x,y,z,k,Nx,Ny,Nz)]+cmphi[k])/con_vars->ao[k];
                 }
-                con_vars->zo[Nc-1] = (-cz(c,z_charge,x,y,z,Nx,Ny,Nz,Nc-1,user)*alNc-cmphi[Nc-1])/con_vars->ao[Nc-1];
+                con_vars->zo[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)] = (-cz(c,z_charge,x,y,z,Nx,Ny,Nz,Nc-1,user)
+                        *alNc-cmphi[Nc-1])/con_vars->ao[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)];
 
                 //Set kappa to 0 for no flow
                 con_vars->kappa = 0;
@@ -179,8 +180,8 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
                 zetaadjust = 1; //modify glial permeability
                 for(PetscInt comp = 0; comp < Nc-1; comp++){
                     //based on B.E. Shapiro dissertation (2000)
-                    con_vars->zeta1[comp] = 5.4e-8;//5.4e-5;  //hydraulic permeability in cm/sec/(mmol/cm^3)
-                    con_vars->zeta1[comp] /= con_vars->ell[xy_index(x,y,z,Nx,Ny,Nz)];  //conversion to 1/sec/(mmol/cm^3)
+                    con_vars->zeta1[al_index(x,y,z,comp,Nx,Ny,Nz)] = 5.4e-5;  //hydraulic permeability in cm/sec/(mmol/cm^3)
+                    con_vars->zeta1[al_index(x,y,z,comp,Nx,Ny,Nz)] /= con_vars->ell[xy_index(x,y,z,Nx,Ny,Nz)];  //conversion to 1/sec/(mmol/cm^3)
                     //based on Strieter, Stephenson, Palmer,
                     //Weinstein, Journal or General Physiology, 1990.
                     //zeta=7e-8%6e-10%hydraulic permeability in cm/sec/mmHg
@@ -188,7 +189,7 @@ void set_params(Vec state,struct SimState* state_vars,struct ConstVars* con_vars
                     //zeta=zeta*R*T%conversion to cm/sec/(mmol/cm^3)
                     //zeta=zeta/ell%conversion to 1/sec/(mmol/cm^3)
                     if(comp == 1){          //parameter for varying glial hydraulic permeability
-                        con_vars->zeta1[comp] *= zetaadjust; //adjust glial hydraulic permeability
+                        con_vars->zeta1[al_index(x,y,z,comp,Nx,Ny,Nz)] *= zetaadjust; //adjust glial hydraulic permeability
                     }
                     con_vars->zetaalpha[comp] = 0;  //stiffness constant or 1/stiffness constant
                 }

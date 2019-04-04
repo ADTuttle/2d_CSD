@@ -1016,9 +1016,9 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                 for(comp = 0; comp < Nc-1; comp++){
                     //Water flow volume fraction entries
                     //Volume to Volume
-                    Ac = 1+(flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*(con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                    Ac = 1+(flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*(con_vars->ao[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)]/
                                                                        (pow(1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)],2))+
-                                                                     con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)]/pow(al[al_index(x,y,z,comp,Nx,Ny,Nz)],2))+
+                                                                     con_vars->ao[phi_index(x,y,z,comp,Nx,Ny,Nz)]/pow(al[al_index(x,y,z,comp,Nx,Ny,Nz)],2))+
                             flux->dwdal[al_index(x,y,z,comp,Nx,Ny,Nz)])*dt;
                     ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,
                                                                                 Ni+1,comp,Nx,Ny,Nz),Ac,INSERT_VALUES);
@@ -1028,7 +1028,7 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                     for(PetscInt l = 0; l < comp; l++){
                         ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni+1,l,Nx,Ny,Nz),
                                            flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*
-                                           con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                                           con_vars->ao[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)]/
                                            pow(1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)],2)*dt,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
@@ -1037,7 +1037,7 @@ calc_jacobian(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx)
                     for(PetscInt l = comp+1; l < Nc-1; l++){
                         ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni+1,l,Nx,Ny,Nz),
                                            flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*
-                                           con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                                           con_vars->ao[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)]/
                                            ((1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)])*
                                             (1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)]))*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
@@ -2192,8 +2192,8 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
                 //Residual for electroneutrality condition
                 for(comp = 0; comp < Nc-1; comp++){
                     Resc = al[al_index(x,y,z,comp,Nx,Ny,Nz)]*cz(c,z_charge,x,y,z,Nx,Ny,Nz,comp,user)+
-                           user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny,Nz)]*
-                           user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)];
+                           user->con_vars->zo[phi_index(x,y,z,comp,Nx,Ny,Nz)]*
+                           user->con_vars->ao[phi_index(x,y,z,comp,Nx,Ny,Nz)];
                     ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                     CHKERRQ(ierr);
                 }
@@ -2201,7 +2201,7 @@ PetscErrorCode calc_residual_algebraic(SNES snes,Vec current_state,Vec Res,void 
                 comp = Nc-1;
                 Resc = (1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)])*
                        cz(c,z_charge,x,y,z,Nx,Ny,Nz,comp,user)+
-                       user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny,Nz)]*user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)];
+                       user->con_vars->zo[phi_index(x,y,z,comp,Nx,Ny,Nz)]*user->con_vars->ao[phi_index(x,y,z,comp,Nx,Ny,Nz)];
                 ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                 CHKERRQ(ierr);
 
@@ -2651,9 +2651,9 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx){
                 for(comp = 0; comp < Nc-1; comp++){
                     //Water flow volume fraction entries
                     //Volume to Volume
-                    Ac = 1+(flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*(con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                    Ac = 1+(flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*(con_vars->ao[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)]/
                                                                        (pow(1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)],2))+
-                                                                     con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)]/pow(al[al_index(x,y,z,comp,Nx,Ny,Nz)],2))+
+                                                                     con_vars->ao[phi_index(x,y,z,comp,Nx,Ny,Nz)]/pow(al[al_index(x,y,z,comp,Nx,Ny,Nz)],2))+
                             flux->dwdal[al_index(x,y,z,comp,Nx,Ny,Nz)])*dt;
                     ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,
                                                                                 Ni+1,comp,Nx,Ny,Nz),Ac,INSERT_VALUES);
@@ -2663,7 +2663,7 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx){
                     for(PetscInt l = 0; l < comp; l++){
                         ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni+1,l,Nx,Ny,Nz),
                                            flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*
-                                           con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                                           con_vars->ao[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)]/
                                            pow(1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)],2)*dt,
                                            INSERT_VALUES);
                         CHKERRQ(ierr);
@@ -2672,7 +2672,7 @@ calc_jacobian_algebraic(SNES snes,Vec current_state, Mat A, Mat Jac,void *ctx){
                     for(PetscInt l = comp+1; l < Nc-1; l++){
                         ierr = MatSetValue(Jac,Ind_1(x,y,z,Ni+1,comp,Nx,Ny,Nz),Ind_1(x,y,z,Ni+1,l,Nx,Ny,Nz),
                                            flux->dwdpi[al_index(x,y,z,comp,Nx,Ny,Nz)]*
-                                           con_vars->ao[phi_index(0,0,0,Nc-1,Nx,Ny,Nz)]/
+                                           con_vars->ao[phi_index(x,y,z,Nc-1,Nx,Ny,Nz)]/
                                            ((1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)])*
                                             (1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)]))*dt,INSERT_VALUES);
                         CHKERRQ(ierr);
@@ -2904,8 +2904,8 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
                 //Residual for electroneutrality condition
                 for(comp = 0; comp < Nc-1; comp++){
                     Resc = al[al_index(x,y,z,comp,Nx,Ny,Nz)]*cz(c,z_charge,x,y,z,Nx,Ny,Nz,comp,user)+
-                           user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny,Nz)]*
-                           user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)];
+                           user->con_vars->zo[phi_index(x,y,z,comp,Nx,Ny,Nz)]*
+                           user->con_vars->ao[phi_index(x,y,z,comp,Nx,Ny,Nz)];
                     ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                     CHKERRQ(ierr);
                 }
@@ -2913,7 +2913,7 @@ PetscErrorCode calc_residual_algebraic_no_vol(SNES snes,Vec current_state,Vec Re
                 comp = Nc-1;
                 Resc = (1-al[al_index(x,y,z,0,Nx,Ny,Nz)]-al[al_index(x,y,z,1,Nx,Ny,Nz)])*
                        cz(c,z_charge,x,y,z,Nx,Ny,Nz,comp,user)+
-                       user->con_vars->zo[phi_index(0,0,0,comp,Nx,Ny,Nz)]*user->con_vars->ao[phi_index(0,0,0,comp,Nx,Ny,Nz)];
+                       user->con_vars->zo[phi_index(x,y,z,comp,Nx,Ny,Nz)]*user->con_vars->ao[phi_index(x,y,z,comp,Nx,Ny,Nz)];
                 ierr = VecSetValue(Res,Ind_1(x,y,z,Ni,comp,Nx,Ny,Nz),Resc,INSERT_VALUES);
                 CHKERRQ(ierr);
             }

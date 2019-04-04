@@ -102,7 +102,7 @@ PetscErrorCode calc_jacobian_linear_deriv(SNES, Vec, Mat,Mat, void*); //void is 
 
 
 //Functions used in Grid solves
-void grid_wflowm(struct AppCtx *);
+void grid_wflowm(struct AppCtx *,PetscInt xi,PetscInt yi);
 void grid_ionmflux(struct AppCtx*,PetscInt,PetscInt);
 void gatevars_update_grid(struct GateType *,struct SimState *,PetscReal ,struct AppCtx *);
 void excitation_grid(struct AppCtx* ,PetscReal ,PetscInt, PetscInt);
