@@ -178,7 +178,7 @@ int main(int argc, char **argv)
     PetscOptionsGetReal(NULL,NULL,"-nmda",&NMDA_Mult,NULL);
     PetscOptionsGetReal(NULL,NULL,"-nap",&NaP_Mult,NULL);
 
-    PetscInt Steps = 0;
+    PetscInt Steps = 1;
     PetscOptionsGetInt(NULL,NULL,"-mult_step",&Steps,NULL);
     printf("NaP: %f, NMDA: %f, Steps: %d\n",NaP_Mult,NMDA_Mult,Steps);
 

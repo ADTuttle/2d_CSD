@@ -38,8 +38,8 @@ static const   PetscReal D[4] = {1.33e-5, 1.96e-5, 2.03e-5,7.6e-6};      //diffu
 static const PetscReal DNeuronMult[2] = {0,0};
 static const PetscReal DGliaMult[2] = {0.25,0.25};
 static const PetscReal DExtraMult[2] = {1.0,1.0};
-#define Time 360.0   //total simulated time in seconds
-//#define  Time  60.0//2e-2
+//#define Time 360.0   //total simulated time in seconds
+#define  Time  180.0//2e-2
 #define   Nc 3           //number of compartments
 //#define Lx 0.32        //width of domain in cm (x)
 //#define Ly 0.32         //length of domain in cm (y)
@@ -73,7 +73,7 @@ static const PetscReal cbath[4]={140*1e-3,3.4*1e-3,120*1e-3,1e-8}; //Na, K, Cl, 
 
 //excitation parameters
 //#define pmax  (1e-1/3)          //max value for excitation
-#define pmax  (1e1)          //max value for excitation
+#define pmax  0// (1e1)          //max value for excitation
 //#define pmax  50          //max value for excitation
 //#define texct 2         //time for excitation
 #define texct 0.5
@@ -106,7 +106,7 @@ static const PetscReal cm[2] ={cmt*RTFC/FC/ell,cmt*RTFC/FC/ell};     //membrane 
 #define basepNaP  2e-5 //8e-6 //2e-5
 #define basepKDR  1e-3
 #define basepKA  1e-4
-#define basepNMDA  3e-6 //1e-6//1e-7//5e-5           //NMDA permeability (cm/sec)
+#define basepNMDA  1e-5 //3e-6 //1e-6//1e-7//5e-5           //NMDA permeability (cm/sec)
 
 //Leak conductances in mS/cm^2 from Kager, 2000 or Yao, Huang, Miura, 2011.
 #define pKLeak  (7e-2*RTFC/FC)     //Kager:10e-2,Miura:7e-2%K Leak conductance in mS/cm^2 converted to mmol/cm^2/s
