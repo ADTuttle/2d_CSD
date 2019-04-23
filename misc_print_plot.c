@@ -789,15 +789,16 @@ void read_file(struct AppCtx *user)
     } else{
         //Read top file details
         fgets(line, 1024 * 1024, fp);
+        tmp = (char*)malloc(sizeof(char)*1024*1024);
+        strcpy(tmp,line);
 
-        tmp = strdup(line);
 
         Nx = atoi(getfield(tmp, 1));
 
-        tmp = strdup(line);
+        strcpy(tmp,line);
         Ny = atoi(getfield(tmp, 2));
 
-        tmp = strdup(line);
+        strcpy(tmp,line);
         numrecords = atoi(getfield(tmp, 3));
 
 
@@ -824,7 +825,7 @@ void read_file(struct AppCtx *user)
                 fgets(line, 1024 * 1024, fp);
                 for (y = 0; y < Ny; y++) {
                     for (x = 0; x < Nx; x++) {
-                        tmp = strdup(line);
+                        strcpy(tmp,line);
                         state_vars->c[c_index(x, y, comp, ion, Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
                     }
                 }
@@ -834,7 +835,7 @@ void read_file(struct AppCtx *user)
             fgets(line, 1024 * 1024, fp);
             for (y = 0; y < Ny; y++) {
                 for (x = 0; x < Nx; x++) {
-                    tmp = strdup(line);
+                    strcpy(tmp,line);
                     state_vars->phi[phi_index(x, y, comp, Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
                 }
             }
@@ -843,7 +844,7 @@ void read_file(struct AppCtx *user)
             fgets(line, 1024 * 1024, fp);
             for (y = 0; y < Ny; y++) {
                 for (x = 0; x < Nx; x++) {
-                    tmp = strdup(line);
+                    strcpy(tmp,line);
                     state_vars->alpha[al_index(x, y, comp, Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
                 }
             }
@@ -852,70 +853,70 @@ void read_file(struct AppCtx *user)
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
-                tmp = strdup(line);
+                strcpy(tmp,line);
                 gate_vars->mNaT[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
-                tmp = strdup(line);
+                strcpy(tmp,line);
                 gate_vars->hNaT[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
-                tmp = strdup(line);
+                strcpy(tmp,line);
                 gate_vars->mNaP[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
-                tmp = strdup(line);
+                strcpy(tmp,line);
                 gate_vars->hNaP[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
-                tmp = strdup(line);
+                strcpy(tmp,line);
                 gate_vars->mKDR[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
-                tmp = strdup(line);
+                strcpy(tmp,line);
                 gate_vars->mKA[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
-                tmp = strdup(line);
+                strcpy(tmp,line);
                 gate_vars->hKA[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
-                tmp = strdup(line);
+                strcpy(tmp,line);
                 gate_vars->yNMDA[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
-                tmp = strdup(line);
+                strcpy(tmp,line);
                 gate_vars->zNMDA[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
             }
         }
         fgets(line, 1024 * 1024, fp);
         for (y=0;y<Ny;y++){
             for(x=0;x<Nx;x++){
-                tmp = strdup(line);
+                strcpy(tmp,line);
                 gate_vars->dNMDA[xy_index(x,y,Nx)] = atof(getfield(tmp, xy_index(x, y, Nx) + 1));
             }
         }

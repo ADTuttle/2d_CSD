@@ -16,8 +16,8 @@
 #define plane_wave_exct 1 //if true, initiates a uniform plane wave
 #define Profiling_on 0 //Turns timing of functions on/off.
 #define trecordstep 0.5 //determines how often to record
-#define save_one_var 1 //Instead of saving all 14 vars, save just 1 (specified in write_data)
-#define start_at_steady 0 //Start at steady state?
+#define save_one_var 0 //Instead of saving all 14 vars, save just 1 (specified in write_data)
+#define start_at_steady 1 //Start at steady state?
 
 // Behaviour
 #define Spiral 1 // If true will setup spiral
