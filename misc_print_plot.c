@@ -357,9 +357,17 @@ void record_measurements(FILE **fp_measures,struct AppCtx *user,PetscInt count,P
 //            calculate_measures(fp_measures[2],user,numrecords,start);
             calculate_energy(fp_measures[2],user,numrecords,start);
         }else{
-            fp_measures[0] = fopen("flux_csd.txt", "a");
-            fp_measures[1] = fopen("grad_field.txt", "a");
-            fp_measures[2] = fopen("measures.txt", "a");
+//            fp_measures[0] = fopen("flux_csd.txt", "a");
+//            fp_measures[1] = fopen("grad_field.txt", "a");
+//            fp_measures[2] = fopen("measures.txt", "a");
+            fp_measures[0] = fopen("flux_csd.txt", "w");
+            fp_measures[1] = fopen("grad_field.txt", "w");
+            fp_measures[2] = fopen("measures.txt", "w");
+
+            measure_flux(fp_measures[0],user,numrecords,start);
+            velocity_field(fp_measures[1],user,numrecords,start);
+//            calculate_measures(fp_measures[2],user,numrecords,start);
+            calculate_energy(fp_measures[2],user,numrecords,start);
         }
     } else{
         measure_flux(fp_measures[0],user,numrecords,start);
@@ -1163,7 +1171,7 @@ void calculate_energy(FILE *fp, struct AppCtx *user, PetscInt numrecords, int st
         PetscInt Nx = user->Nx;
         PetscInt Ny = user->Ny;
 
-        PetscScalar Energy,alNc;
+        PetscScalar Energy,alNc,Pump,Work_Pump,K,Na;
         PetscInt comp,ion;
         for(PetscInt y=0;y<Ny;y++){
             for(PetscInt x=0;x<Nx;x++){
@@ -1178,6 +1186,8 @@ void calculate_energy(FILE *fp, struct AppCtx *user, PetscInt numrecords, int st
                     }
                     //ElectroPotential part
                     Energy += (cm[comp]/2)*pow((phi[phi_index(x,y,comp,Nx)]-phi[phi_index(x,y,Nc-1,Nx)])*RTFC,2);
+
+
                 }
                 //Extracellular ion term
                 comp = Nc-1;
@@ -1188,11 +1198,36 @@ void calculate_energy(FILE *fp, struct AppCtx *user, PetscInt numrecords, int st
                 for(ion=0;ion<Ni;ion++){
                     Energy +=alNc*c[c_index(x,y,comp,ion,Nx)]*log(c[c_index(x,y,comp,ion,Nx)]);
                 }
+
+                // Neuron Portion
+                comp=0;
+                Na = c[c_index(x,y,comp,0,Nx)];
+                K = c[c_index(x,y,Nc-1,1,Nx)];
+                Pump=npump*user->con_vars->Imax[xy_index(x,y,Nx)]/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
+
+                // Sodium
+                Work_Pump = 2*Pump*(Rc*T*log(c[c_index(x,y,comp,0,Nx)]/c[c_index(x,y,Nc-1,0,Nx)])+FC*((phi[phi_index(x,y,comp,Nx)]-phi[phi_index(x,y,Nc-1,Nx)])*RTFC));
+                // Potassium
+                Work_Pump+=-3*Pump*(Rc*T*log(c[c_index(x,y,comp,1,Nx)]/c[c_index(x,y,Nc-1,1,Nx)])+FC*((phi[phi_index(x,y,comp,Nx)]-phi[phi_index(x,y,Nc-1,Nx)])*RTFC));
+
+                //Glial Portion
+                comp=1;
+                Na = c[c_index(x,y,comp,0,Nx)];
+                Pump=glpump*user->con_vars->Imaxg[xy_index(x,y,Nx)]/(pow(1+mK/K,2)*pow(1+mNa/Na,3));
+
+                // Sodium
+                Work_Pump += 2*Pump*(Rc*T*log(c[c_index(x,y,comp,0,Nx)]/c[c_index(x,y,Nc-1,0,Nx)])+FC*((phi[phi_index(x,y,comp,Nx)]-phi[phi_index(x,y,Nc-1,Nx)])*RTFC));
+                // Potassium
+                Work_Pump+=-3*Pump*(Rc*T*log(c[c_index(x,y,comp,1,Nx)]/c[c_index(x,y,Nc-1,1,Nx)])+FC*((phi[phi_index(x,y,comp,Nx)]-phi[phi_index(x,y,Nc-1,Nx)])*RTFC));
+
+
                 //Write to file
                 if (x == Nx - 1 & y == Ny - 1) {
-                    fprintf(fp, "%.10e\n", Energy);
+//                    fprintf(fp, "%.10e\n", Energy);
+                    fprintf(fp, "%.10e\n", Work_Pump);
                 } else {
-                    fprintf(fp, "%.10e,", Energy);
+//                    fprintf(fp, "%.10e,", Energy);
+                    fprintf(fp, "%.10e,", Work_Pump);
                 }
 
             }
