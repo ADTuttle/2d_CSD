@@ -1155,7 +1155,7 @@ void calculate_measures(FILE *fp, struct AppCtx *user,PetscInt numrecords,int st
 void calculate_energy(FILE *fp, struct AppCtx *user, PetscInt numrecords, int start){
     if (start) {
         fprintf(fp, "%d,%d,%d,%d,%d\n", user->Nx, user->Ny, numrecords, 0, 0);
-        write_data(fp, user, numrecords, 0);
+        calculate_energy(fp, user, numrecords, 0);
     }else{
         PetscScalar *c = user->state_vars->c;
         PetscScalar *phi = user->state_vars->phi;
