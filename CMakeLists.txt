@@ -30,13 +30,13 @@ SET( CMAKE_EXE_LINKER_FLAGS  "-O3 -Wall -march=native -mtune=native" )
 #link_directories(/Users/Austin/Documents/C_Progs/petsc-3.8.2/arch-darwin-c-debug/lib/
 #        /opt/X11/lib/
 #)
-include_directories(/Users/Austin/Documents/C_Progs/petsc-3.9.1/include/
-        /Users/Austin/Documents/C_Progs/petsc-3.9.1/arch-darwin-c-opt/include/
+include_directories(/Users/Austin/Documents/C_Progs/petsc-3.11.2/include/
+        /Users/Austin/Documents/C_Progs/petsc-3.11.2/arch-darwin-c-opt/include/
         /opt/X11/include/
-        /Users/Austin/Documents/C_Progs/petsc-3.9.1/include/petsc/mpiuni/
-        /Users/Austin/Documents/C_Progs/petsc-3.9.1/arch-darwin-c-opt/include/petscconf.h
+        /Users/Austin/Documents/C_Progs/petsc-3.11.2/include/petsc/mpiuni/
+        /Users/Austin/Documents/C_Progs/petsc-3.11.2/arch-darwin-c-opt/include/petscconf.h
         )
-link_directories(/Users/Austin/Documents/C_Progs/petsc-3.9.1/arch-darwin-c-opt/lib/
+link_directories(/Users/Austin/Documents/C_Progs/petsc-3.11.2/arch-darwin-c-opt/lib/
         /opt/X11/lib/
         )
 

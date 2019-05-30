@@ -90,7 +90,7 @@ void glutamate_flux(struct FluxData *flux,PetscInt x,PetscInt y,struct SimState 
     PetscReal expo = 0.76e-3*exp(-0.0044*pow(vn*RTFC-8.66,2));
 
     //Neuronal portion
-    flux->mflux[c_index(x,y,0,3,Nx)] = -(-glut_A*Glu_n*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*Glu_gp)+
+    flux->mflux[c_index(x,y,0,3,Nx)] = -(-glut_A*Glu_n*frac*expo+glut_gamma*glut_Bn*(ce-glut_Re*glut_Rg*Glu_np)+ //(ce-glut_Re*Glu_gp)+
                                             glut_Bg*(Glu_gp-glut_Rg*Glu_np)-Glut_Excite);
     flux->dfdci[c_index(x,y,0,3,Nx)] = -(-glut_A*expo*glut_eps*pow(frac,2));
     flux->dfdce[c_index(x,y,0,3,Nx)] = 0;
